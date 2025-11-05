@@ -1,9 +1,10 @@
 import { AutoRouter } from "itty-router";
 import { verifyKey } from "./discordVerify";
-import { isChatInputCommandInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
+import { isChatInputCommandInteraction, isMessageComponentInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
 import { APIInteraction, APIWebhookEvent, ApplicationCommandType, InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { handleCommand } from "./commands";
 import { webhookHandler } from "./webhook";
+import { handleComponentInteraction } from "./components";
 
 const router = AutoRouter();
 
@@ -35,12 +36,14 @@ router.post("/", async (req, env: Env) => {
       } else if (isModalInteraction(interaction)) {
         // Handle modal submissions here if needed
         return sendMessage("Modal submission received!", true);
+      } else if (isMessageComponentInteraction(interaction)) {
+        return handleComponentInteraction(interaction, env);
       }
     }
   }
 });
 
-router.post("/discord.webhook", async (req, env: Env) => {
+router.post("/discord-webhook", async (req, env: Env) => {
   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
   if (!isValid || !event) {
     return new Response("Bad request signature.", { status: 401 });

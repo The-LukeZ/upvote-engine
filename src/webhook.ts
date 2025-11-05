@@ -1,6 +1,5 @@
 import { IRequest } from "itty-router";
 import { topggVerify } from "./topggVerify";
-import { JsonResponse } from "./utils";
 import { WebhookSecret } from "../types";
 
 export async function webhookHandler(req: IRequest, env: Env) {
