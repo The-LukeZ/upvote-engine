@@ -52,5 +52,13 @@
 				"queue": "my-queue"
 			}
 		]
-	}
+	},
+	"d1_databases": [
+		{
+			"binding": "vote_handler",
+			"database_name": "vote_handler",
+			"database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
+			"remote": true
+		}
+	]
 }
