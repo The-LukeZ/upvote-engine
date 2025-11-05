@@ -9,7 +9,15 @@
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
+		"@types/node": "^24.10.0",
 		"typescript": "^5.5.2",
 		"wrangler": "^4.45.4"
+	},
+	"dependencies": {
+		"@discordjs/builders": "^1.13.0",
+		"@discordjs/rest": "^2.6.0",
+		"discord-api-types": "^0.38.32",
+		"discord-interactions": "^4.4.0",
+		"itty-router": "^5.0.22"
 	}
 }
