@@ -167,4 +167,6 @@ dist
 .wrangler/
 
 # drizzle
-drizzle/migrations/
+drizzle/migrations/meta
+drizzle/.env
+drizzle/snapshot.json
