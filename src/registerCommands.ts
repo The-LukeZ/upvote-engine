@@ -1,44 +1,8 @@
+import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
-import {
-  RESTPostAPIChatInputApplicationCommandsJSONBody,
-  RESTPutAPIApplicationCommandsResult,
-  Routes,
-} from "discord-api-types/v10";
+import { RESTPostAPIChatInputApplicationCommandsJSONBody, RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
 
-const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
-  {
-    name: "config",
-    description: "Configure the bot for this server",
-    options: [
-      {
-        type: 1, // SUB_COMMAND
-        name: "role",
-        description: "Set the vote role for this server",
-        options: [
-          {
-            type: 8, // ROLE
-            name: "role",
-            description: "The role to assign to voters",
-            required: true,
-          },
-        ],
-      },
-      {
-        type: 1, // SUB_COMMAND
-        name: "duration",
-        description: "Set the duration for the vote role in seconds",
-        options: [
-          {
-            type: 4, // INTEGER
-            name: "seconds",
-            description: "Duration in seconds before the role expires",
-            required: true,
-          },
-        ],
-      },
-    ],
-  },
-];
+const commands: SlashCommandBuilder[] = [new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!")];
 
 /**
  * This file is meant to be run from the command line, and is not used by the

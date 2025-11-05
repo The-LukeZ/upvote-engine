@@ -1,4 +1,9 @@
-import { APIInteractionResponse } from "discord-api-types/v10";
+import {
+  APIInteractionResponse,
+  APIInteractionResponseCallbackData,
+  APIInteractionResponseChannelMessageWithSource,
+  InteractionResponseType,
+} from "discord-api-types/v10";
 
 export class JsonResponse extends Response {
   constructor(body: any, init?: ResponseInit) {
@@ -16,4 +21,21 @@ export class APIResponse extends JsonResponse {
   constructor(data: APIInteractionResponse, init?: ResponseInit) {
     super(data, init);
   }
+}
+
+export function sendMessage(data: APIInteractionResponseCallbackData, forceEphemeral = true) {
+  return new APIResponse({
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: {
+      ...data,
+      flags: forceEphemeral ? (data.flags || 0) | 64 : data.flags,
+    },
+  });
+}
+
+export function editMessage(data: APIInteractionResponseCallbackData) {
+  return new APIResponse({
+    type: InteractionResponseType.UpdateMessage,
+    data: data,
+  });
 }
