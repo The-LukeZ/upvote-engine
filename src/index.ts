@@ -1,40 +1,69 @@
+import { AutoRouter } from "itty-router";
+import { verifyKey } from "./discordVerify";
+import { APIResponse, JsonResponse } from "./utils";
+import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+
+const router = AutoRouter();
+
+router.get("/", (_req, env: Env) => {
+  return new Response(`👋 ${env.DISCORD_APP_ID}`);
+});
 /**
- * Welcome to Cloudflare Workers!
- *
- * This is a template for a Queue consumer: a Worker that can consume from a
- * Queue: https://developers.cloudflare.com/queues/get-started/
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
+ * Main route for all requests sent from Discord.  All incoming messages will
+ * include a JSON payload described here:
+ * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
  */
+router.post("/", async (req, env: Env) => {
+  const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
+  if (!isValid || !interaction) {
+    return new Response("Bad request signature.", { status: 401 });
+  }
+
+  console.log("Received event:", interaction);
+  // Handle Discord PING requests
+  switch (interaction.type) {
+    case InteractionType.Ping: {
+      console.log("Received Discord PING request");
+      return new JsonResponse({
+        type: InteractionResponseType.Pong,
+      });
+    }
+    case InteractionType.ApplicationCommand: {
+      console.log("Received application command:", interaction.data.name);
+
+      return new APIResponse({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          content: `You invoked the \`${interaction.data.name}\` command!`,
+          flags: 64, // EPHEMERAL
+        },
+      });
+    }
+  }
+});
+router.all("*", () => new Response("Not Found.", { status: 404 }));
+
+async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: Request, env: Env) {
+  const signature = req.headers.get("x-signature-ed25519");
+  const timestamp = req.headers.get("x-signature-timestamp");
+  const body = await req.clone().text();
+  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY));
+  if (!isValidRequest) {
+    return { isValid: false };
+  }
+
+  return { interaction: JSON.parse(body) as T, isValid: true };
+}
+
+const server = {
+  verifyDiscordRequest,
+  fetch: router.fetch,
+};
 
 export default {
-  // Our fetch handler is invoked on a HTTP request: we can send a message to a queue
-  // during (or after) a request.
-  // https://developers.cloudflare.com/queues/platform/javascript-apis/#producer
-  async fetch(req, env, ctx): Promise<Response> {
-    // To send a message on a queue, we need to create the queue first
-    // https://developers.cloudflare.com/queues/get-started/#3-create-a-queue
-    await env.MY_QUEUE.send({
-      url: req.url,
-      method: req.method,
-      headers: Object.fromEntries(req.headers),
-    });
-    return new Response("Sent message to the queue");
-  },
-  // The queue handler is invoked when a batch of messages is ready to be delivered
-  // https://developers.cloudflare.com/queues/platform/javascript-apis/#messagebatch
+  ...server,
   async queue(batch, env): Promise<void> {
-    // A queue consumer can make requests to other endpoints on the Internet,
-    // write to R2 object storage, query a D1 Database, and much more.
     for (let message of batch.messages) {
-      // Process each message (we'll just log these)
       console.log(`message ${message.id} processed: ${JSON.stringify(message.body)}`);
     }
   },
