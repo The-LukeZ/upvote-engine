@@ -6,11 +6,12 @@ import { ModalBuilder } from "@discordjs/builders";
 export async function handleCommand(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
   switch (interaction.data.name) {
     case "ping":
-      return sendMessage({ content: "Pong!" }, true);
+      return sendMessage("Pong!", true);
     case "config":
+      // TODO: Find out why "application didnt respond in time" happens here
       return handleConfig(interaction, env);
     default:
-      return sendMessage({ content: `Unknown command: ${interaction.data.name}` }, true);
+      return sendMessage(`Unknown command: ${interaction.data.name}`, true);
   }
 }
 
@@ -18,7 +19,7 @@ async function handleConfig(ctx: APIChatInputApplicationCommandInteraction, env:
   const data = await env.vote_handler
     .prepare("SELECT vote_role_id, role_duration_seconds FROM guilds WHERE guild_id = ?")
     .bind(ctx.guild_id)
-    .first<Guild>();
+    .first<Pick<Guild, "vote_role_id" | "role_duration_seconds">>();
 
   return showModal(
     new ModalBuilder({
