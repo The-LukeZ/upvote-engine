@@ -1,15 +1,15 @@
 import { APIChatInputApplicationCommandInteraction } from "discord-api-types/v10";
 import { sendMessage, showModal } from "./utils";
-import { Guild } from "../types";
 import { ModalBuilder } from "@discordjs/builders";
 import { drizzle } from "drizzle-orm/d1";
+import { eq } from "drizzle-orm";
+import { guilds } from "./db/schema";
 
 export async function handleCommand(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
   switch (interaction.data.name) {
     case "ping":
       return sendMessage("Pong!", true);
     case "config":
-      // TODO: Find out why "application didnt respond in time" happens here
       return handleConfig(interaction, env);
     default:
       return sendMessage(`Unknown command: ${interaction.data.name}`, true);
@@ -17,10 +17,8 @@ export async function handleCommand(interaction: APIChatInputApplicationCommandI
 }
 
 async function handleConfig(ctx: APIChatInputApplicationCommandInteraction, env: Env) {
-  const data = await env.vote_handler
-    .prepare("SELECT vote_role_id, role_duration_seconds FROM guilds WHERE guild_id = ?")
-    .bind(ctx.guild_id)
-    .first<Pick<Guild, "vote_role_id" | "role_duration_seconds">>();
+  const db = drizzle(env.vote_handler);
+  const data = await db.select().from(guilds).where(eq(guilds.guildId, ctx.guild_id!)).limit(1).get();
 
   return showModal(
     new ModalBuilder({
@@ -33,8 +31,8 @@ async function handleConfig(ctx: APIChatInputApplicationCommandInteraction, env:
           .setDescription("Role to assign on vote")
           .setRoleSelectMenuComponent((rs) => {
             rs.setCustomId("vote_role");
-            if (data?.vote_role_id) {
-              rs.setDefaultRoles(data.vote_role_id);
+            if (data?.voteRoleId) {
+              rs.setDefaultRoles(data.voteRoleId);
             }
             return rs;
           }),
@@ -49,7 +47,7 @@ async function handleConfig(ctx: APIChatInputApplicationCommandInteraction, env:
               .setMaxLength(2)
               .setStyle(1)
               .setPlaceholder("Hours")
-              .setValue(data ? Math.floor(data.role_duration_seconds / 3600).toString() : ""),
+              .setValue(data ? Math.floor(data.roleDurationSeconds / 3600).toString() : ""),
           ),
       ),
   );
