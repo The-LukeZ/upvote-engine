@@ -1,8 +1,11 @@
 import { SlashCommandBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
-import { RESTPostAPIChatInputApplicationCommandsJSONBody, RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
+import { RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
 
-const commands: SlashCommandBuilder[] = [new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!")];
+const commands: SlashCommandBuilder[] = [
+  new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!"),
+  new SlashCommandBuilder().setName("config").setDescription("Configure the bot for this server").setContexts(0),
+];
 
 /**
  * This file is meant to be run from the command line, and is not used by the
@@ -27,7 +30,7 @@ if (!applicationId) {
 async function registerGlobalCommands() {
   const rest = new REST({ version: "10" }).setToken(token!);
   const response = (await rest.put(Routes.applicationCommands(applicationId!), {
-    body: commands,
+    body: commands.map((cmd) => cmd.toJSON()),
   })) as RESTPutAPIApplicationCommandsResult;
 
   if (response) {
