@@ -5,6 +5,7 @@ import {
   APIInteraction,
   APIInteractionResponse,
   APIInteractionResponseCallbackData,
+  APIMessageComponentInteraction,
   APIModalInteractionResponseCallbackData,
   APIModalSubmitInteraction,
   ApplicationCommandType,
@@ -70,4 +71,8 @@ export function isChatInputCommandInteraction(
 
 export function isModalInteraction(interaction: APIInteraction): interaction is APIModalSubmitInteraction {
   return interaction.type === InteractionType.ModalSubmit;
+}
+
+export function isMessageComponentInteraction(interaction: APIInteraction): interaction is APIMessageComponentInteraction {
+  return interaction.type === InteractionType.MessageComponent;
 }

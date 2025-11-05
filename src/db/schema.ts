@@ -25,5 +25,6 @@ export const votes = sqliteTable("votes", {
     .references(() => guilds.guildId, { onDelete: "cascade" }),
   userId: text("user_id").notNull(),
   roleId: text("role_id").notNull(),
+  hasRole: integer("has_role", { mode: "boolean" }).notNull().default(false), // 1 = true, 0 = false
   expiresAt: text("expires_at"),
 });

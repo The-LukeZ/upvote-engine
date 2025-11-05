@@ -1,10 +1,36 @@
-import { SlashCommandBuilder } from "@discordjs/builders";
+import { SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import { RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
 
-const commands: SlashCommandBuilder[] = [
+const commands: SlashCommandSubcommandsOnlyBuilder[] = [
   new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!"),
-  new SlashCommandBuilder().setName("config").setDescription("Configure the bot for this server").setContexts(0),
+  new SlashCommandBuilder()
+    .setName("config")
+    .setDescription("Configure the bot for this server")
+    .setContexts(0)
+    .addSubcommandGroup((group) =>
+      group
+        .setName("app")
+        .setDescription("Configure apps for this server")
+        .addSubcommand((sub) => sub.setName("list").setDescription("List all configured apps"))
+        .addSubcommand((sub) =>
+          sub
+            .setName("add")
+            .setDescription("Add a new app")
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to add").setRequired(true))
+            .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
+            .addIntegerOption(
+              (op) =>
+                op
+                  .setName("duration")
+                  .setDescription("Duration in hours (!) for which the role will be active")
+                  .setRequired(true)
+                  .setMinValue(1)
+                  .setMaxValue(336), // 14 days
+            ),
+        )
+        .addSubcommand((sub) => sub.setName("remove").setDescription("Remove an app")),
+    ),
 ];
 
 /**
