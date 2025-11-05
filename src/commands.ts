@@ -1,7 +1,8 @@
 import { APIChatInputApplicationCommandInteraction } from "discord-api-types/v10";
 import { sendMessage, showModal } from "./utils";
-import { Guild } from "./db";
+import { Guild } from "../types";
 import { ModalBuilder } from "@discordjs/builders";
+import { drizzle } from "drizzle-orm/d1";
 
 export async function handleCommand(interaction: APIChatInputApplicationCommandInteraction, env: Env) {
   switch (interaction.data.name) {
@@ -25,17 +26,31 @@ async function handleConfig(ctx: APIChatInputApplicationCommandInteraction, env:
     new ModalBuilder({
       title: "Configuration",
       custom_id: "config_modal",
-    }).addLabelComponents((l) =>
-      l
-        .setLabel("Vote Role")
-        .setDescription("Role to assign on vote")
-        .setRoleSelectMenuComponent((rs) => {
-          rs.setCustomId("vote_role");
-          if (data?.vote_role_id) {
-            rs.setDefaultRoles(data.vote_role_id);
-          }
-          return rs;
-        }),
-    ),
+    })
+      .addLabelComponents((l) =>
+        l
+          .setLabel("Vote Role")
+          .setDescription("Role to assign on vote")
+          .setRoleSelectMenuComponent((rs) => {
+            rs.setCustomId("vote_role");
+            if (data?.vote_role_id) {
+              rs.setDefaultRoles(data.vote_role_id);
+            }
+            return rs;
+          }),
+      )
+      .addLabelComponents((l) =>
+        l
+          .setLabel("Role Duration")
+          .setDescription("Duration for which the role will be active")
+          .setTextInputComponent((ti) =>
+            ti
+              .setCustomId("role_duration")
+              .setMaxLength(2)
+              .setStyle(1)
+              .setPlaceholder("Hours")
+              .setValue(data ? Math.floor(data.role_duration_seconds / 3600).toString() : ""),
+          ),
+      ),
   );
 }

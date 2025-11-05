@@ -7,6 +7,7 @@
   "name": "vote-handler",
   "main": "src/index.ts",
   "compatibility_date": "2025-11-05",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
@@ -28,8 +29,8 @@
       "binding": "vote_handler",
       "database_name": "vote_handler",
       "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
-      "remote": true,
-      "migrations_dir": "migrations"
+      "migrations_dir": "drizzle/migrations",
+      "remote": true
     }
   ]
 }

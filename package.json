@@ -9,10 +9,15 @@
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
-    "register": "tsx --env-file=.env src/registerCommands.ts"
+    "register": "tsx --env-file=.env src/registerCommands.ts",
+    "migrate": "wrangler d1 migrations apply vote_handler --remote",
+    "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "drizzle:migrate": "drizzle-kit migrate --config drizzle.config.ts",
+    "drizzle:push": "drizzle-kit push --config drizzle.config.ts"
   },
   "devDependencies": {
     "@types/node": "^24.10.0",
+    "drizzle-kit": "^0.31.6",
     "tsx": "^4.20.6",
     "typescript": "^5.5.2",
     "wrangler": "^4.45.4"
@@ -22,6 +27,7 @@
     "@discordjs/rest": "^2.6.0",
     "discord-api-types": "^0.38.32",
     "discord-interactions": "^4.4.0",
+    "drizzle-orm": "^0.44.7",
     "itty-router": "^5.0.22"
   }
 }

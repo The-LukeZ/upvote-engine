@@ -3,6 +3,7 @@ import { verifyKey } from "./discordVerify";
 import { isChatInputCommandInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
 import { APIInteraction, APIWebhookEvent, ApplicationCommandType, InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { handleCommand } from "./commands";
+import { webhookHandler } from "./webhook";
 
 const router = AutoRouter();
 
@@ -38,6 +39,21 @@ router.post("/", async (req, env: Env) => {
     }
   }
 });
+
+router.post("/discord.webhook", async (req, env: Env) => {
+  const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
+  if (!isValid || !event) {
+    return new Response("Bad request signature.", { status: 401 });
+  }
+
+  // This handles, when the app is removed from a guild
+  // Handle webhook events here
+  console.log("Received Discord Webhook Event:", event);
+
+  return new Response("Event received", { status: 200 });
+});
+
+router.post("/topgg", webhookHandler);
 router.all("*", () => new Response("Not Found.", { status: 404 }));
 
 async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: Request, env: Env) {
