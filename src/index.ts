@@ -1,7 +1,8 @@
 import { AutoRouter } from "itty-router";
 import { verifyKey } from "./discordVerify";
-import { APIResponse, JsonResponse } from "./utils";
-import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import { isChatInputCommandInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
+import { APIInteraction, APIWebhookEvent, ApplicationCommandType, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import { handleCommand } from "./commands";
 
 const router = AutoRouter();
 
@@ -19,7 +20,6 @@ router.post("/", async (req, env: Env) => {
     return new Response("Bad request signature.", { status: 401 });
   }
 
-  console.log("Received event:", interaction);
   // Handle Discord PING requests
   switch (interaction.type) {
     case InteractionType.Ping: {
@@ -29,15 +29,12 @@ router.post("/", async (req, env: Env) => {
       });
     }
     case InteractionType.ApplicationCommand: {
-      console.log("Received application command:", interaction.data.name);
-
-      return new APIResponse({
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: `You invoked the \`${interaction.data.name}\` command!`,
-          flags: 64, // EPHEMERAL
-        },
-      });
+      if (isChatInputCommandInteraction(interaction)) {
+        return handleCommand(interaction, env); // Wants APIChatInputApplicationCommandInteraction
+      } else if (isModalInteraction(interaction)) {
+        // Handle modal submissions here if needed
+        return sendMessage("Modal submission received!", true);
+      }
     }
   }
 });
