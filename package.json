@@ -1,23 +1,26 @@
 {
-	"name": "vote-handler",
-	"version": "0.0.0",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy --keep-vars",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"cf-typegen": "wrangler types"
-	},
-	"devDependencies": {
-		"@types/node": "^24.10.0",
-		"typescript": "^5.5.2",
-		"wrangler": "^4.45.4"
-	},
-	"dependencies": {
-		"@discordjs/builders": "^1.13.0",
-		"@discordjs/rest": "^2.6.0",
-		"discord-api-types": "^0.38.32",
-		"discord-interactions": "^4.4.0",
-		"itty-router": "^5.0.22"
-	}
+  "name": "vote-handler",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "bulk-secrets": "wrangler secret bulk .env",
+    "deploy": "wrangler deploy --keep-vars",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types",
+    "register": "tsx --env-file=.env src/registerCommands.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.5.2",
+    "wrangler": "^4.45.4"
+  },
+  "dependencies": {
+    "@discordjs/builders": "^1.13.0",
+    "@discordjs/rest": "^2.6.0",
+    "discord-api-types": "^0.38.32",
+    "discord-interactions": "^4.4.0",
+    "itty-router": "^5.0.22"
+  }
 }
