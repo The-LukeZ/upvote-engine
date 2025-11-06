@@ -46,10 +46,14 @@
     ],
     "consumers": [
       {
-        "queue": "voteapply"
+        "queue": "voteapply",
+        "type": "worker",
+        "max_retries": 5
       },
       {
-        "queue": "voteremove"
+        "queue": "voteremove",
+        "type": "worker",
+        "max_retries": 5
       }
     ]
   }
