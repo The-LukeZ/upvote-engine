@@ -1,6 +1,6 @@
 import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
 
-export const webhookSecrets = sqliteTable("webhook_secrets", {
+export const applications = sqliteTable("applications", {
   applicationId: text("application_id").primaryKey(),
   secret: text("secret").notNull().unique(),
   guildId: text("guild_id").notNull(),
@@ -10,10 +10,16 @@ export const webhookSecrets = sqliteTable("webhook_secrets", {
 });
 
 export const votes = sqliteTable("votes", {
-  id: blob("id", { mode: "bigint" }).primaryKey(),
+  id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID
   guildId: text("guild_id").notNull(),
   userId: text("user_id").notNull(),
   roleId: text("role_id").notNull(),
   hasRole: integer("has_role", { mode: "boolean" }).notNull().default(false), // 1 = true, 0 = false
   expiresAt: text("expires_at"),
 });
+
+export type WebhookSecret = typeof applications.$inferSelect;
+export type NewWebhookSecret = typeof applications.$inferInsert;
+
+export type Vote = typeof votes.$inferSelect;
+export type NewVote = typeof votes.$inferInsert;
