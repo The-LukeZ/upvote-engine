@@ -9,6 +9,8 @@ import type {
   APIUser,
   Snowflake,
 } from "discord-api-types/v10";
+import { ModalInteraction } from "../src/discord/ModalInteraction";
+import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction";
 
 export * from "./db";
 export * from "./topgg";
@@ -18,12 +20,15 @@ export interface ResponseLike
   body: Readable | ReadableStream | null;
 }
 
-export interface HonoEnv<Vars> {
-  Bindings: Env;
-  Variables: Vars;
-}
+export type MyInteraction = ChatInputCommandInteraction | ModalInteraction;
 
-export type MyContext<Vars> = Context<HonoEnv<Vars>, "/", BlankInput>;
+export type HonoBindings = Env;
+export type HonoVariables = {
+  command: ChatInputCommandInteraction;
+  modal: ModalInteraction;
+};
+
+export type MyContext = Context<{ Bindings: HonoBindings; Variables: HonoVariables }, "/", BlankInput>;
 
 export interface APIInteractionDataResolvedCollections {
   users?: Collection<Snowflake, APIUser>;
