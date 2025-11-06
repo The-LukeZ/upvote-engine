@@ -11,6 +11,8 @@ import type {
 } from "discord-api-types/v10";
 import { ModalInteraction } from "../src/discord/ModalInteraction";
 import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction";
+import { DrizzleD1Database } from "drizzle-orm/d1";
+import { makeDB } from "../src/db/util";
 
 export * from "./db";
 export * from "./topgg";
@@ -37,3 +39,5 @@ export interface APIInteractionDataResolvedCollections {
   channels?: Collection<Snowflake, APIInteractionDataResolvedChannel>;
   attachments?: Collection<Snowflake, APIAttachment>;
 }
+
+export type DrizzleDB = ReturnType<typeof makeDB>;
