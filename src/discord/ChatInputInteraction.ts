@@ -136,16 +136,6 @@ class ChatInputCommandInteraction {
     });
   }
 
-  editReply(options: RESTPatchAPIWebhookWithTokenMessageJSONBody, messageId: Snowflake | "@original" = "@original") {
-    return this.rest.patch(Routes.webhookMessage(this.applicationId, this.token, messageId), {
-      body: options satisfies RESTPatchAPIWebhookWithTokenMessageJSONBody,
-    });
-  }
-
-  deleteReply(messageId?: Snowflake | "@original") {
-    return this.rest.delete(Routes.webhookMessage(this.applicationId, this.token, messageId));
-  }
-
   deferReply(forceEphemeral = true) {
     const data: APIInteractionResponseCallbackData = {};
     if (forceEphemeral) {
@@ -163,9 +153,22 @@ class ChatInputCommandInteraction {
     });
   }
 
+  editReply(options: RESTPatchAPIWebhookWithTokenMessageJSONBody, messageId: Snowflake | "@original" = "@original") {
+    return this.rest.patch(Routes.webhookMessage(this.applicationId, this.token, messageId), {
+      body: options satisfies RESTPatchAPIWebhookWithTokenMessageJSONBody,
+    });
+  }
+
+  deleteReply(messageId?: Snowflake | "@original") {
+    return this.rest.delete(Routes.webhookMessage(this.applicationId, this.token, messageId));
+  }
+
   showModal(data: APIModalInteractionResponseCallbackData | ModalBuilder) {
     return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.Modal, data: data instanceof ModalBuilder ? data.toJSON() : data } satisfies APIInteractionResponse,
+      body: {
+        type: InteractionResponseType.Modal,
+        data: data instanceof ModalBuilder ? data.toJSON() : data,
+      } satisfies APIInteractionResponse,
     });
   }
 }
