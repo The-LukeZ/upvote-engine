@@ -23,6 +23,9 @@ importers:
       '@sapphire/snowflake':
         specifier: ^3.5.5
         version: 3.5.5
+      dayjs:
+        specifier: ^1.11.19
+        version: 1.11.19
       discord-api-types:
         specifier: ^0.38.32
         version: 0.38.32
@@ -610,6 +613,9 @@ packages:
   cookie@1.0.2:
     resolution: {integrity: sha512-9Kr/j4O16ISv8zBBhJoi4bXOYNTkFLOqSL3UDB0njXxCXNezjeyVrJyGOWtgfs/q2km1gwBcfH8q1yEGoMYunA==}
     engines: {node: '>=18'}
+
+  dayjs@1.11.19:
+    resolution: {integrity: sha512-t5EcLVS6QPBNqM2z8fakk/NKel+Xzshgt8FFKAn+qwlD1pzZWxh0nVCrvFK7ZDb6XucZeF9z8C7CBWTRIVApAw==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1285,6 +1291,8 @@ snapshots:
       color-string: 1.9.1
 
   cookie@1.0.2: {}
+
+  dayjs@1.11.19: {}
 
   debug@4.4.3:
     dependencies:

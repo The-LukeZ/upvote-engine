@@ -33,6 +33,7 @@
     "@discordjs/core": "^2.3.0",
     "@discordjs/rest": "^2.6.0",
     "@sapphire/snowflake": "^3.5.5",
+    "dayjs": "^1.11.19",
     "discord-api-types": "^0.38.32",
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "^0.44.7",
