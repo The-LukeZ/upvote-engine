@@ -1,7 +1,7 @@
 import { AutoRouter } from "itty-router";
 import { verifyKey } from "./discordVerify";
 import { isChatInputCommandInteraction, isMessageComponentInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
-import { APIInteraction, APIWebhookEvent, ApplicationCommandType, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { handleCommand } from "./commands";
 import { webhookHandler } from "./webhook";
 import { handleComponentInteraction } from "./components";
@@ -14,20 +14,34 @@ const router = AutoRouter();
 router.get("/", (_req, env: Env) => {
   return new Response(`👋 ${env.DISCORD_APP_ID}`);
 });
+
 /**
  * Main route for all requests sent from Discord.  All incoming messages will
  * include a JSON payload described here:
  * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
-*/
+ */
 router.post("/", async (req, env: Env) => {
+  const hehe = globalThis.fetch;
+  globalThis.fetch = (...args) => {
+    console.log("hi!");
+    return hehe(...args);
+  };
   const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
   if (!isValid || !interaction) {
     console.log("Invalid request signature");
     return new Response("Bad request signature.", { status: 401 });
   }
-  
+
   const rest = new REST({ version: "10" });
   const api = new API(rest.setToken(env.DISCORD_TOKEN));
+
+  rest
+    .addListener("response", (request, response) => {
+      console.log(`[REST] ${request.method} ${request.path} -> ${response.status} ${response.statusText}`);
+    })
+    .addListener("restDebug", (info) => {
+      console.log(`[REST DEBUG] ${info}`);
+    });
 
   // Handle Discord PING requests
   switch (interaction.type) {
