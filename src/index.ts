@@ -1,30 +1,7 @@
-const hehe = globalThis.fetch;
-globalThis.fetch = (...args) => {
-  console.log("hi!");
-  return hehe(...args)
-    .then((value) => {
-      console.log("fetch response:", value);
-      return value;
-    })
-    .catch((err) => {
-      console.error("Fetch error:", err);
-      throw err;
-    });
-};
-
 import { verifyKey } from "./discordVerify";
-import {
-  APIResponse,
-  isChatInputCommandInteraction,
-  isMessageComponentInteraction,
-  isModalInteraction,
-  JsonResponse,
-  sendMessage,
-} from "./utils";
+import { isChatInputCommandInteraction, isModalInteraction, sendMessage } from "./utils";
 import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { handleCommand } from "./commands";
-import { webhookHandler } from "./webhook";
-import { handleComponentInteraction } from "./components";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
 import { API } from "@discordjs/core/http-only";
@@ -32,86 +9,8 @@ import { inspect } from "util";
 import { Hono, HonoRequest } from "hono";
 import { poweredBy } from "hono/powered-by";
 import { cloneRawRequest } from "hono/request";
-
-/**
- * Main route for all requests sent from Discord.  All incoming messages will
- * include a JSON payload described here:
- * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
- */
-// router.post("/", async (req, env: Env) => {
-//   const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
-//   if (!isValid || !interaction) {
-//     console.log("Invalid request signature");
-//     return new Response("Bad request signature.", { status: 401 });
-//   }
-
-//   const rest = new REST({ version: "10" });
-//   const api = new API(rest.setToken(env.DISCORD_TOKEN));
-
-//   rest
-//     .addListener("response", (request, response) => {
-//       console.log(`[REST] ${request.method} ${request.path} -> ${response.status} ${response.statusText}`);
-//     })
-//     .addListener("restDebug", (info) => {
-//       console.log(`[REST DEBUG] ${info}`);
-//     });
-
-//   // Handle Discord PING requests
-//   switch (interaction.type) {
-//     case InteractionType.Ping: {
-//       console.log("Received Discord PING request");
-//       return new JsonResponse({
-//         type: InteractionResponseType.Pong,
-//       });
-//     }
-//     case InteractionType.ApplicationCommand: {
-//       try {
-//         const deferRes = await fetch(
-//           `https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback?with_response=true`,
-//           {
-//             method: "POST",
-//             headers: {
-//               "Content-Type": "application/json",
-//               authorization: `Bot ${env.DISCORD_TOKEN}`,
-//             },
-//             body: JSON.stringify({
-//               type: InteractionResponseType.DeferredChannelMessageWithSource,
-//               data: {
-//                 flags: 64,
-//               },
-//             }),
-//           },
-//         );
-//         console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)), await deferRes.text());
-//         const resRes = await fetch(`https://discord.com/api/v10/webhooks/${interaction.id}/${interaction.token}?with_response=true`, {
-//           method: "PATCH",
-//           headers: {
-//             "Content-Type": "application/json",
-//             authorization: `Bot ${env.DISCORD_TOKEN}`,
-//           },
-//           body: JSON.stringify({
-//             content: "Processing your command...",
-//           }),
-//         });
-//         console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers)), await resRes.text());
-//       } catch (err) {
-//         console.error("Error during deferred reply:", err);
-//       } finally {
-//         return new Response();
-//       }
-
-//       // if (isChatInputCommandInteraction(interaction)) {
-//       //   console.log("Received Chat Input Command Interaction:", interaction.data.name);
-//       //   return handleCommand(new ChatInputCommandInteraction(api, interaction), env); // Wants APIChatInputApplicationCommandInteraction
-//       // } else if (isModalInteraction(interaction)) {
-//       //   // Handle modal submissions here if needed
-//       //   return sendMessage("Modal submission received!", true);
-//       // } else if (isMessageComponentInteraction(interaction)) {
-//       //   return handleComponentInteraction(interaction, env);
-//       // }
-//     }
-//   }
-// });
+import { HonoBindings, HonoVariables } from "../types";
+import { ModalInteraction } from "./discord/ModalInteraction";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -141,16 +40,31 @@ async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent =
   return { interaction: JSON.parse(body) as T, isValid: true };
 }
 
-// const server = {
-//   verifyDiscordRequest,
-//   fetch: router.fetch,
-// };
+const app = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }>();
 
-const app = new Hono<{ Bindings: Env }>();
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
-app.get("/", (c) => c.text(`👋 ${c.env.DISCORD_APP_ID}`));
+app.get("/", (c) => c.text(`👋 ${c.env.DISCORD_APP_ID} | Welcome my fren`));
 app.post("/health", (c) => c.text("OK"));
+app.post("/discord-webhook", async (c) => {
+  const { isValid, interaction: event } = await verifyDiscordRequest<APIWebhookEvent>(c.req, c.env);
+  if (!isValid || !event) {
+    console.log("Invalid webhook request signature");
+    return c.text("Bad request signature.", 401);
+  }
+
+  // This handles, when the app is removed from a guild
+  // Handle webhook events here
+  console.log("Received Discord Webhook Event:", event);
+
+  return c.text("Event received", 200);
+});
+
+app.post("/topgg", async (c) => {
+  // await webhookHandler(c.req, c.env);
+  return c.text("Top.gg webhook received", 200);
+});
+
 app.post("/", async (c) => {
   const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
   if (!isValid || !interaction) {
@@ -158,7 +72,9 @@ app.post("/", async (c) => {
     return c.text("Bad request signature.", 401);
   }
 
-  const rest = new REST({ version: "10" }).setToken(c.env.DISCORD_TOKEN);
+  const rest = new REST({
+    version: "10",
+  }).setToken(c.env.DISCORD_TOKEN);
   const api = new API(rest);
 
   rest
@@ -177,56 +93,22 @@ app.post("/", async (c) => {
         type: InteractionResponseType.Pong,
       });
     }
-    case InteractionType.ApplicationCommand: {
-      try {
-        // Testing
-        const result = await fetch("https://client-api.ticketon.app/health");
-        console.log("Health check response:", result.status, inspect(Object.entries(result.headers)), await result.text());
-        const deferRes = await fetch(`https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            authorization: `Bot ${c.env.DISCORD_TOKEN}`,
-          },
-          body: JSON.stringify({
-            type: InteractionResponseType.DeferredChannelMessageWithSource,
-            data: {
-              flags: 64,
-            },
-          }),
-        });
-        console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)));
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate processing delay
-        const resRes = await fetch(
-          `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}/messages/@original?with_response=true`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              authorization: `Bot ${c.env.DISCORD_TOKEN}`,
-            },
-            body: JSON.stringify({
-              content: "Done!",
-            }),
-          },
-        );
-        console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers)));
-      } catch (err) {
-        console.error("Error during deferred reply:", err);
-      } finally {
-        return c.json({}, 202); // Accepted
-      }
+    case InteractionType.ApplicationCommand:
+      c.executionCtx.waitUntil(
+        new Promise(async function (resolve) {
+          if (isChatInputCommandInteraction(interaction)) {
+            console.log("Received Chat Input Command Interaction:", interaction.data.name);
+            c.set("command", new ChatInputCommandInteraction(api, interaction));
+            await handleCommand(c); // Wants APIChatInputApplicationCommandInteraction
+          } else if (isModalInteraction(interaction)) {
+            c.set("modal", new ModalInteraction(api, interaction));
+            c.get("modal").reply({ content: "Modal submission received!" }, true);
+          }
+          return resolve(undefined);
+        }),
+      );
 
-      // if (isChatInputCommandInteraction(interaction)) {
-      //   console.log("Received Chat Input Command Interaction:", interaction.data.name);
-      //   return handleCommand(new ChatInputCommandInteraction(api, interaction), env); // Wants APIChatInputApplicationCommandInteraction
-      // } else if (isModalInteraction(interaction)) {
-      //   // Handle modal submissions here if needed
-      //   return sendMessage("Modal submission received!", true);
-      // } else if (isMessageComponentInteraction(interaction)) {
-      //   return handleComponentInteraction(interaction, env);
-      // }
-    }
+      return c.json({}, 202); // Accepted for processing
   }
 });
 
