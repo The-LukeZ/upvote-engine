@@ -37,5 +37,9 @@
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.4"
-  }
+  },
+  "workspaces": [
+    "docs/*",
+    "src/*"
+  ]
 }
