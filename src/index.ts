@@ -150,6 +150,7 @@ const app = new Hono<{ Bindings: Env }>();
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
 app.get("/", (c) => c.text(`👋 ${c.env.DISCORD_APP_ID}`));
+app.post("/health", (c) => c.text("OK"));
 app.post("/", async (c) => {
   const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
   if (!isValid || !interaction) {
@@ -181,28 +182,35 @@ app.post("/", async (c) => {
         // Testing
         const result = await fetch("https://client-api.ticketon.app/health");
         console.log("Health check response:", result.status, inspect(Object.entries(result.headers)), await result.text());
-        // Create a channel message to test the post request
-        const deferRes = await fetch(`https://discord.com/api/v10/channels/${interaction.channel.id}/messages`, {
+        const deferRes = await fetch(`https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             authorization: `Bot ${c.env.DISCORD_TOKEN}`,
           },
           body: JSON.stringify({
-            content: "Processing your command...",
+            type: InteractionResponseType.DeferredChannelMessageWithSource,
+            data: {
+              flags: 64,
+            },
           }),
         });
         console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)));
-        // fetch(`https://discord.com/api/v10/webhooks/${interaction.id}/${interaction.token}?with_response=true`, {
-        //   method: "PATCH",
-        //   headers: {
-        //     "Content-Type": "application/json",
-        //     authorization: `Bot ${c.env.DISCORD_TOKEN}`,
-        //   },
-        //   body: JSON.stringify({
-        //     content: "Done!",
-        //   }),
-        // }).then((resRes) => console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers))));
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate processing delay
+        const resRes = await fetch(
+          `https://discord.com/api/v10/webhooks/${interaction.application_id}/${interaction.token}/messages/@original?with_response=true`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              authorization: `Bot ${c.env.DISCORD_TOKEN}`,
+            },
+            body: JSON.stringify({
+              content: "Done!",
+            }),
+          },
+        );
+        console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers)));
       } catch (err) {
         console.error("Error during deferred reply:", err);
       } finally {
