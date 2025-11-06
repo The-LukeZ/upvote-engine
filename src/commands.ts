@@ -21,6 +21,7 @@ async function handleConfig(ctx: ChatInputCommandInteraction, env: Env) {
   const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "remove";
   const db = drizzle(env.vote_handler);
 
+  console.log(`Handling config subcommand: ${subcommand}`);
   if (subcommand === "add") {
     await ctx.deferReply(true);
     const bot = ctx.options.getString("bot", true);
