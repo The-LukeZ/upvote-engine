@@ -2,7 +2,6 @@ import { Collection } from "@discordjs/collection";
 import {
   APIApplicationCommandInteractionDataOption,
   APIAttachment,
-  APIGuildMember,
   APIInteractionDataResolved,
   APIInteractionDataResolvedChannel,
   APIInteractionDataResolvedGuildMember,
@@ -11,17 +10,8 @@ import {
   ApplicationCommandOptionType,
   ChannelType,
   InteractionType,
-  Snowflake,
 } from "discord-api-types/v10";
-
-interface APIInteractionDataResolvedCollections {
-  users?: Collection<Snowflake, APIUser>;
-  roles?: Collection<Snowflake, APIRole>;
-  members?: Collection<Snowflake, APIInteractionDataResolvedGuildMember>;
-  channels?: Collection<Snowflake, APIInteractionDataResolvedChannel>;
-  attachments?: Collection<Snowflake, APIAttachment>;
-}
-
+import { APIInteractionDataResolvedCollections } from "../../types";
 /**
  * A resolver for command interaction options.
  */
