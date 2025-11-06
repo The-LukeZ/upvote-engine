@@ -32,6 +32,6 @@
     "discord-api-types": "^0.38.32",
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "^0.44.7",
-    "itty-router": "^5.0.22"
+    "hono": "^4.10.4"
   }
 }
