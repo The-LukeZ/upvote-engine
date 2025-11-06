@@ -4,18 +4,22 @@ import {
   type APIModalInteractionResponseCallbackData,
   type Snowflake,
   InteractionType,
+  Routes,
 } from "discord-api-types/v10";
 import { CommandInteractionOptionResolver } from "./CommandOptionResolver";
 import { ModalBuilder } from "@discordjs/builders";
 import { API } from "@discordjs/core/http-only";
+import { REST } from "@discordjs/rest";
 
 class ChatInputCommandInteraction {
   public readonly type = InteractionType.ApplicationCommand;
   public readonly options: CommandInteractionOptionResolver;
   private readonly data: APIChatInputApplicationCommandInteraction;
+  public readonly rest: REST;
   constructor(private api: API, interaction: APIChatInputApplicationCommandInteraction) {
     this.options = new CommandInteractionOptionResolver(interaction.data.options, interaction.data.resolved);
     this.data = interaction;
+    this.rest = api.rest;
   }
 
   get applicationId() {
@@ -129,14 +133,11 @@ class ChatInputCommandInteraction {
   }
 
   deferReply(forceEphemeral = true) {
-    return this.api.interactions.defer(
-      this.id,
-      this.token,
-      {
+    return this.api.rest.post((Routes.interactionCallback(this.id, this.token) + "with_response=true") as any, {
+      body: {
         flags: forceEphemeral ? 64 : undefined,
       },
-      { signal: AbortSignal.timeout(5000) },
-    );
+    });
   }
 
   deferUpdate() {
