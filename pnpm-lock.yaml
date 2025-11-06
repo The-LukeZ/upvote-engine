@@ -11,9 +11,15 @@ importers:
       '@discordjs/builders':
         specifier: ^1.13.0
         version: 1.13.0
+      '@discordjs/collection':
+        specifier: ^2.1.1
+        version: 2.1.1
       '@discordjs/rest':
         specifier: ^2.6.0
         version: 2.6.0
+      '@sapphire/snowflake':
+        specifier: ^3.5.5
+        version: 3.5.5
       discord-api-types:
         specifier: ^0.38.32
         version: 0.38.32
