@@ -8,6 +8,7 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
     .setName("config")
     .setDescription("Configure the bot for this server")
     .setContexts(0)
+    .setDefaultMemberPermissions(32) // Manage Server
     .addSubcommandGroup((group) =>
       group
         .setName("app")
