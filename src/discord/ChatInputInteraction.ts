@@ -7,7 +7,7 @@ import {
 } from "discord-api-types/v10";
 import { CommandInteractionOptionResolver } from "./CommandOptionResolver";
 import { ModalBuilder } from "@discordjs/builders";
-import { API } from "@discordjs/core";
+import { API } from "@discordjs/core/http-only";
 
 class ChatInputCommandInteraction {
   public readonly type = InteractionType.ApplicationCommand;
