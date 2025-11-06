@@ -102,10 +102,8 @@ abstract class BaseInteraction<Type extends InteractionType> {
   }
 
   deferReply(forceEphemeral = true) {
-    return this.api.rest.post((Routes.interactionCallback(this.id, this.token) + "with_response=true") as any, {
-      body: {
-        flags: forceEphemeral ? 64 : undefined,
-      },
+    return this.api.interactions.defer(this.id, this.token, {
+      flags: forceEphemeral ? 64 : undefined,
     });
   }
 
