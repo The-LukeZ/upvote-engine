@@ -45,13 +45,15 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
                 .setMaxValue(336),
             )
             .addBooleanOption((opt) =>
-              opt
-                .setName("generate-secret")
-                .setDescription("Whether to generate a new webhook secret")
-                .setRequired(false),
+              opt.setName("generate-secret").setDescription("Whether to generate a new webhook secret").setRequired(false),
             ),
         )
-        .addSubcommand((sub) => sub.setName("remove").setDescription("Remove an app")),
+        .addSubcommand((sub) =>
+          sub
+            .setName("remove")
+            .setDescription("Remove an app")
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true)),
+        ),
     ),
 ];
 
