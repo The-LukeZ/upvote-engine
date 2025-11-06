@@ -32,5 +32,25 @@
       "migrations_dir": "drizzle/migrations",
       "remote": true
     }
-  ]
+  ],
+  "queues": {
+    "producers": [
+      {
+        "queue": "voteapply",
+        "binding": "VOTE_APPLY"
+      },
+      {
+        "queue": "voteremove",
+        "binding": "VOTE_REMOVE"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "voteapply"
+      },
+      {
+        "queue": "voteremove"
+      }
+    ]
+  }
 }
