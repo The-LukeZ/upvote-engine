@@ -1,9 +1,13 @@
 import {
   type APIChatInputApplicationCommandInteraction,
+  APIInteractionResponse,
   APIInteractionResponseCallbackData,
   APIModalInteractionResponseCallbackData,
   InteractionResponseType,
   InteractionType,
+  RESTPatchAPIWebhookJSONBody,
+  RESTPatchAPIWebhookWithTokenJSONBody,
+  RESTPatchAPIWebhookWithTokenMessageJSONBody,
   Routes,
   Snowflake,
 } from "discord-api-types/v10";
@@ -128,13 +132,13 @@ class ChatInputCommandInteraction {
     }
 
     return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.ChannelMessageWithSource, data: options },
+      body: { type: InteractionResponseType.ChannelMessageWithSource, data: options } satisfies APIInteractionResponse,
     });
   }
 
-  editReply(options: APIInteractionResponseCallbackData, messageId: Snowflake | "@original" = "@original") {
+  editReply(options: RESTPatchAPIWebhookWithTokenMessageJSONBody, messageId: Snowflake | "@original" = "@original") {
     return this.rest.patch(Routes.webhookMessage(this.applicationId, this.token, messageId), {
-      body: options,
+      body: options satisfies RESTPatchAPIWebhookWithTokenMessageJSONBody,
     });
   }
 
@@ -149,19 +153,19 @@ class ChatInputCommandInteraction {
     }
 
     return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.DeferredChannelMessageWithSource, data },
+      body: { type: InteractionResponseType.DeferredChannelMessageWithSource, data } satisfies APIInteractionResponse,
     });
   }
 
   deferUpdate() {
     return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.DeferredMessageUpdate },
+      body: { type: InteractionResponseType.DeferredMessageUpdate } satisfies APIInteractionResponse,
     });
   }
 
   showModal(data: APIModalInteractionResponseCallbackData | ModalBuilder) {
     return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.Modal, data: data instanceof ModalBuilder ? data.toJSON() : data },
+      body: { type: InteractionResponseType.Modal, data: data instanceof ModalBuilder ? data.toJSON() : data } satisfies APIInteractionResponse,
     });
   }
 }
