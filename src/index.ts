@@ -21,6 +21,7 @@ router.get("/", (_req, env: Env) => {
 router.post("/", async (req, env: Env) => {
   const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
   if (!isValid || !interaction) {
+    console.log("Invalid request signature");
     return new Response("Bad request signature.", { status: 401 });
   }
 
@@ -36,6 +37,7 @@ router.post("/", async (req, env: Env) => {
     }
     case InteractionType.ApplicationCommand: {
       if (isChatInputCommandInteraction(interaction)) {
+        console.log("Received Chat Input Command Interaction:", interaction.data.name);
         return handleCommand(new ChatInputCommandInteraction(rest, interaction), env); // Wants APIChatInputApplicationCommandInteraction
       } else if (isModalInteraction(interaction)) {
         // Handle modal submissions here if needed
