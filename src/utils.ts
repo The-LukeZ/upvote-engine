@@ -68,3 +68,10 @@ export function isModalInteraction(interaction: APIInteraction): interaction is 
 export function isMessageComponentInteraction(interaction: APIInteraction): interaction is APIMessageComponentInteraction {
   return interaction.type === InteractionType.MessageComponent;
 }
+
+export function randomString(length: number) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.-!§$%&/()=?+#*";
+  return Array.from({ length })
+    .map(() => chars.charAt(Math.floor(Math.random() * chars.length)))
+    .join("");
+}
