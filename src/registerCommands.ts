@@ -28,9 +28,27 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
                   .setRequired(true)
                   .setMinValue(1)
                   .setMaxValue(336), // 14 days
+            ),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("edit")
+            .setDescription("Edit an existing app")
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to edit").setRequired(true))
+            .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
+            .addIntegerOption((op) =>
+              op
+                .setName("duration")
+                .setDescription("Duration in hours (!) for which the role will be active")
+                .setRequired(true)
+                .setMinValue(1)
+                .setMaxValue(336),
             )
             .addBooleanOption((opt) =>
-              opt.setName("generate-secret").setDescription("Whether to generate a new webhook secret").setRequired(false),
+              opt
+                .setName("generate-secret")
+                .setDescription("Whether to generate a new webhook secret")
+                .setRequired(false),
             ),
         )
         .addSubcommand((sub) => sub.setName("remove").setDescription("Remove an app")),
