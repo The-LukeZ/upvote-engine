@@ -26,7 +26,8 @@ async function handleConfig(ctx: ChatInputCommandInteraction, env: Env) {
     const bot = ctx.options.getString("bot", true);
     const guildId = ctx.guildId!;
     // Insert the new guild configuration into the database
-    return ctx.editReply({ content: `App with bot ID ${bot} added to guild configuration.` });
+    await ctx.editReply({ content: `App with bot ID ${bot} added to guild configuration.` });
+    return;
   }
 
   if (subcommand === "remove") {
