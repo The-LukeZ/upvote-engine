@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "bulk-secrets": "wrangler secret bulk .env",
-    "deploy": "wrangler deploy --keep-vars",
+    "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
