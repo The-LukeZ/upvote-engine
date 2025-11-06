@@ -7,10 +7,9 @@ import { webhookHandler } from "./webhook";
 import { handleComponentInteraction } from "./components";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
-import { API } from "@discordjs/core";
+import { API } from "@discordjs/core/http-only";
 
 const router = AutoRouter();
-const rest = new REST({ version: "10" });
 
 router.get("/", (_req, env: Env) => {
   return new Response(`👋 ${env.DISCORD_APP_ID}`);
@@ -19,14 +18,15 @@ router.get("/", (_req, env: Env) => {
  * Main route for all requests sent from Discord.  All incoming messages will
  * include a JSON payload described here:
  * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
- */
+*/
 router.post("/", async (req, env: Env) => {
   const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
   if (!isValid || !interaction) {
     console.log("Invalid request signature");
     return new Response("Bad request signature.", { status: 401 });
   }
-
+  
+  const rest = new REST({ version: "10" });
   const api = new API(rest.setToken(env.DISCORD_TOKEN));
 
   // Handle Discord PING requests
