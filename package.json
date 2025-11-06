@@ -25,6 +25,7 @@
   "dependencies": {
     "@discordjs/builders": "^1.13.0",
     "@discordjs/collection": "^2.1.1",
+    "@discordjs/core": "^2.3.0",
     "@discordjs/rest": "^2.6.0",
     "@sapphire/snowflake": "^3.5.5",
     "discord-api-types": "^0.38.32",
