@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
 import { guilds } from "./db/schema";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
+import { InteractionResponseType } from "discord-api-types/v10";
 
 export async function handleCommand(interaction: ChatInputCommandInteraction, env: Env) {
   console.log("Handling command:", interaction.commandName);
@@ -23,7 +24,20 @@ async function handleConfig(ctx: ChatInputCommandInteraction, env: Env) {
 
   console.log("Handling config subcommand:", subcommand);
   if (subcommand === "add") {
-    await ctx.deferReply(true);
+    // await ctx.deferReply(true);
+    await fetch(`https://discord.com/api/v10/interactions/${ctx.id}/${ctx.token}/callback?with_response=true`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bot ${env.DISCORD_TOKEN}`,
+      },
+      body: JSON.stringify({
+        type: InteractionResponseType.DeferredChannelMessageWithSource,
+        data: {
+          flags: 64,
+        },
+      }),
+    });
     console.log("Adding app to guild configuration");
     const bot = ctx.options.getString("bot", true);
     const roleId = ctx.options.getRole("role", true).id;

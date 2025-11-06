@@ -1,3 +1,9 @@
+const hehe = globalThis.fetch;
+globalThis.fetch = (...args) => {
+  console.log("hi!");
+  return hehe(...args);
+};
+
 import { AutoRouter } from "itty-router";
 import { verifyKey } from "./discordVerify";
 import { isChatInputCommandInteraction, isMessageComponentInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
@@ -21,11 +27,6 @@ router.get("/", (_req, env: Env) => {
  * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
  */
 router.post("/", async (req, env: Env) => {
-  const hehe = globalThis.fetch;
-  globalThis.fetch = (...args) => {
-    console.log("hi!");
-    return hehe(...args);
-  };
   const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
   if (!isValid || !interaction) {
     console.log("Invalid request signature");
