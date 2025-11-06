@@ -1,25 +1,19 @@
 import {
   type APIChatInputApplicationCommandInteraction,
-  APIInteractionResponse,
-  APIInteractionResponseCallbackData,
-  APIModalInteractionResponseCallbackData,
-  InteractionResponseType,
+  type APIInteractionResponseCallbackData,
+  type APIModalInteractionResponseCallbackData,
+  type Snowflake,
   InteractionType,
-  RESTPatchAPIWebhookJSONBody,
-  RESTPatchAPIWebhookWithTokenJSONBody,
-  RESTPatchAPIWebhookWithTokenMessageJSONBody,
-  Routes,
-  Snowflake,
 } from "discord-api-types/v10";
 import { CommandInteractionOptionResolver } from "./CommandOptionResolver";
-import { REST } from "@discordjs/rest";
 import { ModalBuilder } from "@discordjs/builders";
+import { API } from "@discordjs/core";
 
 class ChatInputCommandInteraction {
   public readonly type = InteractionType.ApplicationCommand;
   public readonly options: CommandInteractionOptionResolver;
   private readonly data: APIChatInputApplicationCommandInteraction;
-  constructor(private rest: REST, interaction: APIChatInputApplicationCommandInteraction) {
+  constructor(private api: API, interaction: APIChatInputApplicationCommandInteraction) {
     this.options = new CommandInteractionOptionResolver(interaction.data.options, interaction.data.resolved);
     this.data = interaction;
   }
@@ -131,45 +125,29 @@ class ChatInputCommandInteraction {
       options.flags = (options.flags ?? 0) | 64;
     }
 
-    return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.ChannelMessageWithSource, data: options } satisfies APIInteractionResponse,
-    });
+    return this.api.interactions.reply(this.id, this.token, options);
   }
 
   deferReply(forceEphemeral = true) {
-    const data: APIInteractionResponseCallbackData = {};
-    if (forceEphemeral) {
-      data.flags = 64;
-    }
-
-    return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.DeferredChannelMessageWithSource, data } satisfies APIInteractionResponse,
+    return this.api.interactions.defer(this.id, this.token, {
+      flags: forceEphemeral ? 64 : undefined,
     });
   }
 
   deferUpdate() {
-    return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: { type: InteractionResponseType.DeferredMessageUpdate } satisfies APIInteractionResponse,
-    });
+    return this.api.interactions.deferMessageUpdate(this.id, this.token);
   }
 
-  editReply(options: RESTPatchAPIWebhookWithTokenMessageJSONBody, messageId: Snowflake | "@original" = "@original") {
-    return this.rest.patch(Routes.webhookMessage(this.applicationId, this.token, messageId), {
-      body: options satisfies RESTPatchAPIWebhookWithTokenMessageJSONBody,
-    });
+  editReply(options: APIInteractionResponseCallbackData, messageId: Snowflake | "@original" = "@original") {
+    return this.api.interactions.editReply(this.id, this.token, options, messageId);
   }
 
   deleteReply(messageId?: Snowflake | "@original") {
-    return this.rest.delete(Routes.webhookMessage(this.applicationId, this.token, messageId));
+    return this.api.interactions.deleteReply(this.id, this.token, messageId);
   }
 
   showModal(data: APIModalInteractionResponseCallbackData | ModalBuilder) {
-    return this.rest.post(Routes.interactionCallback(this.id, this.token), {
-      body: {
-        type: InteractionResponseType.Modal,
-        data: data instanceof ModalBuilder ? data.toJSON() : data,
-      } satisfies APIInteractionResponse,
-    });
+    return this.api.interactions.createModal(this.id, this.token, data instanceof ModalBuilder ? data.toJSON() : data);
   }
 }
 

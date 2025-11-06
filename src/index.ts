@@ -7,8 +7,10 @@ import { webhookHandler } from "./webhook";
 import { handleComponentInteraction } from "./components";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
+import { API } from "@discordjs/core";
 
 const router = AutoRouter();
+const rest = new REST({ version: "10" });
 
 router.get("/", (_req, env: Env) => {
   return new Response(`👋 ${env.DISCORD_APP_ID}`);
@@ -25,7 +27,7 @@ router.post("/", async (req, env: Env) => {
     return new Response("Bad request signature.", { status: 401 });
   }
 
-  const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
+  const api = new API(rest.setToken(env.DISCORD_TOKEN));
 
   // Handle Discord PING requests
   switch (interaction.type) {
@@ -38,7 +40,7 @@ router.post("/", async (req, env: Env) => {
     case InteractionType.ApplicationCommand: {
       if (isChatInputCommandInteraction(interaction)) {
         console.log("Received Chat Input Command Interaction:", interaction.data.name);
-        return handleCommand(new ChatInputCommandInteraction(rest, interaction), env); // Wants APIChatInputApplicationCommandInteraction
+        return handleCommand(new ChatInputCommandInteraction(api, interaction), env); // Wants APIChatInputApplicationCommandInteraction
       } else if (isModalInteraction(interaction)) {
         // Handle modal submissions here if needed
         return sendMessage("Modal submission received!", true);
