@@ -213,83 +213,87 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   console.log("Deferring reply for edit subcommand");
   await ctx.deferReply(true);
 
-  console.log("Editing app configuration for guild");
+  try {
+    console.log("Editing app configuration for guild");
 
-  const bot = ctx.options.getUser("bot", true);
-  if (!validateBot(bot, ctx.applicationId)) {
-    return ctx.editReply({ content: "The selected user is not a bot." });
-  }
+    const bot = ctx.options.getUser("bot", true);
+    if (!validateBot(bot, ctx.applicationId)) {
+      return ctx.editReply({ content: "The selected user is not a bot." });
+    }
 
-  const role = ctx.options.getRole("role", true);
-  const roleId = role.id;
+    const role = ctx.options.getRole("role", true);
+    const roleId = role.id;
 
-  const durationHours = ctx.options.getInteger("duration", true);
-  const durationSeconds = Math.min(durationHours * 3600, 3600);
-  const guildId = ctx.guildId;
-  console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
+    const durationHours = ctx.options.getInteger("duration", true);
+    const durationSeconds = Math.min(durationHours * 3600, 3600);
+    const guildId = ctx.guildId;
+    console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
 
-  if (!guildId) {
-    return ctx.editReply({ content: "This command can only be used in a server." });
-  }
+    if (!guildId) {
+      return ctx.editReply({ content: "This command can only be used in a server." });
+    }
 
-  let newSecret: string | undefined = undefined;
-  let updateFields: Partial<ApplicationCfg> = {
-    voteRoleId: roleId,
-    roleDurationSeconds: durationSeconds,
-  };
-  if (!!ctx.options.getBoolean("generate-secret", true)) {
-    newSecret = randomStringWithSnowflake(32);
-    updateFields.secret = newSecret;
-  }
-  const result: ApplicationCfg[] = await db
-    .update(applications)
-    .set(updateFields)
-    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id)))
-    .returning();
+    let newSecret: string | undefined = undefined;
+    let updateFields: Partial<ApplicationCfg> = {
+      voteRoleId: roleId,
+      roleDurationSeconds: durationSeconds,
+    };
+    if (!!ctx.options.getBoolean("generate-secret", true)) {
+      newSecret = randomStringWithSnowflake(32);
+      updateFields.secret = newSecret;
+    }
 
-  if (result.length === 0) {
-    return ctx.editReply({ content: "No existing configuration found for this bot in this guild. Use `/config app add` to add it." });
-  }
+    const result: ApplicationCfg[] = await db
+      .update(applications)
+      .set(updateFields)
+      .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id)))
+      .returning();
 
-  const embeds: APIEmbed[] = [
-    {
-      title: "App Configuration Updated",
-      color: Colors.Green,
-      description: `Successfully updated configuration for bot <@${bot.id}> in this server.`,
-      fields: [
-        {
-          name: "Vote Role",
-          value: `<@&${roleId}>\n-# :warning: **Make sure I have permission to assign this role and am above it in the role hierarchy!**`,
-          inline: false,
-        },
-        {
-          name: "Role Duration",
-          value: `${Math.floor(durationSeconds / 3600)} hour(s)`,
-          inline: false,
-        },
-      ],
-    },
-  ];
+    if (result.length === 0) {
+      return ctx.editReply({ content: "No existing configuration found for this bot in this guild. Use `/config app add` to add it." });
+    }
 
-  if (newSecret) {
-    embeds.push({
-      title: "New Webhook Secret",
-      color: Colors.Yellow,
-      description: [
-        `A new secret has been generated for your bot. Update your Top.gg webhook configuration with the following secret:`,
-        codeBlock(newSecret),
-        "",
-        ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
-      ].join("\n"),
+    const embeds: APIEmbed[] = [
+      {
+        title: "App Configuration Updated",
+        color: Colors.Green,
+        description: `Successfully updated configuration for bot <@${bot.id}> in this server.`,
+        fields: [
+          {
+            name: "Vote Role",
+            value: `<@&${roleId}>\n-# :warning: **Make sure I have permission to assign this role and am above it in the role hierarchy!**`,
+            inline: false,
+          },
+          {
+            name: "Role Duration",
+            value: `${Math.floor(durationSeconds / 3600)} hour(s)`,
+            inline: false,
+          },
+        ],
+      },
+    ];
+
+    if (newSecret) {
+      embeds.push({
+        title: "New Webhook Secret",
+        color: Colors.Yellow,
+        description: [
+          `A new secret has been generated for your bot. Update your Top.gg webhook configuration with the following secret:`,
+          codeBlock(newSecret),
+          "",
+          ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
+        ].join("\n"),
+      });
+    }
+
+    await ctx.editReply({
+      embeds: embeds,
     });
+    console.log("Guild configuration updated in database");
+  } catch (error) {
+    console.error("Error in handleEditApp:", error);
+    return ctx.editReply({ content: `Failed to edit app configuration: ${error instanceof Error ? error.message : "Unknown error"}` });
   }
-
-  await ctx.editReply({
-    embeds: embeds,
-  });
-  console.log("Guild configuration updated in database");
-
-  return;
 }
 
 function validateBot(bot: object & { bot?: boolean; id: string }, ownApplicationId: string): boolean {

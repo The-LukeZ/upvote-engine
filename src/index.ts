@@ -112,7 +112,11 @@ app.post("/", async (c) => {
 
       c.env.VOTE_APPLY.send(
         {
-          test: "message",
+          guildId: "123456789012345678",
+          userId: "987654321098765432",
+          timestamp: new Date().toISOString(),
+          roleId: "112233445566778899",
+          applicationId: c.env.DISCORD_APP_ID,
         },
         { contentType: "json" },
       );
