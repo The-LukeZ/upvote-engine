@@ -24,8 +24,8 @@
     "@types/node": "^24.10.0",
     "drizzle-kit": "^0.31.6",
     "tsx": "^4.20.6",
-    "typescript": "^5.5.2",
-    "wrangler": "^4.45.4"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.46.0"
   },
   "dependencies": {
     "@discordjs/builders": "^1.13.0",
