@@ -129,9 +129,14 @@ class ChatInputCommandInteraction {
   }
 
   deferReply(forceEphemeral = true) {
-    return this.api.interactions.defer(this.id, this.token, {
-      flags: forceEphemeral ? 64 : undefined,
-    });
+    return this.api.interactions.defer(
+      this.id,
+      this.token,
+      {
+        flags: forceEphemeral ? 64 : undefined,
+      },
+      { signal: AbortSignal.timeout(5000) },
+    );
   }
 
   deferUpdate() {
@@ -139,7 +144,7 @@ class ChatInputCommandInteraction {
   }
 
   editReply(options: APIInteractionResponseCallbackData, messageId: Snowflake | "@original" = "@original") {
-    return this.api.interactions.editReply(this.id, this.token, options, messageId);
+    return this.api.interactions.editReply(this.id, this.token, options, messageId, { signal: AbortSignal.timeout(5000) });
   }
 
   deleteReply(messageId?: Snowflake | "@original") {
