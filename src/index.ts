@@ -1,40 +1,81 @@
-const hehe = globalThis.fetch;
-globalThis.fetch = (...args) => {
-  console.log("hi!");
-  return hehe(...args);
-};
-
-import { AutoRouter } from "itty-router";
 import { verifyKey } from "./discordVerify";
-import { isChatInputCommandInteraction, isMessageComponentInteraction, isModalInteraction, JsonResponse, sendMessage } from "./utils";
+import { isChatInputCommandInteraction, isModalInteraction, sendMessage } from "./utils";
 import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { handleCommand } from "./commands";
-import { webhookHandler } from "./webhook";
-import { handleComponentInteraction } from "./components";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
 import { API } from "@discordjs/core/http-only";
+import { inspect } from "util";
+import { Hono, HonoRequest } from "hono";
+import { poweredBy } from "hono/powered-by";
+import { cloneRawRequest } from "hono/request";
+import { HonoBindings, HonoVariables } from "../types";
+import { ModalInteraction } from "./discord/ModalInteraction";
 
-const router = AutoRouter();
+// router.post("/discord-webhook", async (req, env: Env) => {
+//   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
+//   if (!isValid || !event) {
+//     return new Response("Bad request signature.", { status: 401 });
+//   }
 
-router.get("/", (_req, env: Env) => {
-  return new Response(`👋 ${env.DISCORD_APP_ID}`);
-});
+//   // This handles, when the app is removed from a guild
+//   // Handle webhook events here
+//   console.log("Received Discord Webhook Event:", event);
 
-/**
- * Main route for all requests sent from Discord.  All incoming messages will
- * include a JSON payload described here:
- * https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object
- */
-router.post("/", async (req, env: Env) => {
-  const { isValid, interaction } = await server.verifyDiscordRequest(req, env);
-  if (!isValid || !interaction) {
-    console.log("Invalid request signature");
-    return new Response("Bad request signature.", { status: 401 });
+//   return new Response("Event received", { status: 200 });
+// });
+
+// router.post("/topgg", webhookHandler);
+// router.all("*", () => new Response("Not Found.", { status: 404 }));
+
+async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
+  const signature = req.header("x-signature-ed25519");
+  const timestamp = req.header("x-signature-timestamp");
+  const body = await (await cloneRawRequest(req)).text();
+  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY));
+  if (!isValidRequest) {
+    return { isValid: false };
   }
 
-  const rest = new REST({ version: "10" });
-  const api = new API(rest.setToken(env.DISCORD_TOKEN));
+  return { interaction: JSON.parse(body) as T, isValid: true };
+}
+
+const app = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }>();
+
+// Mount Builtin Middleware
+app.use("*", poweredBy({ serverName: "Venocix" }));
+app.get("/", (c) => c.text(`👋 ${c.env.DISCORD_APP_ID} | Welcome my fren`));
+app.post("/health", (c) => c.text("OK"));
+app.post("/discord-webhook", async (c) => {
+  const { isValid, interaction: event } = await verifyDiscordRequest<APIWebhookEvent>(c.req, c.env);
+  if (!isValid || !event) {
+    console.log("Invalid webhook request signature");
+    return c.text("Bad request signature.", 401);
+  }
+
+  // This handles, when the app is removed from a guild
+  // Handle webhook events here
+  console.log("Received Discord Webhook Event:", event);
+
+  return c.text("Event received", 200);
+});
+
+app.post("/topgg", async (c) => {
+  // await webhookHandler(c.req, c.env);
+  return c.text("Top.gg webhook received", 200);
+});
+
+app.post("/", async (c) => {
+  const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
+  if (!isValid || !interaction) {
+    console.log("Invalid request signature");
+    return c.text("Bad request signature.", 401);
+  }
+
+  const rest = new REST({
+    version: "10",
+  }).setToken(c.env.DISCORD_TOKEN);
+  const api = new API(rest);
 
   rest
     .addListener("response", (request, response) => {
@@ -48,59 +89,31 @@ router.post("/", async (req, env: Env) => {
   switch (interaction.type) {
     case InteractionType.Ping: {
       console.log("Received Discord PING request");
-      return new JsonResponse({
+      return c.json({
         type: InteractionResponseType.Pong,
       });
     }
-    case InteractionType.ApplicationCommand: {
-      if (isChatInputCommandInteraction(interaction)) {
-        console.log("Received Chat Input Command Interaction:", interaction.data.name);
-        return handleCommand(new ChatInputCommandInteraction(api, interaction), env); // Wants APIChatInputApplicationCommandInteraction
-      } else if (isModalInteraction(interaction)) {
-        // Handle modal submissions here if needed
-        return sendMessage("Modal submission received!", true);
-      } else if (isMessageComponentInteraction(interaction)) {
-        return handleComponentInteraction(interaction, env);
-      }
-    }
+    case InteractionType.ApplicationCommand:
+      c.executionCtx.waitUntil(
+        new Promise(async function (resolve) {
+          if (isChatInputCommandInteraction(interaction)) {
+            console.log("Received Chat Input Command Interaction:", interaction.data.name);
+            c.set("command", new ChatInputCommandInteraction(api, interaction));
+            await handleCommand(c); // Wants APIChatInputApplicationCommandInteraction
+          } else if (isModalInteraction(interaction)) {
+            c.set("modal", new ModalInteraction(api, interaction));
+            c.get("modal").reply({ content: "Modal submission received!" }, true);
+          }
+          return resolve(undefined);
+        }),
+      );
+
+      return c.json({}, 202); // Accepted for processing
   }
 });
-
-router.post("/discord-webhook", async (req, env: Env) => {
-  const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
-  if (!isValid || !event) {
-    return new Response("Bad request signature.", { status: 401 });
-  }
-
-  // This handles, when the app is removed from a guild
-  // Handle webhook events here
-  console.log("Received Discord Webhook Event:", event);
-
-  return new Response("Event received", { status: 200 });
-});
-
-router.post("/topgg", webhookHandler);
-router.all("*", () => new Response("Not Found.", { status: 404 }));
-
-async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: Request, env: Env) {
-  const signature = req.headers.get("x-signature-ed25519");
-  const timestamp = req.headers.get("x-signature-timestamp");
-  const body = await req.clone().text();
-  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY));
-  if (!isValidRequest) {
-    return { isValid: false };
-  }
-
-  return { interaction: JSON.parse(body) as T, isValid: true };
-}
-
-const server = {
-  verifyDiscordRequest,
-  fetch: router.fetch,
-};
 
 export default {
-  ...server,
+  fetch: app.fetch,
   async queue(batch, env): Promise<void> {
     for (let message of batch.messages) {
       console.log(`message ${message.id} processed: ${JSON.stringify(message.body)}`);
