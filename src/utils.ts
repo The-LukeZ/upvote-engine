@@ -1,6 +1,10 @@
 import { ModalBuilder } from "@discordjs/builders";
+import { REST } from "@discordjs/rest";
 import {
   APIApplicationCommandInteraction,
+  APIApplicationCommandInteractionDataOption,
+  APIApplicationCommandInteractionDataSubcommandGroupOption,
+  APIApplicationCommandInteractionDataSubcommandOption,
   APIChatInputApplicationCommandInteraction,
   APIInteraction,
   APIInteractionResponse,
@@ -8,9 +12,11 @@ import {
   APIMessageComponentInteraction,
   APIModalInteractionResponseCallbackData,
   APIModalSubmitInteraction,
+  ApplicationCommandOptionType,
   ApplicationCommandType,
   InteractionResponseType,
   InteractionType,
+  Routes,
 } from "discord-api-types/v10";
 
 export class JsonResponse extends Response {
@@ -31,6 +37,13 @@ export class APIResponse extends JsonResponse {
   }
 }
 
+/**
+ * A generic function to send a message response to Discord interactions.
+ *
+ * @param data The message content or response data to send.
+ * @param forceEphemeral Whether to force the message to be ephemeral (only visible to the user).
+ * @returns An APIResponse object containing the interaction response.
+ */
 export function sendMessage(data: APIInteractionResponseCallbackData | string, forceEphemeral = true) {
   return new APIResponse({
     type: InteractionResponseType.ChannelMessageWithSource,
@@ -41,28 +54,7 @@ export function sendMessage(data: APIInteractionResponseCallbackData | string, f
   });
 }
 
-export function editMessage(data: APIInteractionResponseCallbackData | string) {
-  return new APIResponse({
-    type: InteractionResponseType.UpdateMessage,
-    data: typeof data === "string" ? { content: data } : data,
-  });
-}
-
-export function showModal(data: APIModalInteractionResponseCallbackData | ModalBuilder) {
-  return new APIResponse({
-    type: InteractionResponseType.Modal,
-    data: data instanceof ModalBuilder ? data.toJSON() : data,
-  });
-}
-
-export function deferReply(ephemeral = true) {
-  return new APIResponse({
-    type: InteractionResponseType.DeferredChannelMessageWithSource,
-    data: { flags: ephemeral ? 64 : undefined },
-  });
-}
-
-// Typeguards to make sure an interactions are correctly typed
+// Typeguards because TypeScript is bad at narrowing unions
 export function isChatInputCommandInteraction(
   interaction: APIApplicationCommandInteraction,
 ): interaction is APIChatInputApplicationCommandInteraction {
