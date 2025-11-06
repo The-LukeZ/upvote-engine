@@ -1,10 +1,13 @@
-import { ModalBuilder } from "@discordjs/builders";
+import { codeBlock, ModalBuilder } from "@discordjs/builders";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
-import { guilds } from "./db/schema";
-import { InteractionResponseType } from "discord-api-types/v10";
+import { APIEmbed, InteractionResponseType } from "discord-api-types/v10";
 import { MyContext } from "../types";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
+import { votes, applications, type NewWebhookSecret } from "./db/schema";
+import { randomString } from "./utils";
+import dayjs from "dayjs";
+import { Colors } from "./discord/colors";
 
 export async function handleCommand(c: MyContext) {
   const ctx = c.get("command");
@@ -22,7 +25,7 @@ export async function handleCommand(c: MyContext) {
 async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
   // Currently, there is only one subcommand group for config: "app"
   const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "remove";
-  const db = drizzle(c.env.vote_handler);
+  const db = drizzle(c.env.vote_handler, { schema: { webhookSecrets: applications, votes } });
 
   console.log("Handling config subcommand:", subcommand);
   if (subcommand === "add") {
@@ -45,15 +48,14 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
 
     try {
       const bot = ctx.options.getUser("bot", true);
-      console.log("Bot extracted:", bot);
+      if (!bot.bot) {
+        return ctx.editReply({ content: "The selected user is not a bot." });
+      }
 
       const role = ctx.options.getRole("role", true);
-      console.log("Role extracted:", role);
       const roleId = role.id;
 
       const durationHours = ctx.options.getInteger("duration", true);
-      console.log("Duration extracted:", durationHours);
-
       const durationSeconds = Math.min(durationHours * 3600, 3600); // Minimum of 1 hour
       const guildId = ctx.guildId;
       console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
@@ -62,22 +64,77 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
         return ctx.editReply({ content: "This command can only be used in a server." });
       }
 
-      console.log("Inserting guild configuration into database");
-      // await db
-      //   .insert(guilds)
-      //   .values({
-      //     guildId: guildId,
-      //     voteRoleId: roleId,
-      //     roleDurationSeconds: durationSeconds,
-      //   })
-      //   .onConflictDoUpdate({
-      //     target: guilds.guildId,
-      //     set: {
-      //       voteRoleId: roleId,
-      //       roleDurationSeconds: durationSeconds,
-      //     },
-      //   });
-      await ctx.editReply({ content: `App with bot ID ${bot} added to guild configuration.` });
+      // Check if a config for the bot already exists
+
+      const generatedSecret = randomString(64);
+      const regenerateSecret = ctx.options.getBoolean("generate-secret") ?? false;
+
+      const result = await db
+        .insert(applications)
+        .values({
+          guildId: guildId,
+          applicationId: bot.id,
+          voteRoleId: roleId,
+          roleDurationSeconds: durationSeconds,
+          secret: generatedSecret,
+        })
+        .onConflictDoUpdate({
+          target: [applications.applicationId, applications.guildId],
+          set: {
+            voteRoleId: roleId,
+            roleDurationSeconds: durationSeconds,
+            secret: regenerateSecret ? generatedSecret : undefined, // hopefully this doesn't reset every time
+            // do not update secret on conflict, because that would invalidate existing webhooks
+          },
+        })
+        .returning()
+        .get();
+
+      // consider inserted if created within last 3 seconds (because we don't want to read from the db before to check)
+      const isInserted = dayjs(result.createdAt).isAfter(dayjs().subtract(3, "seconds"));
+
+      const embeds: APIEmbed[] = [
+        {
+          title: isInserted ? "App Configured" : "App Configuration Updated",
+          color: Colors.Green,
+          description: `Successfully ${isInserted ? "added" : "updated"} configuration for bot <@${bot.id}> in this guild.`,
+          fields: [
+            {
+              name: "Vote Role",
+              value: `<@&${roleId}>`,
+              inline: true,
+            },
+            {
+              name: "Role Duration",
+              value: `${Math.floor(durationSeconds / 3600)} hour(s)`,
+              inline: true,
+            },
+          ],
+        },
+      ];
+
+      if (isInserted || regenerateSecret) {
+        embeds.push({
+          title: "Webhook Secret",
+          color: Colors.Yellow,
+          description: [
+            `Add the following configuration your bot on Top.gg to enable vote role rewards:`,
+            "",
+            "### Webhook URL",
+            codeBlock(`https://vote-handler.lukez.workers.dev/topgg/${bot.id}`),
+            "",
+            "### Secret",
+            codeBlock(generatedSecret),
+          ].join("\n"),
+          footer: {
+            text: "Keep this secret safe! It will not be shown again.\nIf you lose it, you have to regenerate it.",
+          },
+        });
+      }
+
+      await ctx.editReply({
+        embeds: embeds,
+      });
       console.log("Guild configuration inserted into database");
     } catch (error) {
       console.error("Error extracting parameters or adding app configuration:", error);
@@ -90,7 +147,7 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
     console.log("Listing configured apps for guild");
     const guildId = ctx.guildId!;
     try {
-      const configs = await db.select().from(guilds).where(eq(guilds.guildId, guildId));
+      const configs = await db.select().from(applications).where(eq(applications.guildId, guildId));
       if (configs.length === 0) {
         return ctx.reply({ content: "No apps configured for this guild." }, true);
       }
