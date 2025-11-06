@@ -1,4 +1,3 @@
-import { APIChatInputApplicationCommandInteraction, ApplicationCommandOptionType } from "discord-api-types/v10";
 import { ModalBuilder } from "@discordjs/builders";
 import { drizzle } from "drizzle-orm/d1";
 import { eq } from "drizzle-orm";
@@ -21,13 +20,12 @@ async function handleConfig(ctx: ChatInputCommandInteraction, env: Env) {
   const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "remove";
   const db = drizzle(env.vote_handler);
 
-  console.log(`Handling config subcommand: ${subcommand}`);
   if (subcommand === "add") {
     await ctx.deferReply(true);
     const bot = ctx.options.getString("bot", true);
     const guildId = ctx.guildId!;
     // Insert the new guild configuration into the database
-    await ctx.editReply({ content: `App with bot ID ${bot} added to guild configuration.` });
+    await ctx.editReply({ content: `App with bot ID ${bot} added to guild configuration.` }).catch(console.error);
     return;
   }
 
