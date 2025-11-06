@@ -18,6 +18,7 @@ import {
   InteractionType,
   Routes,
 } from "discord-api-types/v10";
+import { generateSnowflake } from "./snowflake";
 
 export class JsonResponse extends Response {
   constructor(body: any, init?: ResponseInit) {
@@ -69,9 +70,12 @@ export function isMessageComponentInteraction(interaction: APIInteraction): inte
   return interaction.type === InteractionType.MessageComponent;
 }
 
-export function randomString(length: number) {
+export function randomStringWithSnowflake(length: number) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.-!§$%&/()=?+#*";
-  return Array.from({ length })
-    .map(() => chars.charAt(Math.floor(Math.random() * chars.length)))
-    .join("");
+  // The snowflake ensures uniqueness across calls
+  return (
+    Array.from({ length })
+      .map(() => chars.charAt(Math.floor(Math.random() * chars.length)))
+      .join("") + generateSnowflake().toString()
+  );
 }
