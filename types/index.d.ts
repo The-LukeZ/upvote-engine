@@ -41,3 +41,10 @@ export interface APIInteractionDataResolvedCollections {
 }
 
 export type DrizzleDB = ReturnType<typeof makeDB>;
+
+export interface QueueMessageBody {
+  userId: string;
+  guildId: string;
+  applicationId: string;
+  timestamp: string; // ISO string
+}

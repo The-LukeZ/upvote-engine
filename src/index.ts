@@ -9,8 +9,9 @@ import { inspect } from "util";
 import { Hono, HonoRequest } from "hono";
 import { poweredBy } from "hono/powered-by";
 import { cloneRawRequest } from "hono/request";
-import { HonoBindings, HonoVariables } from "../types";
+import { HonoBindings, HonoVariables, QueueMessageBody } from "../types";
 import { ModalInteraction } from "./discord/ModalInteraction";
+import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -109,15 +110,25 @@ app.post("/", async (c) => {
         }),
       );
 
+      c.env.VOTE_APPLY.send(
+        {
+          test: "message",
+        },
+        { contentType: "json" },
+      );
+
       return c.json({}, 202); // Accepted for processing
   }
 });
 
 export default {
   fetch: app.fetch,
-  async queue(batch, env): Promise<void> {
-    for (let message of batch.messages) {
-      console.log(`message ${message.id} processed: ${JSON.stringify(message.body)}`);
+  async queue(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
+    console.log(`Processing queue '${batch.queue}'`);
+    if (batch.queue === "voteapply") {
+      await handleVoteApply(batch, env);
+    } else if (batch.queue === "voteremove") {
+      await handleVoteRemove(batch, env);
     }
   },
-} satisfies ExportedHandler<Env, Error>;
+};
