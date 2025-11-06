@@ -15,6 +15,9 @@ abstract class BaseInteraction<Type extends InteractionType> {
   public readonly type: Type;
   protected readonly data: Extract<APIChatInputApplicationCommandInteraction | APIModalSubmitInteraction, { type: Type }>;
   public readonly rest: REST;
+  private _ephemeral: boolean | null = null;
+  private replied: boolean = false;
+  private deferred: boolean = false;
 
   constructor(protected api: API, data: typeof this.data) {
     this.type = data.type as Type;
@@ -94,25 +97,33 @@ abstract class BaseInteraction<Type extends InteractionType> {
     return this.getAppEntitlements().filter((entitlement) => entitlement.user_id === this.userId).length > 0;
   }
 
-  reply(options: APIInteractionResponseCallbackData, forceEphemeral = true) {
+  async reply(options: APIInteractionResponseCallbackData, forceEphemeral = true) {
     if (forceEphemeral) {
       options.flags = (options.flags ?? 0) | 64;
     }
-    return this.api.interactions.reply(this.id, this.token, options);
+    const response = await this.api.interactions.reply(this.id, this.token, options);
+    this.replied = true;
+    return response;
   }
 
-  deferReply(forceEphemeral = true) {
-    return this.api.interactions.defer(this.id, this.token, {
+  async deferReply(forceEphemeral = true) {
+    const response = await this.api.interactions.defer(this.id, this.token, {
       flags: forceEphemeral ? 64 : undefined,
     });
+    this.deferred = true;
+    return response;
   }
 
   deferUpdate() {
     return this.api.interactions.deferMessageUpdate(this.id, this.token);
   }
 
-  editReply(options: APIInteractionResponseCallbackData, messageId: Snowflake | "@original" = "@original") {
-    return this.api.interactions.editReply(this.applicationId, this.token, options, messageId, { signal: AbortSignal.timeout(5000) });
+  async editReply(options: APIInteractionResponseCallbackData, messageId: Snowflake | "@original" = "@original") {
+    const response = await this.api.interactions.editReply(this.applicationId, this.token, options, messageId, {
+      signal: AbortSignal.timeout(5000),
+    });
+    this.replied = true;
+    return response;
   }
 
   deleteReply(messageId?: Snowflake | "@original") {
