@@ -1,7 +1,10 @@
 const hehe = globalThis.fetch;
 globalThis.fetch = (...args) => {
   console.log("hi!");
-  return hehe(...args);
+  return hehe(...args).catch((err) => {
+    console.error("Fetch error:", err);
+    throw err;
+  });
 };
 
 import { AutoRouter } from "itty-router";
@@ -151,45 +154,39 @@ export default {
         });
       }
 
-      ctx.waitUntil(
-        new Promise(async (resolve) => {
-          // Simple check: does defer + edit work?
-          try {
-            const deferRes = await fetch(
-              `https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback?with_response=true`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  authorization: `Bot ${env.DISCORD_TOKEN}`,
-                },
-                body: JSON.stringify({
-                  type: InteractionResponseType.DeferredChannelMessageWithSource,
-                  data: {
-                    flags: 64,
-                  },
-                }),
+      // Simple check: does defer + edit work?
+      try {
+        const deferRes = await fetch(
+          `https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback?with_response=true`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              authorization: `Bot ${env.DISCORD_TOKEN}`,
+            },
+            body: JSON.stringify({
+              type: InteractionResponseType.DeferredChannelMessageWithSource,
+              data: {
+                flags: 64,
               },
-            );
-            console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)), await deferRes.text());
-            const resRes = await fetch(`https://discord.com/api/v10/webhooks/${interaction.id}/${interaction.token}?with_response=true`, {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                authorization: `Bot ${env.DISCORD_TOKEN}`,
-              },
-              body: JSON.stringify({
-                content: "Processing your interaction...",
-              }),
-            });
-            console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers)), await resRes.text());
-          } catch (err) {
-            console.error("Error during deferred reply:", err);
-          } finally {
-            resolve(true);
-          }
-        }),
-      );
+            }),
+          },
+        );
+        console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)), await deferRes.text());
+        const resRes = await fetch(`https://discord.com/api/v10/webhooks/${interaction.id}/${interaction.token}?with_response=true`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            authorization: `Bot ${env.DISCORD_TOKEN}`,
+          },
+          body: JSON.stringify({
+            content: "Processing your interaction...",
+          }),
+        });
+        console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers)), await resRes.text());
+      } catch (err) {
+        console.error("Error during deferred reply:", err);
+      }
     }
     return new JsonResponse({ message: "Hello World!" });
   },
