@@ -28,6 +28,9 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
                   .setRequired(true)
                   .setMinValue(1)
                   .setMaxValue(336), // 14 days
+            )
+            .addBooleanOption((opt) =>
+              opt.setName("generate-secret").setDescription("Whether to generate a new webhook secret").setRequired(false),
             ),
         )
         .addSubcommand((sub) => sub.setName("remove").setDescription("Remove an app")),
