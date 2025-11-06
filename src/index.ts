@@ -178,39 +178,35 @@ app.post("/", async (c) => {
     }
     case InteractionType.ApplicationCommand: {
       try {
-        const deferRes = await fetch(
-          `https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback?with_response=true`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              authorization: `Bot ${c.env.DISCORD_TOKEN}`,
-            },
-            body: JSON.stringify({
-              type: InteractionResponseType.ChannelMessageWithSource,
-              data: {
-                flags: 64,
-                content: "Processing your command...",
-              },
-            }),
-          },
-        );
-        console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)), await deferRes.text());
-        const resRes = await fetch(`https://discord.com/api/v10/webhooks/${interaction.id}/${interaction.token}?with_response=true`, {
-          method: "PATCH",
+        // Testing
+        const result = await fetch("https://client-api.ticketon.app/health");
+        console.log("Health check response:", result.status, inspect(Object.entries(result.headers)), await result.text());
+        // Create a channel message to test the post request
+        const deferRes = await fetch(`https://discord.com/api/v10/channels/${interaction.channel.id}/messages`, {
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
             authorization: `Bot ${c.env.DISCORD_TOKEN}`,
           },
           body: JSON.stringify({
-            content: "Done!",
+            content: "Processing your command...",
           }),
         });
-        console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers)), await resRes.text());
+        console.log("Defer response:", deferRes.status, inspect(Object.entries(deferRes.headers)));
+        // fetch(`https://discord.com/api/v10/webhooks/${interaction.id}/${interaction.token}?with_response=true`, {
+        //   method: "PATCH",
+        //   headers: {
+        //     "Content-Type": "application/json",
+        //     authorization: `Bot ${c.env.DISCORD_TOKEN}`,
+        //   },
+        //   body: JSON.stringify({
+        //     content: "Done!",
+        //   }),
+        // }).then((resRes) => console.log("Edit response:", resRes.status, inspect(Object.entries(resRes.headers))));
       } catch (err) {
         console.error("Error during deferred reply:", err);
       } finally {
-        return c.json({}, 202); // Acknowledge the request immediately
+        return c.json({}, 202); // Accepted
       }
 
       // if (isChatInputCommandInteraction(interaction)) {
