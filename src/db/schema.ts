@@ -18,8 +18,8 @@ export const votes = sqliteTable("votes", {
   expiresAt: text("expires_at"),
 });
 
-export type WebhookSecret = typeof applications.$inferSelect;
-export type NewWebhookSecret = typeof applications.$inferInsert;
+export type ApplicationCfg = typeof applications.$inferSelect;
+export type NewApplicationCfg = typeof applications.$inferInsert;
 
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;

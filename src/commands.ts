@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { APIEmbed, InteractionResponseType } from "discord-api-types/v10";
 import { MyContext } from "../types";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
-import { votes, applications, type NewWebhookSecret } from "./db/schema";
+import { votes, applications } from "./db/schema";
 import { randomString } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
