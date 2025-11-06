@@ -60,8 +60,9 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
-app.post("/topgg", async (c) => {
+app.post("/topgg/:applicationId", async (c) => {
   // await webhookHandler(c.req, c.env);
+  const appId = c.req.param("applicationId");
   return c.text("Top.gg webhook received", 200);
 });
 
