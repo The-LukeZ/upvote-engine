@@ -55,21 +55,28 @@ app.use("*", poweredBy({ serverName: "Venocix" }));
 app.get("/", (c) =>
   c.html(
     `
-<head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head>
-<body class="text-lg bg-slate-900 text-slate-200 p-8 font-sans">
-<div class="mb-6">
-<h1 class="font-bold mb-4">👋 ${c.env.DISCORD_APP_ID}</h1>
-<p>Welcome my friend.</p>
-</div>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="text-lg bg-slate-900 text-slate-200 p-4 font-sans min-h-screen">
+  <div class="max-w-2xl mx-auto  space-y-6">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold mb-2">👋 ${c.env.DISCORD_APP_ID}</h1>
+      <p class="text-lg">Welcome, my friend.</p>
+    </div>
 
-<p>This is the home of the <strong>Upvote Engine</strong>, a Discord bot voting handler service.</p>
-<p>Useful links:</p>
-<ul class="list-disc list-inside px-4">
-<li><a class="text-blue-500 hover:underline" href="/invite">Invite Bot</a></li>
-<li><a class="text-blue-500 hover:underline" href="/info">Bot Info</a></li>
-<li><a class="text-blue-500 hover:underline" href="/github">GitHub</a></li>
-<li><a class="text-blue-500 hover:underline" href="/wiki">Wiki</a></li>
-</ul>
+    <div>
+      <p class="mb-4 text-lg">This is the home of the <strong>Upvote Engine</strong>, a Discord bot voting handler service.</p>
+      <p class="mb-4 text-lg">Useful links:</p>
+      <ul class="list-disc list-inside px-2 sm:px-4 space-y-2">
+      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/invite">Invite Bot</a></li>
+      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/info">Bot Info</a></li>
+      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/github">GitHub</a></li>
+      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/wiki">Wiki</a></li>
+      </ul>
+    </div>
+  </div>
 </body>`,
   ),
 );
