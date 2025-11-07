@@ -96,18 +96,6 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("set")
             .setDescription("Set the forwarding configuration")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true))
-            .addStringOption((opt) =>
-              opt
-                .setName("source")
-                .setDescription("The bot listing source")
-                .setRequired(true)
-                .addChoices(
-                  Object.keys(supportedPlatforms).map((key) => ({
-                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
-                    value: key,
-                  })),
-                ),
-            )
             .addStringOption((opt) => opt.setName("url").setDescription("The target webhook URL").setRequired(true))
             .addStringOption((opt) => opt.setName("secret").setDescription("The webhook secret").setRequired(true)),
         )
@@ -116,18 +104,6 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("edit")
             .setDescription("Edit the forwarding configuration")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true))
-            .addStringOption((opt) =>
-              opt
-                .setName("source")
-                .setDescription("The bot listing source")
-                .setRequired(true)
-                .addChoices(
-                  Object.keys(supportedPlatforms).map((key) => ({
-                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
-                    value: key,
-                  })),
-                ),
-            )
             .addStringOption((opt) => opt.setName("url").setDescription("The new target webhook URL").setRequired(false))
             .addStringOption((opt) => opt.setName("secret").setDescription("The new webhook secret").setRequired(false)),
         )
@@ -135,37 +111,13 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
           sub
             .setName("remove")
             .setDescription("Remove the forwarding configuration")
-            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true))
-            .addStringOption((opt) =>
-              opt
-                .setName("source")
-                .setDescription("The bot listing source")
-                .setRequired(true)
-                .addChoices(
-                  Object.keys(supportedPlatforms).map((key) => ({
-                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
-                    value: key,
-                  })),
-                ),
-            ),
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
         )
         .addSubcommand((sub) =>
           sub
             .setName("view")
             .setDescription("View the forwarding configuration")
-            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true))
-            .addStringOption((opt) =>
-              opt
-                .setName("source")
-                .setDescription("The bot listing source")
-                .setRequired(true)
-                .addChoices(
-                  Object.keys(supportedPlatforms).map((key) => ({
-                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
-                    value: key,
-                  })),
-                ),
-            ),
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
         ),
     ),
 ];
