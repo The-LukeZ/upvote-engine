@@ -28,6 +28,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
   await db.insert(votes).values(
     validMessages.map((message) => ({
       id: BigInt(message.body.id),
+      applicationId: message.body.applicationId,
       guildId: message.body.guildId,
       userId: message.body.userId,
       roleId: message.body.roleId,

@@ -40,6 +40,7 @@ topggApp.post("/webhook/:applicationId", async (c) => {
   c.env.VOTE_APPLY.send({
     id: voteId,
     userId: vote.user,
+    applicationId: appId,
     guildId: appCfg.guildId,
     roleId: appCfg.voteRoleId,
     expiresAt: expiresAt,
