@@ -3,7 +3,7 @@ import { QueueMessageBody } from "../types";
 import { votes } from "./db/schema";
 import { makeDB } from "./db/util";
 import { REST } from "@discordjs/rest";
-import { inArray } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import { Routes } from "discord-api-types/v10";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
@@ -60,29 +60,58 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
 
 export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
   console.log(`Processing vote remove batch with ${batch.messages.length} messages`);
+  const db = makeDB(env);
+  const currentTs = dayjs().toISOString();
+
+  // Collect unique user/guild/role combinations from the batch
+  const combinations = new Map<string, { guildId: string; userId: string; roleId: string }>();
+  const voteIds = new Set<bigint>();
+
   for (const message of batch.messages) {
     const body = message.body;
-    console.log(`Removing vote for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
+    console.log(`Processing removal for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
+    const key = `${body.guildId}-${body.userId}-${body.roleId}`;
+    if (!combinations.has(key)) {
+      combinations.set(key, { guildId: body.guildId, userId: body.userId, roleId: body.roleId });
+    }
+    voteIds.add(BigInt(body.id));
   }
 
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
-  const successfulRemovals = new Set<bigint>();
-  for (const message of batch.messages) {
-    try {
-      console.log(`Removing role ${message.body.roleId} from user ${message.body.userId} in guild ${message.body.guildId}`);
-      await rest.delete(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId)); // TODO: Find a way to dismiss "user not found" errors when removing role
-      successfulRemovals.add(BigInt(message.body.id));
-    } catch (error) {
-      console.error(`Failed to remove role for vote ID ${message.body.id}:`, error);
+
+  // For each unique combination, check if there are active votes and remove role if not
+  for (const [key, combo] of combinations) {
+    const activeVotes = await db
+      .select()
+      .from(votes)
+      .where(
+        and(
+          eq(votes.guildId, combo.guildId),
+          eq(votes.userId, combo.userId),
+          eq(votes.roleId, combo.roleId),
+          eq(votes.hasRole, true),
+          isNotNull(votes.expiresAt),
+          gt(votes.expiresAt, currentTs),
+        ),
+      );
+
+    if (activeVotes.length === 0) {
+      try {
+        console.log(`Removing role ${combo.roleId} from user ${combo.userId} in guild ${combo.guildId} (no active votes left)`);
+        await rest.delete(Routes.guildMemberRole(combo.guildId, combo.userId, combo.roleId));
+      } catch (error) {
+        console.error(`Failed to remove role for user ${combo.userId} in guild ${combo.guildId}:`, error);
+      }
+    } else {
+      console.log(`Skipping role removal for user ${combo.userId} in guild ${combo.guildId} (${activeVotes.length} active votes remain)`);
     }
   }
 
-  // Update hasRole status for successfully removed roles
-  if (successfulRemovals.size > 0) {
-    const db = makeDB(env);
+  // Update hasRole to false for all votes in the batch
+  if (voteIds.size > 0) {
     await db
       .update(votes)
       .set({ hasRole: false })
-      .where(inArray(votes.id, Array.from(successfulRemovals)));
+      .where(inArray(votes.id, Array.from(voteIds)));
   }
 }
