@@ -52,6 +52,7 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
 
   if (subcommand === "remove") {
     const bot = ctx.options.getUser("bot", true);
+    const removeVotes = ctx.options.getBoolean("delete-votes") ?? false;
     return ctx.showModal(
       new ModalBuilder({
         title: "Remove App",
@@ -59,6 +60,31 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
       })
         .addLabelComponents((l) =>
           l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
+        )
+        .addLabelComponents((l) =>
+          l
+            .setLabel("Delete Votes as well?")
+            .setDescription("Whether to delete all votes for this app from the database as well")
+            .setStringSelectMenuComponent((ss) =>
+              ss.setCustomId("delete_votes").setOptions(
+                new StringSelectMenuOptionBuilder({
+                  label: "Yes, delete votes",
+                  emoji: {
+                    name: "✅",
+                  },
+                  value: "1",
+                  default: removeVotes,
+                }),
+                new StringSelectMenuOptionBuilder({
+                  label: "No, keep votes",
+                  emoji: {
+                    name: "❌",
+                  },
+                  value: "0",
+                  default: !removeVotes,
+                }),
+              ),
+            ),
         )
         .addLabelComponents((l) =>
           l
@@ -79,6 +105,7 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
                     name: "🚫",
                   },
                   value: "0",
+                  default: true,
                 }),
               ),
             ),

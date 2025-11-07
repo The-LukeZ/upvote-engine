@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { MyContext } from "../types";
-import { applications } from "./db/schema";
+import { applications, votes } from "./db/schema";
 import { makeDB } from "./db/util";
 
 export async function handleComponentInteraction(c: MyContext) {
@@ -9,6 +9,11 @@ export async function handleComponentInteraction(c: MyContext) {
   try {
     if (modal.custom_id === "remove_app_modal") {
       await modal.deferReply(true);
+
+      const confirmation = modal.components.getSelectedValues("confirmation")![0] === "1";
+      if (!confirmation) {
+        return modal.editReply({ content: "Operation cancelled." });
+      }
 
       const db = makeDB(c.env);
       const [botUser] = modal.components.getSelectedUsers("bot") || [];
@@ -19,6 +24,14 @@ export async function handleComponentInteraction(c: MyContext) {
       }
 
       await db.delete(applications).where(eq(applications.applicationId, botUser.id));
+
+      const deleteVotes = modal.components.getSelectedValues("delete_votes")![0] === "1";
+      if (deleteVotes) {
+        await db.delete(votes).where(eq(votes.applicationId, botUser.id));
+        return modal.editReply({
+          content: `Successfully removed application configuration and all associated votes for <@${botUser.id}>.`,
+        });
+      }
 
       return modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
     }
