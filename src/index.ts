@@ -67,6 +67,7 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
+app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 
