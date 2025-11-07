@@ -1,5 +1,5 @@
 import type { Next } from "hono";
-import { MyContext, WebhookPayload } from "../../types";
+import { MyContext, WebhookPayload } from "../../../types";
 
 // This file has more convenience methods than actually needed, however this is to
 // allow for future expansion and ease of use. (and maybe a little bit of "hey, I made a topgg webhook handler for hono" flexing)

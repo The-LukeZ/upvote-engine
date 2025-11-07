@@ -1,13 +1,13 @@
 import { Hono } from "hono";
-import { HonoBindings, HonoVariables, QueueMessageBody } from "../../types";
+import { HonoBindings, HonoVariables, QueueMessageBody } from "../../../types";
 import { TopGGWebhook } from "./webhook";
-import { makeDB } from "../db/util";
-import { applications } from "../db/schema";
+import { makeDB } from "../../db/util";
+import { applications } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSnowflake } from "../snowflake";
+import { generateSnowflake } from "../../snowflake";
 import dayjs from "dayjs";
 
-const topggApp = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }>();
+const topggApp = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }, {}, "/topgg">();
 
 topggApp.post("/webhook/:applicationId", async (c) => {
   const appId = c.req.param("applicationId");
@@ -34,8 +34,8 @@ topggApp.post("/webhook/:applicationId", async (c) => {
     return c.json({ status: "Test vote received" });
   }
 
-  const voteId = generateSnowflake();
-  const expiresAt = dayjs().add(appCfg.roleDurationSeconds, "second").toISOString(); // D1 needs ISO string, because sqlite does not have a native date type
+  const voteId = generateSnowflake().toString();
+  const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
 
   c.env.VOTE_APPLY.send({
     id: voteId,
