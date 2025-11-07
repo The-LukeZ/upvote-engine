@@ -57,6 +57,10 @@ class CommandInteractionOptionResolver {
     }
   }
 
+  public get data() {
+    return this._hoistedOptions;
+  }
+
   /**
    * Gets an option by its name.
    *

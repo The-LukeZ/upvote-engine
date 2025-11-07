@@ -51,8 +51,10 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
   }
 
   if (subcommand === "remove") {
+    console.log("Showing remove app modal", { options: ctx.options.data });
     const bot = ctx.options.getUser("bot", true);
     const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+
     return ctx.showModal(
       new ModalBuilder({
         title: "Remove App",

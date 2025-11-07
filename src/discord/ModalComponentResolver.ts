@@ -67,6 +67,10 @@ export class ModalComponentResolver {
     }, new Collection() as Collection<string, APIModalData>);
   }
 
+  public get data() {
+    return this.hoistedComponents.map((component) => component);
+  }
+
   getComponent(custom_id: string): APIModalData {
     const component = this.hoistedComponents.get(custom_id);
 
