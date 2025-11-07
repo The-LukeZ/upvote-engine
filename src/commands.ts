@@ -8,7 +8,7 @@ import { randomStringWithSnowflake, sanitizeSecret } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
-import { GetSupportedPlatform, hostnamePattern, PlatformWebhookUrl } from "./constants";
+import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests, PlatformWebhookUrl } from "./constants";
 import { ForwardingPayload } from "../types/webhooks";
 
 const MAX_APPS_PER_GUILD = 25;
@@ -336,19 +336,29 @@ function buildAppInfo(
     },
   ];
 
+  let embed2FieldValue = codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId));
+  if (platformsWithTests.includes(cfg.source)) {
+    embed2FieldValue += getTestNoticeForPlatform(cfg.source, cfg.applicationId);
+  }
+
+  const embed2: APIEmbed = {
+    color: Colors.Yellow,
+    description: [
+      heading("Webhook Information", 2),
+      "You need to configure your bot listing platform to use the following webhook data:",
+    ].join("\n"),
+    fields: [
+      {
+        name: "Webhook Endpoint",
+        value: codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId)),
+      },
+    ],
+  };
+
   if (secretVisible) {
-    embeds.push({
-      description: [
-        heading("Webhook Data", 2),
-        heading("Webhook Endpoint", 3),
-        "-# Add the following webhook URL to your bot listing platform's webhook configuration.",
-        codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId)),
-        heading("Webhook Secret", 3),
-        "-# Add the following secret to your bot listing platform's webhook configuration.",
-        codeBlock(cfg.secret),
-        ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
-      ].join("\n"),
-      color: Colors.Yellow,
+    embed2.fields!.push({
+      name: "Webhook Secret",
+      value: [codeBlock(sanitizeSecret(cfg.secret)), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
     });
   }
 
