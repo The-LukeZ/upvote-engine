@@ -1,5 +1,5 @@
 import type { Next } from "hono";
-import { MessageQueuePayload, WebhookPayload } from "../../types/webhooks";
+import { MessageQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../types/webhooks";
 import { DrizzleDB, MyContext } from "../../types";
 import { APIVote, forwardings } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -61,17 +61,22 @@ class WebhookHandler<T extends WebhookPayload> {
     }
   }
 
-  public static async buildForwardPayload<T extends APIVote["source"]>(
+  public static async buildForwardPayload<TSource extends WebhookSource>(
     db: DrizzleDB,
     appId: string,
-    payload: MessageQueuePayload<T>["forwardingPayload"],
-  ): Promise<MessageQueuePayload<T> | undefined> {
+    source: TSource,
+    payload: WebhookPayloadMapping[TSource],
+  ): Promise<MessageQueuePayload<TSource> | undefined> {
     const forwardCfg = await db.select().from(forwardings).where(eq(forwardings.applicationId, appId)).limit(1).get();
     if (!forwardCfg) return undefined;
 
     return {
       to: forwardCfg,
-      forwardingPayload: payload,
+      forwardingPayload: {
+        source,
+        payload: payload as any,
+        timestamp: dayjs().toISOString(),
+      },
       timestamp: dayjs().toISOString(),
     };
   }

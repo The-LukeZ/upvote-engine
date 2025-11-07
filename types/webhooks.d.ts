@@ -57,8 +57,10 @@ type WebhookPayloadMapping = {
   dbl: DBLPayload;
 };
 
+export type WebhookSource<WithTest extends boolean = false> = WithTest extends true ? APIVote["source"] | "test" : APIVote["source"];
+
 // The forwarding payload sent to other services
-export type ForwardingPayload<TSource extends APIVote["source"] | "test"> = {
+export type ForwardingPayload<TSource extends WebhookSource<true>> = {
   /**
    * The time the vote was initially received
    *
@@ -74,14 +76,14 @@ export type ForwardingPayload<TSource extends APIVote["source"] | "test"> = {
    * If "test", indicates this is a test payload.
    * Otherwise, indicates the source platform of the vote.
    */
-  source: TSource | "test";
+  source: TSource;
   /**
    * The original webhook payload. Can be inferred based on the vote source.
    */
   payload: TSource extends "test" ? null : WebhookPayloadMapping[TSource];
 };
 
-export type MessageQueuePayload<TSource extends APIVote["source"]> = {
+export type MessageQueuePayload<TSource extends WebhookSource> = {
   /**
    * The time the forward was created
    */

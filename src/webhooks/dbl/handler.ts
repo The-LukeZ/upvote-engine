@@ -44,7 +44,7 @@ dblApp.post("/:applicationId", async (c) => {
     source: "dbl",
   } as QueueMessageBody);
 
-  const forwardPayload = await WebhookHandler.buildForwardPayload(db, appId, vote);
+  const forwardPayload = await WebhookHandler.buildForwardPayload(db, appId, "dbl", vote);
   if (!!forwardPayload) {
     c.env.FORWARD_WEBHOOK.send(forwardPayload);
   }
