@@ -54,7 +54,17 @@ const app = new Hono<HonoContextEnv>();
 app.use("*", poweredBy({ serverName: "Venocix" }));
 app.get("/", (c) =>
   c.html(
-    `<head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head><body><h1 class="font-bold">👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend. Visit the <a href="/info" class="text-sky-500">info page</a> to learn more about this bot.</p></body>`,
+    `
+<head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head>
+<body>
+<h1 class="font-bold">👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend.</p>
+<ul class="list-disc list-inside">
+<li><a class="text-blue-500 hover:underline" href="/invite">Invite Bot</a></li>
+<li><a class="text-blue-500 hover:underline" href="/info">Bot Info</a></li>
+<li><a class="text-blue-500 hover:underline" href="/github">GitHub</a></li>
+<li><a class="text-blue-500 hover:underline" href="/wiki">Wiki</a></li>
+</ul>
+</body>`,
   ),
 );
 app.post("/health", (c) => c.text("OK"));
