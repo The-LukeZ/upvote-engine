@@ -14,6 +14,7 @@ import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction
 import { DrizzleD1Database } from "drizzle-orm/d1";
 import { makeDB } from "../src/db/util";
 import { WebhookPayload } from "./topgg";
+import { NewVote } from "../src/db/schema";
 
 export * from "./db";
 export * from "./topgg";
@@ -44,10 +45,6 @@ export interface APIInteractionDataResolvedCollections {
 
 export type DrizzleDB = ReturnType<typeof makeDB>;
 
-export interface QueueMessageBody {
-  userId: string;
-  guildId: string;
-  roleId: string;
-  applicationId: string;
-  timestamp: string; // ISO string
+export interface QueueMessageBody extends NewVote {
+  timestamp: string;
 }
