@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
 import { GetSupportedPlatform, PlatformWebhookUrl } from "./constants";
+import { ForwardingPayload } from "../types/webhooks";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -387,6 +388,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     const source = ctx.options.getString<"topgg" | "dbl">("source", true);
     const targetUrl = ctx.options.getString("url", true);
+    const forwardingSecret = ctx.options.getString("secret", true);
     const guildId = ctx.guildId!;
 
     // Validate URL format
@@ -422,7 +424,17 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
       });
     }
 
-    const forwardingSecret = randomStringWithSnowflake(32);
+    // Testing the forwarding configuration
+    const testError = await testForwarding(targetUrl, forwardingSecret);
+    if (testError) {
+      await ctx.editReply({
+        content:
+          "Failed to verify forwarding configuration:\n" +
+          codeBlock(testError) +
+          "\nPlease ensure the target URL is reachable and the secret is correct.",
+      });
+      return;
+    }
 
     const newForwarding = await db
       .insert(forwardings)
@@ -460,6 +472,49 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
     return ctx.editReply({
       content: `Failed to set forwarding configuration: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
+  }
+}
+
+/**
+ * Tests the forwarding configuration by sending a test payload
+ *
+ * @returns An error message if the test fails, otherwise undefined
+ */
+async function testForwarding(url: string, secret: string): Promise<string | undefined> {
+  console.log("Testing forwarding configuration");
+
+  const result = await sendTestPayload(url, secret);
+  if (!result.success) {
+    return result.error;
+  }
+  return;
+}
+
+async function sendTestPayload(url: string, secret: string): Promise<{ success: boolean; error?: string }> {
+  const payload: ForwardingPayload<"test"> = {
+    source: "test",
+    timestamp: dayjs().toISOString(),
+    payload: null,
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: secret,
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (response.status === 204) {
+      return { success: true };
+    }
+    throw new Error(`Unexpected response status: ${response.status}`);
+  } catch (error) {
+    console.error("Error sending test payload:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
   }
 }
 
