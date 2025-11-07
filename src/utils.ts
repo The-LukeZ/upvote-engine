@@ -24,6 +24,7 @@ import { DrizzleDB, SupportedPlatforms } from "../types";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { Colors } from "./discord/colors";
+import { GetSupportedPlatform } from "./constants";
 
 export class JsonResponse extends Response {
   constructor(body: any, init?: ResponseInit) {
@@ -168,7 +169,9 @@ export async function dmUserOnTestVote(
         embeds: [
           {
             title: "Test Vote Received",
-            description: `We received your test vote for application ID \`${applicationId}\` on platform \`${source}\`.\nNo roles or rewards have been applied.`,
+            description: `We received your test vote for <@${applicationId}> (${applicationId}) on platform \`${GetSupportedPlatform(
+              source,
+            )}\`.\nNo roles or rewards have been applied.`,
             color: Colors.Blurple,
           },
         ],
