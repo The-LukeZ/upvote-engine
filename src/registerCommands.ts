@@ -1,14 +1,18 @@
 import { SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
-import { RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
+import { ApplicationIntegrationType, RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
 import { supportedPlatforms } from "./constants";
 
 const commands: SlashCommandSubcommandsOnlyBuilder[] = [
-  new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!"),
+  new SlashCommandBuilder()
+    .setName("ping")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+    .setDescription("Replies with Pong!"),
   new SlashCommandBuilder()
     .setName("app")
     .setDescription("Configure the application connections for this server")
     .setContexts(0)
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
     .setDefaultMemberPermissions(32) // Manage Server
     .addSubcommand((sub) => sub.setName("list").setDescription("List all configured apps"))
     .addSubcommand((sub) =>
