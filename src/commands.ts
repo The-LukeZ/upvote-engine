@@ -386,7 +386,6 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
-    const source = ctx.options.getString<"topgg" | "dbl">("source", true);
     const targetUrl = ctx.options.getString("url", true);
     const forwardingSecret = ctx.options.getString("secret", true);
     const guildId = ctx.guildId!;
@@ -400,16 +399,14 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     // Check if app configuration exists
     const appConfig = await db
-      .select()
+      .select({ count: count() })
       .from(applications)
-      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source), eq(applications.guildId, guildId)))
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.guildId, guildId)))
       .get();
 
-    if (!appConfig) {
+    if (!appConfig || appConfig.count === 0) {
       return ctx.editReply({
-        content: `No app configuration found for <@${bot.id}> (${GetSupportedPlatform(
-          source,
-        )}).\nPlease add the app configuration first using \`/app add\`.`,
+        content: `No app configuration found for <@${bot.id}>.\nPlease add the app configuration first using \`/app add\`.`,
       });
     }
 
@@ -418,9 +415,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     if (existingForwarding) {
       return ctx.editReply({
-        content: `Forwarding configuration already exists for <@${bot.id}> (${GetSupportedPlatform(
-          source,
-        )}).\nUse \`/app forwarding edit\` to modify it.`,
+        content: `Forwarding configuration already exists for <@${bot.id}>\nUse \`/app forwarding edit\` to modify it.`,
       });
     }
 
@@ -447,10 +442,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
       .get();
 
     const embed: APIEmbed = {
-      description: [
-        heading(`Forwarding configuration created for <@${bot.id}>`, 3),
-        `Successfully configured vote forwarding for ${bold(GetSupportedPlatform(source))}.`,
-      ].join("\n"),
+      description: heading(`Forwarding configuration created for <@${bot.id}>`, 3),
       color: Colors.Green,
       fields: [
         {
@@ -529,11 +521,10 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
-    const source = ctx.options.getString<"topgg" | "dbl">("source", true);
     const targetUrl = ctx.options.getString("url");
-    const regenerateSecret = ctx.options.getBoolean("generate-secret");
+    const newSecret = ctx.options.getString("secret");
 
-    if (!targetUrl && !regenerateSecret) {
+    if (!targetUrl && !newSecret) {
       return ctx.editReply({ content: "Please provide either a new URL or request to regenerate the secret." });
     }
 
@@ -550,17 +541,15 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
     if (targetUrl) {
       updateFields.targetUrl = targetUrl;
     }
-    if (regenerateSecret) {
-      updateFields.secret = randomStringWithSnowflake(32);
+    if (newSecret) {
+      updateFields.secret = newSecret;
     }
 
     const result = await db.update(forwardings).set(updateFields).where(eq(forwardings.applicationId, bot.id)).returning().get();
 
     if (!result) {
       return ctx.editReply({
-        content: `No forwarding configuration found for <@${bot.id}> (${GetSupportedPlatform(
-          source,
-        )}).\nUse \`/app forwarding set\` to create one.`,
+        content: `No forwarding configuration found for <@${bot.id}>.\nUse \`/app forwarding set\` to create one.`,
       });
     }
 
@@ -572,7 +561,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
       },
     ];
 
-    if (regenerateSecret) {
+    if (newSecret) {
       fields.push({
         name: "New Forwarding Secret",
         value: [codeBlock(result.secret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
@@ -581,10 +570,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
     }
 
     const embed: APIEmbed = {
-      description: [
-        heading(`Forwarding configuration updated for <@${bot.id}>`, 3),
-        `Successfully updated vote forwarding for ${bold(GetSupportedPlatform(source))}.`,
-      ].join("\n"),
+      description: heading(`Forwarding configuration updated for <@${bot.id}>`, 3),
       color: Colors.Yellow,
       fields,
     };
@@ -602,7 +588,6 @@ async function handleRemoveForwarding(ctx: ChatInputCommandInteraction, db: Driz
   console.log("Showing remove forwarding modal");
 
   const bot = ctx.options.getUser("bot", true);
-  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
 
   return ctx.showModal(
     new ModalBuilder({
@@ -613,29 +598,10 @@ async function handleRemoveForwarding(ctx: ChatInputCommandInteraction, db: Driz
         l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
       )
       .addLabelComponents((l) =>
-        l.setLabel("Source").setStringSelectMenuComponent((ss) =>
-          ss
-            .setCustomId("source")
-            .setOptions(
-              new StringSelectMenuOptionBuilder({
-                label: GetSupportedPlatform("topgg"),
-                value: "topgg",
-                default: source === "topgg",
-              }),
-              new StringSelectMenuOptionBuilder({
-                label: GetSupportedPlatform("dbl"),
-                value: "dbl",
-                default: source === "dbl",
-              }),
-            )
-            .setRequired(true),
-        ),
-      )
-      .addLabelComponents((l) =>
         l.setLabel("Confirmation").setStringSelectMenuComponent((ss) =>
           ss.setCustomId("confirmation").setOptions(
             new StringSelectMenuOptionBuilder({
-              label: `Remove forwarding for ${bot.username} (${GetSupportedPlatform(source)})`.slice(0, 100),
+              label: `Remove forwarding for ${bot.username}`.slice(0, 100),
               emoji: {
                 name: "🗑️",
               },
@@ -662,83 +628,40 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
   console.log("Viewing forwarding configuration");
 
   try {
-    const bot = ctx.options.getUser("bot");
-    const source = ctx.options.getString<"topgg" | "dbl">("source");
+    const bot = ctx.options.getUser("bot", true);
     const guildId = ctx.guildId!;
 
-    // If bot and source are specified, show specific forwarding
-    if (bot && source) {
-      if (!validateBot(bot, ctx.applicationId)) {
-        return ctx.editReply({ content: "The selected user is not a bot." });
-      }
-
-      const forwarding = await db.select().from(forwardings).where(eq(forwardings.applicationId, bot.id)).get();
-
-      if (!forwarding) {
-        return ctx.editReply({
-          content: `No forwarding configuration found for <@${bot.id}> (${GetSupportedPlatform(source)}).`,
-        });
-      }
-
-      const embed: APIEmbed = {
-        description: heading(`Forwarding configuration for <@${bot.id}>`, 3),
-        color: Colors.Blurple,
-        fields: [
-          {
-            name: "Source Platform",
-            value: GetSupportedPlatform(source),
-            inline: false,
-          },
-          {
-            name: "Target URL",
-            value: codeBlock(forwarding.targetUrl),
-            inline: false,
-          },
-          {
-            name: "Secret Status",
-            value: "Secret is configured (hidden for security)",
-            inline: false,
-          },
-        ],
-      };
-
-      return ctx.editReply({ embeds: [embed] });
+    // If bot is specified, show specific forwarding
+    if (!validateBot(bot, ctx.applicationId)) {
+      return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
-    // Otherwise, list all forwardings for this guild
-    const appConfigs = await db.select().from(applications).where(eq(applications.guildId, guildId));
+    const forwarding = await db.select().from(forwardings).where(eq(forwardings.applicationId, bot.id)).get();
 
-    if (appConfigs.length === 0) {
-      return ctx.editReply({ content: "No apps configured for this guild." });
+    if (!forwarding) {
+      return ctx.editReply({
+        content: `No forwarding configuration found for <@${bot.id}>.`,
+      });
     }
 
-    const forwardingConfigs = await db.select().from(forwardings);
+    const embed: APIEmbed = {
+      description: heading(`Forwarding configuration for <@${bot.id}>`, 3),
+      color: Colors.Blurple,
+      fields: [
+        {
+          name: "Target URL",
+          value: codeBlock(forwarding.targetUrl),
+          inline: false,
+        },
+        {
+          name: "Secret Status",
+          value: codeBlock(sanitizeSecret(forwarding.secret)),
+          inline: false,
+        },
+      ],
+    };
 
-    if (forwardingConfigs.length === 0) {
-      return ctx.editReply({ content: "No forwarding configurations found." });
-    }
-
-    const container = new ContainerBuilder()
-      .setAccentColor(Colors.Blurple)
-      .addTextDisplayComponents((t) => t.setContent("## Forwarding Configurations"));
-
-    forwardingConfigs.forEach((fwd) => {
-      // Only show if the app belongs to this guild
-      const appInGuild = appConfigs.find((app) => app.applicationId === fwd.applicationId);
-
-      if (appInGuild) {
-        container.addTextDisplayComponents((t) =>
-          t.setContent(
-            [`### <@${fwd.applicationId}>`, `- Target URL: \`${fwd.targetUrl}\``, `- Secret: ${sanitizeSecret(fwd.secret)}`, ""].join("\n"),
-          ),
-        );
-      }
-    });
-
-    return ctx.editReply({
-      flags: MessageFlags.IsComponentsV2,
-      components: [container.toJSON()],
-    });
+    return ctx.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("Error viewing forwarding configuration:", error);
     return ctx.editReply({
