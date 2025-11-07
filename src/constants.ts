@@ -1,7 +1,11 @@
+import { SupportedPlatforms } from "../types";
+
 /**
- * Generates the Top.gg webhook URL for a given application ID.
+ * Generates the Platform webhook URL for a given application ID.
  *
+ * @param platform - The platform for which to generate the webhook URL.
  * @param appId - The application ID for which to generate the webhook URL.
- * @returns The complete Top.gg webhook URL.
+ * @returns The complete Platform webhook URL.
  */
-export const TopGGWebhookUrl = (appId: string) => `https://vote-handler.lukez.workers.dev/topgg/webhook/${appId}`;
+export const PlatformWebhookUrl = (platform: SupportedPlatforms, appId: string) =>
+  `https://vote-handler.lukez.workers.dev/webhook/${platform}/${appId}` as const;
