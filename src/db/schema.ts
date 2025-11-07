@@ -57,3 +57,6 @@ export type APIVote = Omit<Vote, "id"> & { id: string };
 
 export type ForwardingCfg = typeof forwardings.$inferSelect;
 export type NewForwardingCfg = typeof forwardings.$inferInsert;
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
