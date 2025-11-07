@@ -5,7 +5,7 @@ import { makeDB } from "./db/util";
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import { RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
-import { ForwardPayload, MessageQueuePayload } from "../types/webhooks";
+import { MessageQueuePayload } from "../types/webhooks";
 import { delaySeconds } from "./utils";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
@@ -133,7 +133,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 }
 
 // This queue handler processes forwarding webhook payloads other services
-export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload>, env: Env): Promise<void> {
+export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload<any>>, env: Env): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   for (const message of batch.messages) {
     const body = message.body;

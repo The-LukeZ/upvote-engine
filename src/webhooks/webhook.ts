@@ -1,6 +1,9 @@
 import type { Next } from "hono";
-import { WebhookPayload } from "../../types/webhooks";
-import { MyContext } from "../../types";
+import { MessageQueuePayload, WebhookPayload } from "../../types/webhooks";
+import { DrizzleDB, MyContext } from "../../types";
+import { forwardings } from "../db/schema";
+import { eq } from "drizzle-orm";
+import dayjs from "dayjs";
 
 // This file has more convenience methods than actually needed, however this is to
 // allow for future expansion and ease of use. (and maybe a little bit of "hey, I made a generic webhook handler for hono" flexing)
@@ -58,7 +61,20 @@ class WebhookHandler<T extends WebhookPayload> {
     }
   }
 
-  public buildForwardPayload(payload: any): any {}
+  public static async buildForwardPayload(
+    db: DrizzleDB,
+    appId: string,
+    payload: MessageQueuePayload<any>["payload"],
+  ): Promise<MessageQueuePayload<any> | undefined> {
+    const forwardCfg = await db.select().from(forwardings).where(eq(forwardings.applicationId, appId)).limit(1).get();
+    if (!forwardCfg) return undefined;
+
+    return {
+      to: forwardCfg,
+      payload,
+      timestamp: dayjs().toISOString(),
+    };
+  }
 }
 
 export { WebhookHandler, type WebhookPayload };
