@@ -173,10 +173,12 @@ export async function dmUserOnTestVote(
               source,
             )}\`.\nNo roles or rewards have been applied.`,
             color: Colors.Blurple,
+            timestamp: new Date().toISOString(),
           },
         ],
       },
     });
+
     console.log(`Successfully sent test vote notification to user: ${userId}`);
   } catch (error) {
     console.error("Failed to send DM for test vote:", { error, userId, dmChannelId });
