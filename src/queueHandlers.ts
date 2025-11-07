@@ -44,7 +44,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
       await rest.put(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
       successfulAdds.add(BigInt(message.body.id));
     } catch (error) {
-      console.error(`Failed to assign role for vote ID ${message.body.id}:`, error);
+      console.error(`Failed to assign role for vote ID ${message.body.id}:`, error); // TODO: Find a way to dismiss "user not found" errors when applying role
     }
   }
 
@@ -69,7 +69,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   for (const message of batch.messages) {
     try {
       console.log(`Removing role ${message.body.roleId} from user ${message.body.userId} in guild ${message.body.guildId}`);
-      await rest.delete(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
+      await rest.delete(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId)); // TODO: Find a way to dismiss "user not found" errors when removing role
       successfulRemovals.add(BigInt(message.body.id));
     } catch (error) {
       console.error(`Failed to remove role for vote ID ${message.body.id}:`, error);
