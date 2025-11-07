@@ -14,6 +14,17 @@ export const applications = sqliteTable(
   (table) => [primaryKey({ columns: [table.applicationId, table.source, table.guildId] })], // Updated: Include guildId in primary key
 );
 
+export const forwardings = sqliteTable("forwardings", {
+  applicationId: text("application_id")
+    .references(() => applications.applicationId, { onDelete: "cascade" })
+    .primaryKey(),
+  source: text("source", { enum: ["topgg", "dbl"] })
+    .references(() => applications.source)
+    .primaryKey(),
+  targetUrl: text("target_url").notNull(),
+  secret: text("secret").notNull(),
+});
+
 export const votes = sqliteTable(
   "votes",
   {
@@ -41,3 +52,6 @@ export type NewApplicationCfg = typeof applications.$inferInsert;
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
 export type APIVote = Omit<Vote, "id"> & { id: string };
+
+export type ForwardingCfg = typeof forwardings.$inferSelect;
+export type NewForwardingCfg = typeof forwardings.$inferInsert;
