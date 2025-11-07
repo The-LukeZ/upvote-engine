@@ -52,6 +52,7 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
 
   if (subcommand === "remove") {
     const bot = ctx.options.getUser("bot", true);
+    const source = ctx.options.getString<"topgg" | "dbl">("source", true);
     return ctx.showModal(
       new ModalBuilder({
         title: "Remove App",
@@ -61,13 +62,29 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
           l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
         )
         .addLabelComponents((l) =>
+          l.setLabel("Source").setStringSelectMenuComponent((ss) =>
+            ss.setCustomId("source").setOptions(
+              new StringSelectMenuOptionBuilder({
+                label: GetSupportedPlatform("topgg"),
+                value: "topgg",
+                default: source === "topgg",
+              }),
+              new StringSelectMenuOptionBuilder({
+                label: GetSupportedPlatform("dbl"),
+                value: "dbl",
+                default: source === "dbl",
+              }),
+            ).setRequired(true),
+          ),
+        )
+        .addLabelComponents((l) =>
           l
             .setLabel("Confirmation")
-            .setDescription(`Type "remove ${bot.username}" to confirm removal of this app configuration.`)
+            .setDescription(`Type "remove ${bot.username} (${GetSupportedPlatform(source)})" to confirm removal of this app configuration.`)
             .setStringSelectMenuComponent((ss) =>
               ss.setCustomId("confirmation").setOptions(
                 new StringSelectMenuOptionBuilder({
-                  label: `Remove ${bot.username}`,
+                  label: `Remove ${bot.username} (${GetSupportedPlatform(source)})`,
                   emoji: {
                     name: "🗑️",
                   },
@@ -111,7 +128,7 @@ async function handleListApps(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       container.addTextDisplayComponents((t) =>
         t.setContent(
           [
-            `### <@${cfg.applicationId}>`,
+            `### <@${cfg.applicationId}> (${GetSupportedPlatform(cfg.source)})`,
             `- Vote Role: <@&${cfg.voteRoleId}>`,
             `- Role Duration: ${durationText}`,
             `- Created At: <t:${dayjs(cfg.createdAt).unix()}>`,
@@ -162,9 +179,9 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       .get();
 
     if (existingApp && existingApp.guildId === ctx.guildId) {
-      return ctx.editReply({ content: "This bot is already configured for this server." });
+      return ctx.editReply({ content: "This bot is already configured for this server for this source." });
     } else if (existingApp) {
-      return ctx.editReply({ content: "This bot is already configured for another server." });
+      return ctx.editReply({ content: "This bot is already configured for another server for this source." });
     }
 
     const role = ctx.options.getRole("role", true);
@@ -261,7 +278,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     .get();
 
   if (!result) {
-    return ctx.editReply({ content: "No existing configuration found for this bot in this guild. Use `/config app add` to add it." });
+    return ctx.editReply({ content: "No existing configuration found for this bot in this guild for this source. Use `/config app add` to add it." });
   }
 
   await ctx.editReply(buildAppInfo(result, "edit", !!newSecret));

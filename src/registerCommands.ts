@@ -77,7 +77,19 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
           sub
             .setName("remove")
             .setDescription("Remove an app")
-            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true)),
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true))
+            .addStringOption((opt) =>
+              opt
+                .setName("source")
+                .setDescription("The bot listing source")
+                .setRequired(true)
+                .addChoices(
+                  Object.keys(supportedPlatforms).map((key) => ({
+                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
+                    value: key,
+                  })),
+                ),
+            ),
         ),
     ),
 ];

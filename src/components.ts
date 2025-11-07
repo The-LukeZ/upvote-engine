@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { MyContext } from "../types";
 import { applications, votes } from "./db/schema";
 import { makeDB } from "./db/util";
@@ -16,14 +16,13 @@ export async function handleComponentInteraction(c: MyContext) {
       }
 
       const db = makeDB(c.env);
-      const [botUser] = modal.components.getSelectedUsers("bot") || [];
-      if (!botUser) {
-        return modal.editReply({ content: "No bot selected." });
-      } else if (!botUser.bot) {
+      const [botUser] = modal.components.getSelectedUsers("bot", true);
+      const [source] = modal.components.getSelectedValues("source", true);
+      if (!botUser.bot) {
         return modal.editReply({ content: "Selected user is not a bot." });
       }
 
-      await db.delete(applications).where(eq(applications.applicationId, botUser.id)); // Cascade deletes votes
+      await db.delete(applications).where(and(eq(applications.applicationId, botUser.id), eq(applications.source, source as any))); // Cascade deletes votes
 
       return modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
     }
