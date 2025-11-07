@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, blob, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, blob, primaryKey, foreignKey } from "drizzle-orm/sqlite-core";
 
 export const applications = sqliteTable(
   "applications",
@@ -14,18 +14,28 @@ export const applications = sqliteTable(
   (table) => [primaryKey({ columns: [table.applicationId, table.source, table.guildId] })], // Updated: Include guildId in primary key
 );
 
-export const votes = sqliteTable("votes", {
-  id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID
-  applicationId: text("application_id")
-    .notNull()
-    .references(() => applications.applicationId, { onDelete: "cascade" }),
-  source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
-  guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(),
-  roleId: text("role_id").notNull(),
-  hasRole: integer("has_role", { mode: "boolean" }).notNull().default(false), // 1 = true, 0 = false
-  expiresAt: text("expires_at"),
-});
+export const votes = sqliteTable(
+  "votes",
+  {
+    id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID
+    applicationId: text("application_id")
+      .notNull()
+      .references(() => applications.applicationId, { onDelete: "cascade" }),
+    source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
+    guildId: text("guild_id").notNull(),
+    userId: text("user_id").notNull(),
+    roleId: text("role_id").notNull(),
+    hasRole: integer("has_role", { mode: "boolean" }).notNull().default(false), // 1 = true, 0 = false
+    expiresAt: text("expires_at"),
+  },
+  (table) => [
+    foreignKey({
+      name: "fk_votes_application",
+      columns: [table.applicationId, table.source, table.guildId],
+      foreignColumns: [applications.applicationId, applications.source, applications.guildId],
+    }),
+  ],
+);
 
 export type ApplicationCfg = typeof applications.$inferSelect;
 export type NewApplicationCfg = typeof applications.$inferInsert;

@@ -175,15 +175,15 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     const source = ctx.options.getString<"topgg" | "dbl">("source", true);
 
     const existingApp = await db
-      .select({ guildId: applications.guildId })
+      .select()
       .from(applications)
-      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
+      .where(and(eq(applications.applicationId, bot.id)))
       .limit(1)
       .get();
 
-    if (existingApp && existingApp.guildId === ctx.guildId) {
+    if (existingApp && existingApp.guildId === ctx.guildId && existingApp.source === source) {
       return ctx.editReply({ content: "This bot is already configured for this server for this source." });
-    } else if (existingApp) {
+    } else if (existingApp && existingApp.source === source && existingApp.guildId !== ctx.guildId) {
       return ctx.editReply({ content: "This bot is already configured for another server for this source." });
     }
 
@@ -222,9 +222,9 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       if (!newCfg) {
         return ctx.editReply({ content: "This bot is already configured for this server for this source." });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error inserting app configuration into database:", error);
-      return ctx.editReply({ content: "Failed to add app configuration. Please try again." });
+      return ctx.editReply({ content: error.message || "Failed to add app configuration. Please try again." });
     }
 
     await ctx.editReply(buildAppInfo(newCfg, "create"));
