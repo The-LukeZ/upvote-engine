@@ -14,7 +14,7 @@ import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction
 import { DrizzleD1Database } from "drizzle-orm/d1";
 import { makeDB } from "../src/db/util";
 import { WebhookPayload } from "./webhooks";
-import { NewVote } from "../src/db/schema";
+import { NewVote, ApplicationCfg } from "../src/db/schema";
 
 export * from "./db";
 export * from "./topgg";
@@ -61,4 +61,4 @@ export interface QueueMessageBody extends Omit<NewVote, "id"> {
   timestamp: string;
 }
 
-export type SupportedPlatforms = "topgg";
+export type SupportedPlatforms = ApplicationCfg["source"];

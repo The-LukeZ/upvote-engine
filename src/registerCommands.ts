@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, SlashCommandSubcommandsOnlyBuilder } from "@discordjs/builders";
 import { REST } from "@discordjs/rest";
 import { RESTPutAPIApplicationCommandsResult, Routes } from "discord-api-types/v10";
+import { supportedPlatforms } from "./constants";
 
 const commands: SlashCommandSubcommandsOnlyBuilder[] = [
   new SlashCommandBuilder().setName("ping").setDescription("Replies with Pong!"),
@@ -24,7 +25,12 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
                 .setName("source")
                 .setDescription("The bot listing source")
                 .setRequired(true)
-                .addChoices({ name: "Top.gg", value: "topgg" }, { name: "Discord Bot List", value: "dbl" }),
+                .addChoices(
+                  Object.keys(supportedPlatforms).map((key) => ({
+                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
+                    value: key,
+                  })),
+                ),
             )
             .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
             .addIntegerOption(
@@ -47,7 +53,12 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
                 .setName("source")
                 .setDescription("The bot listing source")
                 .setRequired(true)
-                .addChoices({ name: "Top.gg", value: "topgg" }, { name: "Discord Bot List", value: "dbl" }),
+                .addChoices(
+                  Object.keys(supportedPlatforms).map((key) => ({
+                    name: supportedPlatforms[key as keyof typeof supportedPlatforms],
+                    value: key,
+                  })),
+                ),
             )
             .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(false))
             .addIntegerOption((op) =>

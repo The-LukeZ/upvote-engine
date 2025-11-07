@@ -1,4 +1,4 @@
-import { codeBlock, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
+import { bold, codeBlock, ContainerBuilder, heading, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIContainerComponent, APIEmbed, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../types";
@@ -8,7 +8,7 @@ import { randomStringWithSnowflake } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
-import { PlatformWebhookUrl } from "./constants";
+import { PlatformWebhookUrl, GetSupportedPlatform } from "./constants";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -183,8 +183,9 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
     const generatedSecret = randomStringWithSnowflake(32);
 
+    let newCfg: ApplicationCfg | undefined;
     try {
-      await db
+      newCfg = await db
         .insert(applications)
         .values({
           applicationId: bot.id,
@@ -194,49 +195,19 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
           roleDurationSeconds: durationSeconds ? durationSeconds : null,
           secret: generatedSecret,
         })
-        .onConflictDoNothing();
+        .onConflictDoNothing()
+        .returning()
+        .get();
+
+      if (!newCfg) {
+        return ctx.editReply({ content: "This bot is already configured for this server for this source." });
+      }
     } catch (error) {
       console.error("Error inserting app configuration into database:", error);
       return ctx.editReply({ content: "Failed to add app configuration. Please try again." });
     }
 
-    const durationText = durationSeconds ? `${Math.floor(durationSeconds / 3600)} hour(s)` : "Permanent";
-    const embeds: APIEmbed[] = [
-      {
-        title: "App Configured",
-        color: Colors.Green,
-        description: `Successfully added configuration for bot <@${bot.id}> in this server.`,
-        fields: [
-          {
-            name: "Vote Role",
-            value: `<@&${roleId}>\n-# :warning: **Make sure I have permission to assign this role and am above it in the role hierarchy!**`,
-            inline: false,
-          },
-          {
-            name: "Role Duration",
-            value: durationText,
-            inline: false,
-          },
-        ],
-      },
-      {
-        title: "Webhook Secret",
-        color: Colors.Yellow,
-        description: [
-          `Add the following configuration to your bot on Top.gg to enable vote role rewards:`,
-          "### Webhook URL",
-          codeBlock(PlatformWebhookUrl("topgg", bot.id)),
-          "### Secret",
-          codeBlock(generatedSecret),
-          "",
-          ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
-        ].join("\n"),
-      },
-    ];
-
-    await ctx.editReply({
-      embeds: embeds,
-    });
+    await ctx.editReply(buildAppInfo(newCfg, "create"));
     console.log("Guild configuration inserted into database");
   } catch (error) {
     console.error("Error extracting parameters or adding app configuration:", error);
@@ -285,52 +256,71 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   const result = await db
     .update(applications)
     .set(updateFields)
-    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id)));
+    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id), eq(applications.source, source)))
+    .returning()
+    .get();
 
-  if (result.meta.changes === 0) {
+  if (!result) {
     return ctx.editReply({ content: "No existing configuration found for this bot in this guild. Use `/config app add` to add it." });
   }
 
-  const durationText = durationSeconds ? `${Math.floor(durationSeconds / 3600)} hour(s)` : "Permanent";
-  const embeds: APIEmbed[] = [
-    {
-      title: "App Configuration Updated",
-      color: Colors.Green,
-      description: `Successfully updated configuration for bot <@${bot.id}> in this server.`,
-      fields: [
-        {
-          name: "Vote Role",
-          value: `<@&${roleId}>\n-# :warning: **Make sure I have permission to assign this role and am above it in the role hierarchy!**`,
-          inline: false,
-        },
-        {
-          name: "Role Duration",
-          value: durationText,
-          inline: false,
-        },
-      ],
-    },
-  ];
-
-  if (newSecret) {
-    embeds.push({
-      title: "New Webhook Secret",
-      color: Colors.Yellow,
-      description: [
-        `A new secret has been generated for your bot. Update your Top.gg webhook configuration with the following secret:`,
-        codeBlock(newSecret),
-        "",
-        ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
-      ].join("\n"),
-    });
-  }
-
-  await ctx.editReply({
-    embeds: embeds,
-  });
+  await ctx.editReply(buildAppInfo(result, "edit", !!newSecret));
   console.log("Guild configuration updated in database");
 }
 
 function validateBot(bot: object & { bot?: boolean; id: string }, ownApplicationId: string): boolean {
   return !!(bot.bot && bot.id !== ownApplicationId);
+}
+
+function buildAppInfo(
+  cfg: ApplicationCfg,
+  action: "edit" | "create",
+  secretVisible: boolean = action === "create" ? true : false,
+): { embeds: APIEmbed[] } {
+  const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
+  const fields = [
+    {
+      name: "Vote Role",
+      value: `<@&${cfg.voteRoleId}>`,
+      inline: false,
+    },
+    {
+      name: "Role Duration",
+      value: durationText,
+      inline: false,
+    },
+    {
+      name: "Created At",
+      value: `<t:${dayjs(cfg.createdAt).unix()}>`,
+      inline: false,
+    },
+  ];
+
+  const embeds: APIEmbed[] = [
+    {
+      description: [
+        heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>:`, 3),
+        `Successfully updated configuration for bot <@${cfg.applicationId}> in this server for source ${bold(
+          GetSupportedPlatform(cfg.source),
+        )}.`,
+      ].join("\n"),
+      color: action === "create" ? Colors.Green : Colors.Yellow,
+      fields: fields,
+    },
+  ];
+
+  if (secretVisible) {
+    embeds.push({
+      description: [
+        `${heading("New Webhook Secret", 3)}`,
+        `${codeBlock(cfg.secret)}`,
+        ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
+      ].join("\n"),
+      color: Colors.Yellow,
+    });
+  }
+
+  return {
+    embeds,
+  };
 }

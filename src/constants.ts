@@ -9,3 +9,10 @@ import { SupportedPlatforms } from "../types";
  */
 export const PlatformWebhookUrl = (platform: SupportedPlatforms, appId: string) =>
   `https://vote-handler.lukez.workers.dev/webhook/${platform}/${appId}` as const;
+
+export const supportedPlatforms = {
+  topgg: "Top.gg",
+  dbl: "Discord Bot List",
+} satisfies Record<SupportedPlatforms, string>;
+
+export const GetSupportedPlatform = (platform: SupportedPlatforms) => supportedPlatforms[platform];
