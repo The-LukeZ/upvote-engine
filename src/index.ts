@@ -56,9 +56,9 @@ app.get("/", (c) =>
   c.html(
     `
 <head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head>
-<body>
+<body class="text-lg bg-slate-900 text-slate-200 p-8 font-sans">
 <h1 class="font-bold">👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend.</p>
-<ul class="list-disc list-inside">
+<ul class="list-disc list-inside px-4">
 <li><a class="text-blue-500 hover:underline" href="/invite">Invite Bot</a></li>
 <li><a class="text-blue-500 hover:underline" href="/info">Bot Info</a></li>
 <li><a class="text-blue-500 hover:underline" href="/github">GitHub</a></li>
