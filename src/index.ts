@@ -1,6 +1,13 @@
 import { verifyKey } from "./discordVerify";
 import { isChatInputCommandInteraction, isModalInteraction } from "./utils";
-import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType, Routes } from "discord-api-types/v10";
+import {
+  APIInteraction,
+  APIWebhookEvent,
+  ApplicationIntegrationType,
+  InteractionResponseType,
+  InteractionType,
+  Routes,
+} from "discord-api-types/v10";
 import { handleCommand } from "./commands";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
@@ -95,7 +102,21 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
-app.get("/invite", (c) => c.redirect("https://discord.com/oauth2/authorize?client_id=" + c.env.DISCORD_APP_ID));
+app.get("/invite/user", (c) =>
+  c.redirect(
+    `https://discord.com/oauth2/authorize?integration_type=${ApplicationIntegrationType.UserInstall}&client_id=${c.env.DISCORD_APP_ID}`,
+  ),
+);
+app.get("/invite", (c) =>
+  c.redirect(
+    `https://discord.com/oauth2/authorize?integration_type=${ApplicationIntegrationType.GuildInstall}&client_id=${c.env.DISCORD_APP_ID}`,
+  ),
+);
+app.get("/invite/bot", (c) =>
+  c.redirect(
+    `https://discord.com/oauth2/authorize?integration_type=${ApplicationIntegrationType.GuildInstall}&client_id=${c.env.DISCORD_APP_ID}`,
+  ),
+);
 app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APP_ID));
 app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
