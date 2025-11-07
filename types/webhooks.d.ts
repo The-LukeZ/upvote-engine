@@ -57,7 +57,7 @@ type WebhookPayloadMapping = {
   dbl: DBLPayload;
 };
 
-export type MessageQueuePayload<TSource extends APIVote["source"]> = {
+export type MessageQueuePayload<T extends WebhookPayload> = {
   /**
    * The time the forward was created
    */
@@ -65,7 +65,7 @@ export type MessageQueuePayload<TSource extends APIVote["source"]> = {
   /**
    * The original webhook payload. Can be inferred based on the vote source.
    */
-  payload: WebhookPayloadMapping[TSource];
+  payload: T;
   to: ForwardingCfg;
 };
 

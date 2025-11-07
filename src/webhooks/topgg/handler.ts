@@ -48,8 +48,9 @@ topggApp.post("/:applicationId", async (c) => {
     timestamp: new Date().toISOString(),
     source: "topgg",
   } as QueueMessageBody);
+
   const forwardPayload = await WebhookHandler.buildForwardPayload(db, appId, vote);
-  if (forwardPayload !== undefined) {
+  if (!!forwardPayload) {
     c.env.FORWARD_WEBHOOK.send(forwardPayload);
   }
 
