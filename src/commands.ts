@@ -4,7 +4,7 @@ import { APIEmbed, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../types";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg } from "./db/schema";
-import { randomStringWithSnowflake } from "./utils";
+import { randomStringWithSnowflake, sanitizeSecret } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
@@ -412,11 +412,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
     }
 
     // Check if forwarding already exists
-    const existingForwarding = await db
-      .select()
-      .from(forwardings)
-      .where(and(eq(forwardings.applicationId, bot.id), eq(forwardings.source, source)))
-      .get();
+    const existingForwarding = await db.select().from(forwardings).where(eq(forwardings.applicationId, bot.id)).get();
 
     if (existingForwarding) {
       return ctx.editReply({
@@ -432,7 +428,6 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
       .insert(forwardings)
       .values({
         applicationId: bot.id,
-        source: source,
         targetUrl: targetUrl,
         secret: forwardingSecret,
       })
@@ -504,12 +499,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
       updateFields.secret = randomStringWithSnowflake(32);
     }
 
-    const result = await db
-      .update(forwardings)
-      .set(updateFields)
-      .where(and(eq(forwardings.applicationId, bot.id), eq(forwardings.source, source)))
-      .returning()
-      .get();
+    const result = await db.update(forwardings).set(updateFields).where(eq(forwardings.applicationId, bot.id)).returning().get();
 
     if (!result) {
       return ctx.editReply({
@@ -627,11 +617,7 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
         return ctx.editReply({ content: "The selected user is not a bot." });
       }
 
-      const forwarding = await db
-        .select()
-        .from(forwardings)
-        .where(and(eq(forwardings.applicationId, bot.id), eq(forwardings.source, source)))
-        .get();
+      const forwarding = await db.select().from(forwardings).where(eq(forwardings.applicationId, bot.id)).get();
 
       if (!forwarding) {
         return ctx.editReply({
@@ -683,17 +669,12 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 
     forwardingConfigs.forEach((fwd) => {
       // Only show if the app belongs to this guild
-      const appInGuild = appConfigs.find((app) => app.applicationId === fwd.applicationId && app.source === fwd.source);
+      const appInGuild = appConfigs.find((app) => app.applicationId === fwd.applicationId);
 
       if (appInGuild) {
         container.addTextDisplayComponents((t) =>
           t.setContent(
-            [
-              `### <@${fwd.applicationId}> (${GetSupportedPlatform(fwd.source)})`,
-              `- Target URL: \`${fwd.targetUrl}\``,
-              `- Secret: Configured (hidden)`,
-              "",
-            ].join("\n"),
+            [`### <@${fwd.applicationId}>`, `- Target URL: \`${fwd.targetUrl}\``, `- Secret: ${sanitizeSecret(fwd.secret)}`, ""].join("\n"),
           ),
         );
       }
