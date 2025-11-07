@@ -6,6 +6,7 @@ import {
   APIApplicationCommandInteractionDataSubcommandGroupOption,
   APIApplicationCommandInteractionDataSubcommandOption,
   APIChatInputApplicationCommandInteraction,
+  APIDMChannel,
   APIInteraction,
   APIInteractionResponse,
   APIInteractionResponseCallbackData,
@@ -19,6 +20,10 @@ import {
   Routes,
 } from "discord-api-types/v10";
 import { generateSnowflake } from "./snowflake";
+import { DrizzleDB, SupportedPlatforms } from "../types";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
+import { Colors } from "./discord/colors";
 
 export class JsonResponse extends Response {
   constructor(body: any, init?: ResponseInit) {
@@ -113,4 +118,47 @@ export const jitterDelay = (baseDelay: number, jitterFactor: number) => {
  */
 export function sanitizeSecret(secret: string) {
   return secret.slice(0, 4) + "*".repeat(Math.max(0, secret.length - 4));
+}
+
+export async function dmUserOnTestVote(
+  db: DrizzleDB,
+  rest: REST,
+  { userId, applicationId, source }: { userId: string; applicationId: string; source: SupportedPlatforms },
+) {
+  const existingUserDM = await db.select({ dmId: users.dmId }).from(users).where(eq(users.id, userId)).limit(1).get();
+  let dmChannelId: string;
+  if (existingUserDM?.dmId) {
+    dmChannelId = existingUserDM.dmId;
+  } else {
+    try {
+      const response = await rest.post(Routes.userChannels(), {
+        body: {
+          recipient_id: userId,
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+      const dmChannel = response as APIDMChannel;
+      dmChannelId = dmChannel.id;
+    } catch (error) {
+      console.error("Failed to create DM channel for test vote:", { error });
+      return;
+    }
+  }
+
+  try {
+    await rest.post(Routes.channelMessages(dmChannelId), {
+      body: {
+        embeds: [
+          {
+            title: "Test Vote Received",
+            description: `We received your test vote for application ID \`${applicationId}\` on platform \`${source}\`.\nNo roles or rewards have been applied.`,
+            color: Colors.Blurple,
+          },
+        ],
+      },
+    });
+  } catch (error) {
+    console.error("Failed to send DM for test vote:", { error });
+    return;
+  }
 }
