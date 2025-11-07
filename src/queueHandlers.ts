@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
 import { QueueMessageBody } from "../types";
-import { votes } from "./db/schema";
+import { APIVote, votes } from "./db/schema";
 import { makeDB } from "./db/util";
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import { RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
-import { MessageQueuePayload } from "../types/webhooks";
+import { ForwardingPayload, MessageQueuePayload } from "../types/webhooks";
 import { delaySeconds } from "./utils";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
@@ -133,7 +133,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 }
 
 // This queue handler processes forwarding webhook payloads other services
-export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload<any>>): Promise<void> {
+export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload<APIVote["source"]>>): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   for (const message of batch.messages) {
     const body = message.body;
@@ -154,7 +154,9 @@ export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePaylo
           "Content-Type": "application/json",
           authorization: body.to.secret,
         },
-        body: JSON.stringify(body.payload),
+        body: JSON.stringify({
+          ...body.forwardingPayload,
+        } satisfies ForwardingPayload<APIVote["source"]>),
         signal: AbortSignal.timeout(5000), // wait 5 seconds max
       });
     } catch (error) {

@@ -61,17 +61,17 @@ class WebhookHandler<T extends WebhookPayload> {
     }
   }
 
-  public static async buildForwardPayload<T extends WebhookPayload>(
+  public static async buildForwardPayload<T extends APIVote["source"]>(
     db: DrizzleDB,
     appId: string,
-    payload: MessageQueuePayload<T>["payload"],
+    payload: MessageQueuePayload<T>["forwardingPayload"],
   ): Promise<MessageQueuePayload<T> | undefined> {
     const forwardCfg = await db.select().from(forwardings).where(eq(forwardings.applicationId, appId)).limit(1).get();
     if (!forwardCfg) return undefined;
 
     return {
       to: forwardCfg,
-      payload,
+      forwardingPayload: payload,
       timestamp: dayjs().toISOString(),
     };
   }
