@@ -58,10 +58,7 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
         custom_id: "remove_app_modal",
       })
         .addLabelComponents((l) =>
-          l
-            .setLabel("Bot")
-            .setDescription("Bot to remove")
-            .setUserSelectMenuComponent((us) => us.setCustomId("bot").setDisabled(true).setDefaultUsers(bot.id).setRequired(true)),
+          l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
         )
         .addLabelComponents((l) =>
           l
@@ -70,7 +67,7 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
             .setStringSelectMenuComponent((ss) =>
               ss.setCustomId("confirmation").setOptions(
                 new StringSelectMenuOptionBuilder({
-                  label: `Remove ${bot.global_name}`,
+                  label: `Remove ${bot.username}`,
                   emoji: {
                     name: "🗑️",
                   },
