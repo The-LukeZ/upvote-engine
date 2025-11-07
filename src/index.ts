@@ -52,7 +52,11 @@ const app = new Hono<HonoContextEnv>();
 
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
-app.get("/", (c) => c.text(`👋 ${c.env.DISCORD_APP_ID} | Welcome my fren`));
+app.get("/", (c) =>
+  c.html(
+    `<h1>👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend. Visit the <a href="/info">info page</a> to learn more about this bot.</p>`,
+  ),
+);
 app.post("/health", (c) => c.text("OK"));
 app.post("/discord-webhook", async (c) => {
   const { isValid, interaction: event } = await verifyDiscordRequest<APIWebhookEvent>(c.req, c.env);
