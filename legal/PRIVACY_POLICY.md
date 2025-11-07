@@ -1,6 +1,6 @@
 # Privacy Policy
 
-This Privacy Policy describes how The-LukeZ ("I", "me", or "my") collects, uses, and protects your information when you use the Vote Handler Discord Bot (the "bot", "app", "service").
+This Privacy Policy describes how The-LukeZ ("I", "me", or "my") collects, uses, and protects your information when you use the UpvoteEngine Discord Bot (the "bot", "app", "service").
 
 For terms governing your use of the service, please refer to our Terms of Service.
 

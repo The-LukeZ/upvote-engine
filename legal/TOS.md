@@ -1,6 +1,6 @@
 # Terms of Service
 
-These Terms of Service ("Terms") govern your use of the Vote Handler Discord Bot (the "bot", "app", "service") provided by The-LukeZ ("I", "me", or "my"). By using the bot, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the bot.
+These Terms of Service ("Terms") govern your use of the UpvoteEngine Discord Bot (the "bot", "app", "service") provided by The-LukeZ ("I", "me", or "my"). By using the bot, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the bot.
 
 For information on how we handle your data, please refer to our Privacy Policy.
 
