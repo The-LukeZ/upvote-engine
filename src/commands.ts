@@ -142,7 +142,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     const roleId = role.id;
 
     const durationHours = ctx.options.getInteger("duration", true);
-    const durationSeconds = Math.min(durationHours * 3600, 3600); // Minimum of 1 hour
+    const durationSeconds = Math.max(durationHours * 3600, 3600); // Minimum of 1 hour
     const guildId = ctx.guildId;
     console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
 
@@ -232,7 +232,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   const roleId = role.id;
 
   const durationHours = ctx.options.getInteger("duration", true);
-  const durationSeconds = Math.min(durationHours * 3600, 3600);
+  const durationSeconds = Math.max(durationHours * 3600, 3600);
   const guildId = ctx.guildId;
   console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
 

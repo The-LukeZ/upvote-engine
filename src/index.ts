@@ -12,6 +12,7 @@ import { cloneRawRequest } from "hono/request";
 import { HonoBindings, HonoVariables, QueueMessageBody } from "../types";
 import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
+import topggApp from "./topgg/handler";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -61,11 +62,7 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
-app.post("/topgg/:applicationId", async (c) => {
-  // await webhookHandler(c.req, c.env);
-  const appId = c.req.param("applicationId");
-  return c.text("Top.gg webhook received", 200);
-});
+app.route("/topgg", topggApp);
 
 app.post("/", async (c) => {
   const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);

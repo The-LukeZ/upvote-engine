@@ -13,6 +13,7 @@ import { ModalInteraction } from "../src/discord/ModalInteraction";
 import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction";
 import { DrizzleD1Database } from "drizzle-orm/d1";
 import { makeDB } from "../src/db/util";
+import { WebhookPayload } from "./topgg";
 
 export * from "./db";
 export * from "./topgg";
@@ -28,6 +29,7 @@ export type HonoBindings = Env;
 export type HonoVariables = {
   command: ChatInputCommandInteraction;
   modal: ModalInteraction;
+  vote?: WebhookPayload;
 };
 
 export type MyContext = Context<{ Bindings: HonoBindings; Variables: HonoVariables }, "/", BlankInput>;
