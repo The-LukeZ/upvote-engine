@@ -8,11 +8,9 @@ Automatically assign and remove roles based on user votes on top.gg.
 
   - Fetch handler by Hono
   - Queue handler native to Cloudflare Workers
-
     This is used to process role assignments and removals asynchronously.
 
   - Cron Scheduler native to Cloudflare Workers
-
     This is used to run periodic tasks like cleaning up old votes and invalid guilds.
 
 - Webhook endpoint for top.gg vote notifications
