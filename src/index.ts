@@ -17,6 +17,7 @@ import { makeDB } from "./db/util";
 import { votes } from "./db/schema";
 import { and, isNotNull, lt, lte } from "drizzle-orm";
 import dayjs from "dayjs";
+import { handleComponentInteraction } from "./components";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -66,7 +67,7 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
-app.route("/topgg", topggApp);
+// app.route("/topgg", topggApp);
 
 app.post("/", async (c) => {
   const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
@@ -105,13 +106,13 @@ app.post("/", async (c) => {
             await handleCommand(c); // Wants APIChatInputApplicationCommandInteraction
           } else if (isModalInteraction(interaction)) {
             c.set("modal", new ModalInteraction(api, interaction));
-            c.get("modal").reply({ content: "Modal submission received!" }, true);
+            await handleComponentInteraction(c);
           }
           return resolve(undefined);
         }),
       );
 
-      c.env.VOTE_APPLY.send(
+      await c.env.VOTE_APPLY.send(
         {
           guildId: "123456789012345678",
           userId: "987654321098765432",
