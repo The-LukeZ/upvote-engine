@@ -68,3 +68,20 @@ export type MessageQueuePayload<TSource extends APIVote["source"]> = {
   payload: WebhookPayloadMapping[TSource];
   to: ForwardingCfg;
 };
+
+export type ForwardingPayload<TSource extends APIVote["source"]> = {
+  /**
+   * The time the vote was initially received
+   *
+   * ISO 8601 timestamp
+   */
+  timestamp: string;
+  /**
+   * The vote source
+   */
+  source: TSource;
+  /**
+   * The original webhook payload. Can be inferred based on the vote source.
+   */
+  payload: WebhookPayloadMapping[TSource];
+};
