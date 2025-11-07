@@ -10,7 +10,7 @@ import { poweredBy } from "hono/powered-by";
 import { cloneRawRequest } from "hono/request";
 import type { DrizzleDB, HonoContextEnv, QueueMessageBody } from "../types";
 import { ModalInteraction } from "./discord/ModalInteraction";
-import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
+import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { makeDB } from "./db/util";
 import { applications, Vote, votes } from "./db/schema";
 import { and, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
@@ -281,6 +281,8 @@ export default {
       await handleVoteApply(batch, env);
     } else if (batch.queue === "voteremove") {
       await handleVoteRemove(batch, env);
+    } else if (batch.queue === "forwardwebhook") {
+      ctx.waitUntil(handleForwardWebhook(batch, env));
     }
   },
-} satisfies ExportedHandler<Env, QueueMessageBody>;
+} satisfies ExportedHandler<Env, any>;
