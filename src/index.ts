@@ -68,6 +68,8 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
+app.get("/invite", (c) => c.redirect("https://discord.com/oauth2/authorize?client_id=" + c.env.DISCORD_APP_ID));
+app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APP_ID));
 app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
