@@ -83,28 +83,25 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
           ),
         )
         .addLabelComponents((l) =>
-          l
-            .setLabel("Confirmation")
-            .setDescription(`Type "remove ${bot.username} (${GetSupportedPlatform(source)})" to confirm removal of this app configuration.`)
-            .setStringSelectMenuComponent((ss) =>
-              ss.setCustomId("confirmation").setOptions(
-                new StringSelectMenuOptionBuilder({
-                  label: `Remove ${bot.username} (${GetSupportedPlatform(source)})`,
-                  emoji: {
-                    name: "🗑️",
-                  },
-                  value: "1",
-                }),
-                new StringSelectMenuOptionBuilder({
-                  label: "Cancel",
-                  emoji: {
-                    name: "🚫",
-                  },
-                  value: "0",
-                  default: true,
-                }),
-              ),
+          l.setLabel("Confirmation").setStringSelectMenuComponent((ss) =>
+            ss.setCustomId("confirmation").setOptions(
+              new StringSelectMenuOptionBuilder({
+                label: `Remove ${bot.username} (${GetSupportedPlatform(source)})`.slice(0, 100),
+                emoji: {
+                  name: "🗑️",
+                },
+                value: "1",
+              }),
+              new StringSelectMenuOptionBuilder({
+                label: "Cancel",
+                emoji: {
+                  name: "🚫",
+                },
+                value: "0",
+                default: true,
+              }),
             ),
+          ),
         )
         .addTextDisplayComponents((t) =>
           t.setContent("### :warning: This will remove the app configuration __and__ all associated votes!"),
