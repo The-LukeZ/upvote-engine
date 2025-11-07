@@ -5,7 +5,7 @@ export const applications = sqliteTable("applications", {
   secret: text("secret").notNull().unique(),
   guildId: text("guild_id").notNull(),
   voteRoleId: text("vote_role_id").notNull(), // Added per-bot
-  roleDurationSeconds: integer("role_duration_seconds").notNull(), // Added per-bot
+  roleDurationSeconds: integer("role_duration_seconds"), // Added per-bot
   createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
 });
 
