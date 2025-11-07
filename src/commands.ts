@@ -102,13 +102,14 @@ async function handleListApps(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       .setAccentColor(Colors.Blurple)
       .addTextDisplayComponents((t) => t.setContent("## Configured Apps"));
 
-    configs.forEach((cfg, index) => {
+    configs.forEach((cfg) => {
+      const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
       container.addTextDisplayComponents((t) =>
         t.setContent(
           [
             `### <@${cfg.applicationId}>`,
             `- Vote Role: <@&${cfg.voteRoleId}>`,
-            `- Role Duration: ${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)`,
+            `- Role Duration: ${durationText}`,
             `- Created At: <t:${dayjs(cfg.createdAt).unix()}>`,
             "",
           ].join("\n"),
@@ -150,8 +151,8 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     const role = ctx.options.getRole("role", true);
     const roleId = role.id;
 
-    const durationHours = ctx.options.getInteger("duration", true);
-    const durationSeconds = Math.max(durationHours * 3600, 3600); // Minimum of 1 hour
+    const durationHours = ctx.options.getInteger("duration");
+    const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null; // Minimum of 1 hour
     const guildId = ctx.guildId;
     console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
 
@@ -170,7 +171,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
           guildId: guildId,
           applicationId: bot.id,
           voteRoleId: roleId,
-          roleDurationSeconds: durationSeconds,
+          roleDurationSeconds: durationSeconds ? durationSeconds : null,
           secret: generatedSecret,
         })
         .returning()
@@ -182,6 +183,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       throw error;
     }
 
+    const durationText = durationSeconds ? `${Math.floor(durationSeconds / 3600)} hour(s)` : "Permanent";
     const embeds: APIEmbed[] = [
       {
         title: "App Configured",
@@ -195,7 +197,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
           },
           {
             name: "Role Duration",
-            value: `${Math.floor(durationSeconds / 3600)} hour(s)`,
+            value: durationText,
             inline: false,
           },
         ],
@@ -240,8 +242,8 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   const role = ctx.options.getRole("role", true);
   const roleId = role.id;
 
-  const durationHours = ctx.options.getInteger("duration", true);
-  const durationSeconds = Math.max(durationHours * 3600, 3600);
+  const durationHours = ctx.options.getInteger("duration");
+  const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
   const guildId = ctx.guildId;
   console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
 
@@ -269,6 +271,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     return ctx.editReply({ content: "No existing configuration found for this bot in this guild. Use `/config app add` to add it." });
   }
 
+  const durationText = durationSeconds ? `${Math.floor(durationSeconds / 3600)} hour(s)` : "Permanent";
   const embeds: APIEmbed[] = [
     {
       title: "App Configuration Updated",
@@ -282,7 +285,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
         },
         {
           name: "Role Duration",
-          value: `${Math.floor(durationSeconds / 3600)} hour(s)`,
+          value: durationText,
           inline: false,
         },
       ],
