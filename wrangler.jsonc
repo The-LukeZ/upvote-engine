@@ -38,7 +38,7 @@
       },
       {
         "queue": "forwardwebhook",
-        "binding": "forwardwebhook"
+        "binding": "FORWARD_WEBHOOK"
       }
     ],
     "consumers": [
