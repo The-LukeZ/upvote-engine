@@ -33,7 +33,15 @@ export type HonoVariables = {
   vote?: WebhookPayload;
 };
 
-export type MyContext = Context<{ Bindings: HonoBindings; Variables: HonoVariables }, "/", BlankInput>;
+/**
+ * Hono context environment interface
+ */
+export interface HonoContextEnv {
+  Bindings: HonoBindings;
+  Variables: HonoVariables;
+}
+
+export type MyContext = Context<HonoContextEnv, "/", BlankInput>;
 
 export interface APIInteractionDataResolvedCollections {
   users?: Collection<Snowflake, APIUser>;

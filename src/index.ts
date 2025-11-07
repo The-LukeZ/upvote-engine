@@ -5,20 +5,18 @@ import { handleCommand } from "./commands";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
 import { API } from "@discordjs/core/http-only";
-import { inspect } from "util";
 import { Hono, HonoRequest } from "hono";
 import { poweredBy } from "hono/powered-by";
 import { cloneRawRequest } from "hono/request";
-import { HonoBindings, HonoVariables, QueueMessageBody } from "../types";
+import type { HonoContextEnv, QueueMessageBody } from "../types";
 import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import topggApp from "./topgg/handler";
 import { makeDB } from "./db/util";
 import { Vote, votes } from "./db/schema";
-import { and, isNotNull, lt, lte } from "drizzle-orm";
+import { and, isNotNull, lte } from "drizzle-orm";
 import dayjs from "dayjs";
 import { handleComponentInteraction } from "./components";
-import { X509Certificate } from "crypto";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -48,7 +46,7 @@ async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent =
   return { interaction: JSON.parse(body) as T, isValid: true };
 }
 
-const app = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }>();
+const app = new Hono<HonoContextEnv>();
 
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
