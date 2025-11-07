@@ -16,9 +16,12 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
   // filter out messages older than 12 hours to avoid applying expired votes
   const twelveHoursAgo = dayjs().subtract(12, "hour");
   const messages = batch.messages.filter((message) => dayjs(message.body.timestamp).isAfter(twelveHoursAgo));
-
+  const validMessages = messages.filter((message) => message.body.id != null && message.body.id !== undefined);
+  if (validMessages.length !== messages.length) {
+    console.warn(`Filtered out ${messages.length - validMessages.length} messages with invalid id`);
+  }
   await db.insert(votes).values(
-    messages.map((message) => ({
+    validMessages.map((message) => ({
       id: message.body.id,
       guildId: message.body.guildId,
       userId: message.body.userId,
