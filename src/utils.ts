@@ -147,6 +147,13 @@ export async function dmUserOnTestVote(
       });
       const dmChannel = response as APIDMChannel;
       dmChannelId = dmChannel.id;
+      await db
+        .insert(users)
+        .values({ id: userId, dmId: dmChannelId })
+        .onConflictDoUpdate({
+          target: users.id,
+          set: { dmId: dmChannelId },
+        });
       console.log(`Created new DM channel: ${dmChannelId}`);
     } catch (error) {
       console.error("Failed to create DM channel for test vote:", { error, userId });
