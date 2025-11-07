@@ -104,3 +104,13 @@ export const jitterDelay = (baseDelay: number, jitterFactor: number) => {
   const jitter = Math.random() * jitterFactor * baseDelay;
   return Math.floor(baseDelay + jitter);
 };
+
+/**
+ * Sanitizes a secret string by masking the the characters after the first four with asterisks.
+ *
+ * @param secret - The secret string to sanitize
+ * @returns The sanitized secret string
+ */
+export function sanitizeSecret(secret: string) {
+  return secret.slice(0, 4) + "*".repeat(Math.max(0, secret.length - 4));
+}
