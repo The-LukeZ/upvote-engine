@@ -57,7 +57,13 @@ app.get("/", (c) =>
     `
 <head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head>
 <body class="text-lg bg-slate-900 text-slate-200 p-8 font-sans">
-<h1 class="font-bold">👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend.</p>
+<div class="mb-6">
+<h1 class="font-bold mb-4">👋 ${c.env.DISCORD_APP_ID}</h1>
+<p>Welcome my friend.</p>
+</div>
+
+<p>This is the home of the <strong>Upvote Engine</strong>, a Discord bot voting handler service.</p>
+<p>Useful links:</p>
 <ul class="list-disc list-inside px-4">
 <li><a class="text-blue-500 hover:underline" href="/invite">Invite Bot</a></li>
 <li><a class="text-blue-500 hover:underline" href="/info">Bot Info</a></li>
