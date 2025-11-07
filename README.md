@@ -15,3 +15,9 @@ How it's done:
   - discord-api-types
 
 If you want to contribute, feel free to open issues or pull requests!
+
+---
+
+### TODO
+
+- [ ] Cut down on Logs (only log errors and **really** important info)
