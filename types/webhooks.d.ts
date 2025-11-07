@@ -69,7 +69,7 @@ export type MessageQueuePayload<T extends WebhookPayload> = {
   to: ForwardingCfg;
 };
 
-export type ForwardingPayload<TSource extends APIVote["source"]> = {
+export type ForwardingPayload<TSource extends APIVote["source"] | "test"> = {
   /**
    * The time the vote was initially received
    *
@@ -77,11 +77,17 @@ export type ForwardingPayload<TSource extends APIVote["source"]> = {
    */
   timestamp: string;
   /**
-   * The vote source
+   * The vote source.
+   *
+   * Always acknowledge "test" payloads with a `204 No Content` response. Normally,
+   * just send a `200 OK` response with no body.
+   *
+   * If "test", indicates this is a test payload.
+   * Otherwise, indicates the source platform of the vote.
    */
-  source: TSource;
+  source: TSource | "test";
   /**
    * The original webhook payload. Can be inferred based on the vote source.
    */
-  payload: WebhookPayloadMapping[TSource];
+  payload: TSource extends "test" ? null : WebhookPayloadMapping[TSource];
 };
