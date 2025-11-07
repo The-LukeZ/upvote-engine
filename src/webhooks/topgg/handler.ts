@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../snowflake";
 import dayjs from "dayjs";
 import { TopGGPayload } from "../../../types/webhooks";
+import { dmUserOnTestVote } from "../../utils";
 
 const topggApp = new Hono<HonoContextEnv, {}, "/topgg">();
 
@@ -32,6 +33,7 @@ topggApp.post("/:applicationId", async (c) => {
 
   if (vote.type === "test") {
     console.log("Received test vote payload", { vote });
+    c.executionCtx.waitUntil(dmUserOnTestVote(db, c.env, { applicationId: appId, userId: vote.user, source: "topgg" }));
     return new Response(null, { status: 200 });
   }
 
