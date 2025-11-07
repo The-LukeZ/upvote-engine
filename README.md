@@ -1,6 +1,8 @@
-# Discord Vote Handler
+# Upvote Engine
 
-Automatically assign and remove roles based on user votes on top.gg.
+UpvoteEngine is a performant Discord vote handler built on a FaaS architecture using Cloudflare Workers.
+This serverless approach ensures highly performant role management by automatically assigning and removing
+roles based on top.gg votes with minimal latency and maximum scalability due to the services used.
 
 ## How it's done
 
