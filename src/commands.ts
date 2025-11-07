@@ -1,6 +1,6 @@
-import { codeBlock, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
+import { codeBlock, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
-import { APIEmbed } from "discord-api-types/v10";
+import { APIContainerComponent, APIEmbed, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../types";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { applications, ApplicationCfg } from "./db/schema";
@@ -101,19 +101,30 @@ async function handleListApps(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       return ctx.reply({ content: "No apps configured for this guild." }, true);
     }
 
-    const embed: APIEmbed = {
-      title: "Configured Apps",
-      color: Colors.Blurple,
-      fields: configs.map((cfg) => ({
-        name: `<@${cfg.applicationId}>`,
-        value: [
-          `- Vote Role: <@&${cfg.voteRoleId}>`,
-          `- Role Duration: ${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)`,
-          `- Created At: ${dayjs(cfg.createdAt).format("YYYY-MM-DD HH:mm:ss")}`,
-        ].join("\n"),
-      })),
-    };
-    return ctx.reply({ embeds: [embed] }, true);
+    const container = new ContainerBuilder()
+      .setAccentColor(Colors.Blurple)
+      .addTextDisplayComponents((t) => t.setContent("## Configured Apps"));
+
+    configs.forEach((cfg, index) => {
+      container.addTextDisplayComponents((t) =>
+        t.setContent(
+          [
+            `### <@${cfg.applicationId}>`,
+            `- Vote Role: <@&${cfg.voteRoleId}>`,
+            `- Role Duration: ${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)`,
+            `- Created At: <t:${dayjs(cfg.createdAt).unix()}>`,
+            "",
+          ].join("\n"),
+        ),
+      );
+    });
+    return ctx.reply(
+      {
+        flags: MessageFlags.IsComponentsV2,
+        components: [container.toJSON()],
+      },
+      true,
+    );
   } catch (error) {
     console.error("Error listing configurations:", error);
     return ctx.reply({ content: "Failed to list configurations. Please try again." }, true);
