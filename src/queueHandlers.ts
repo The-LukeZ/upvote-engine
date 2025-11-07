@@ -133,13 +133,13 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 }
 
 // This queue handler processes forwarding webhook payloads other services
-export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload<any>>, env: Env): Promise<void> {
+export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload<any>>): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   for (const message of batch.messages) {
     const body = message.body;
-    // If timestamp is older than 1 hour, ack and skip
-    const oneHourAgo = dayjs().subtract(1, "hour");
-    if (dayjs(body.timestamp).isBefore(oneHourAgo)) {
+    // If timestamp is older than 2 hours, ack and skip
+    const twoHoursAgo = dayjs().subtract(2, "hour");
+    if (dayjs(body.timestamp).isBefore(twoHoursAgo)) {
       console.log(`Skipping old webhook payload with timestamp ${body.timestamp}`);
       message.ack();
       continue;
