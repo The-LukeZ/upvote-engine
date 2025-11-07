@@ -63,18 +63,21 @@ async function handleConfig(c: MyContext, ctx: ChatInputCommandInteraction) {
         )
         .addLabelComponents((l) =>
           l.setLabel("Source").setStringSelectMenuComponent((ss) =>
-            ss.setCustomId("source").setOptions(
-              new StringSelectMenuOptionBuilder({
-                label: GetSupportedPlatform("topgg"),
-                value: "topgg",
-                default: source === "topgg",
-              }),
-              new StringSelectMenuOptionBuilder({
-                label: GetSupportedPlatform("dbl"),
-                value: "dbl",
-                default: source === "dbl",
-              }),
-            ).setRequired(true),
+            ss
+              .setCustomId("source")
+              .setOptions(
+                new StringSelectMenuOptionBuilder({
+                  label: GetSupportedPlatform("topgg"),
+                  value: "topgg",
+                  default: source === "topgg",
+                }),
+                new StringSelectMenuOptionBuilder({
+                  label: GetSupportedPlatform("dbl"),
+                  value: "dbl",
+                  default: source === "dbl",
+                }),
+              )
+              .setRequired(true),
           ),
         )
         .addLabelComponents((l) =>
@@ -278,7 +281,9 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     .get();
 
   if (!result) {
-    return ctx.editReply({ content: "No existing configuration found for this bot in this guild for this source. Use `/config app add` to add it." });
+    return ctx.editReply({
+      content: "No existing configuration found for this bot in this guild for this source. Use `/config app add` to add it.",
+    });
   }
 
   await ctx.editReply(buildAppInfo(result, "edit", !!newSecret));
