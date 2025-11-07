@@ -1,6 +1,6 @@
 import { bold, codeBlock, ContainerBuilder, heading, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
-import { APIContainerComponent, APIEmbed, MessageFlags } from "discord-api-types/v10";
+import { APIEmbed, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../types";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { applications, ApplicationCfg } from "./db/schema";
@@ -8,7 +8,7 @@ import { randomStringWithSnowflake } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
-import { PlatformWebhookUrl, GetSupportedPlatform } from "./constants";
+import { GetSupportedPlatform, PlatformWebhookUrl } from "./constants";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -334,8 +334,13 @@ function buildAppInfo(
   if (secretVisible) {
     embeds.push({
       description: [
-        `${heading("New Webhook Secret", 3)}`,
-        `${codeBlock(cfg.secret)}`,
+        heading("Webhook Data", 2),
+        heading("Webhook Endpoint", 3),
+        "-# Add the following webhook URL to your bot listing platform's webhook configuration.",
+        codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId)),
+        heading("Webhook Secret", 3),
+        "-# Add the following secret to your bot listing platform's webhook configuration.",
+        codeBlock(cfg.secret),
         ":warning: **Keep this secret safe! It will not be shown again. If you lose it, you have to regenerate it.**",
       ].join("\n"),
       color: Colors.Yellow,
