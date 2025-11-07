@@ -14,7 +14,7 @@ import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import topggApp from "./topgg/handler";
 import { makeDB } from "./db/util";
-import { votes } from "./db/schema";
+import { Vote, votes } from "./db/schema";
 import { and, isNotNull, lt, lte } from "drizzle-orm";
 import dayjs from "dayjs";
 import { handleComponentInteraction } from "./components";
@@ -145,13 +145,18 @@ export default {
   async scheduled(controller, env, ctx) {
     const db = makeDB(env);
     const currentTs = dayjs().toISOString();
-    const expiredVotes = await db
-      .select()
-      .from(votes)
-      .where(and(isNotNull(votes.expiresAt), lte(votes.expiresAt, currentTs)))
-      .all();
+    let expiredVotes: Vote[] = [];
+    try {
+      expiredVotes = await db
+        .select()
+        .from(votes)
+        .where(and(isNotNull(votes.expiresAt), lte(votes.expiresAt, currentTs)));
 
-    console.log(`Found ${expiredVotes.length} expired votes to process`);
+      console.log(`Found ${expiredVotes.length} expired votes to process`);
+    } catch (error) {
+      console.error("Error querying expired votes:", error);
+      return;
+    }
 
     if (expiredVotes.length === 0) return;
 
