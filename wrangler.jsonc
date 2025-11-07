@@ -33,6 +33,9 @@
       "remote": true
     }
   ],
+  "triggers": {
+    "crons": ["*/10 * * * *"] // every 10 minutes
+  },
   "queues": {
     "producers": [
       {

@@ -13,6 +13,10 @@ import { HonoBindings, HonoVariables, QueueMessageBody } from "../types";
 import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import topggApp from "./topgg/handler";
+import { makeDB } from "./db/util";
+import { votes } from "./db/schema";
+import { and, isNotNull, lt, lte } from "drizzle-orm";
+import dayjs from "dayjs";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -124,12 +128,44 @@ app.post("/", async (c) => {
 
 export default {
   fetch: app.fetch,
-  async queue(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
+
+  async scheduled(controller, env, ctx) {
+    const db = makeDB(env);
+    const currentTs = dayjs().toISOString();
+    const expiredVotes = await db
+      .select()
+      .from(votes)
+      .where(and(isNotNull(votes.expiresAt), lte(votes.expiresAt, currentTs)))
+      .all();
+
+    console.log(`Found ${expiredVotes.length} expired votes to process`);
+
+    if (expiredVotes.length === 0) return;
+
+    await env.VOTE_REMOVE.sendBatch(
+      expiredVotes
+        .map(
+          (vote) =>
+            ({
+              id: vote.id,
+              guildId: vote.guildId,
+              userId: vote.userId,
+              roleId: vote.roleId,
+              expiresAt: vote.expiresAt,
+              timestamp: new Date().toISOString(),
+            } as QueueMessageBody),
+        )
+        .map((message) => ({ contentType: "json", body: message })),
+    );
+  },
+
+  async queue(batch, env, ctx): Promise<void> {
     console.log(`Processing queue '${batch.queue}'`);
+    // ! Note to self: If this isn't properly executing, consider moving this into ctx.waitUntil like in the fetch handler
     if (batch.queue === "voteapply") {
       await handleVoteApply(batch, env);
     } else if (batch.queue === "voteremove") {
       await handleVoteRemove(batch, env);
     }
   },
-};
+} satisfies ExportedHandler<Env, QueueMessageBody>;
