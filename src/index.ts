@@ -1,6 +1,6 @@
 import { verifyKey } from "./discordVerify";
-import { isChatInputCommandInteraction, isModalInteraction, sendMessage } from "./utils";
-import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType } from "discord-api-types/v10";
+import { isChatInputCommandInteraction, isModalInteraction } from "./utils";
+import { APIInteraction, APIWebhookEvent, InteractionResponseType, InteractionType, Routes } from "discord-api-types/v10";
 import { handleCommand } from "./commands";
 import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { REST } from "@discordjs/rest";
@@ -8,15 +8,16 @@ import { API } from "@discordjs/core/http-only";
 import { Hono, HonoRequest } from "hono";
 import { poweredBy } from "hono/powered-by";
 import { cloneRawRequest } from "hono/request";
-import type { HonoContextEnv, QueueMessageBody } from "../types";
+import type { DrizzleDB, HonoContextEnv, QueueMessageBody } from "../types";
 import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { makeDB } from "./db/util";
-import { Vote, votes } from "./db/schema";
-import { and, isNotNull, lte } from "drizzle-orm";
+import { applications, Vote, votes } from "./db/schema";
+import { and, eq, inArray, isNotNull, lte } from "drizzle-orm";
 import dayjs from "dayjs";
 import { handleComponentInteraction } from "./components";
 import webhookApp from "./webhooks";
+import { generateSnowflake } from "./snowflake";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -137,42 +138,104 @@ app.post("/", async (c) => {
 
 app.all("*", (c) => c.text("Not Found.", 404));
 
+async function handleExpiredVotes(env: Env, db: DrizzleDB) {
+  const currentTs = dayjs().toISOString();
+  let expiredVotes: Vote[] = [];
+  try {
+    expiredVotes = await db
+      .select()
+      .from(votes)
+      .where(and(isNotNull(votes.expiresAt), lte(votes.expiresAt, currentTs)));
+
+    console.log(`Found ${expiredVotes.length} expired votes to process`);
+  } catch (error) {
+    console.error("Error querying expired votes:", error);
+    return;
+  }
+
+  if (expiredVotes.length === 0) return;
+
+  await env.VOTE_REMOVE.sendBatch(
+    expiredVotes
+      .map(
+        (vote) =>
+          ({
+            id: vote.id.toString(),
+            guildId: vote.guildId,
+            userId: vote.userId,
+            roleId: vote.roleId,
+            expiresAt: vote.expiresAt,
+            timestamp: new Date().toISOString(),
+          } as QueueMessageBody),
+      )
+      .map((message) => ({ contentType: "json", body: message })),
+  );
+}
+
+async function deleteOldVotes(db: DrizzleDB) {
+  // Vote deletion for votes older than 90 days
+  const ninetyDaysAgoSnowflake = generateSnowflake(dayjs().subtract(90, "day").toDate());
+  await db.delete(votes).where(lte(votes.id, ninetyDaysAgoSnowflake)); // Directly delete, because we don't need to process anything
+}
+
+async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
+  const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
+  const configs = await db.select().from(applications).all();
+
+  const invalidGuilds: string[] = [];
+
+  for (const config of configs) {
+    try {
+      // Try to fetch guild member (the bot itself)
+      await rest.get(Routes.guildMember(config.guildId, env.DISCORD_APP_ID));
+      console.log(`Guild ${config.guildId} is still valid`);
+    } catch (error: any) {
+      // If we get 403 or 404, the bot is no longer in the guild
+      if (error?.status === 403 || error?.status === 404 || error?.code === 10004) {
+        console.log(`Guild ${config.guildId} is invalid, marking for deletion`);
+        invalidGuilds.push(config.guildId);
+      } else {
+        console.error(`Error checking guild ${config.guildId}:`, error);
+      }
+    }
+
+    // Rate limit protection - wait between requests
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  // Delete configurations and votes for invalid guilds
+  if (invalidGuilds.length > 0) {
+    console.log(`Deleting data for ${invalidGuilds.length} invalid guilds`);
+
+    await db.delete(applications).where(inArray(applications.guildId, invalidGuilds));
+    await db.delete(votes).where(inArray(votes.guildId, invalidGuilds));
+
+    console.log(`Cleanup complete. Removed data for guilds: ${invalidGuilds.join(", ")}`);
+  }
+}
+
 export default {
   fetch: app.fetch,
 
   async scheduled(controller, env, ctx) {
     const db = makeDB(env);
-    const currentTs = dayjs().toISOString();
-    let expiredVotes: Vote[] = [];
-    try {
-      expiredVotes = await db
-        .select()
-        .from(votes)
-        .where(and(isNotNull(votes.expiresAt), lte(votes.expiresAt, currentTs)));
 
-      console.log(`Found ${expiredVotes.length} expired votes to process`);
-    } catch (error) {
-      console.error("Error querying expired votes:", error);
-      return;
+    switch (controller.cron) {
+      case "0 2 * * *": // every day at 2 AM
+        console.log("Running daily expired votes handler");
+        await handleExpiredVotes(env, db);
+        await deleteOldVotes(db);
+        break;
+
+      case "0 3 * * 0": // every sunday at 3 AM
+        console.log("Running weekly guild cleanup");
+        ctx.waitUntil(cleanupInvalidGuilds(db, env));
+        break;
+
+      default:
+        console.log(`No handler for cron '${controller.cron}'`);
+        break;
     }
-
-    if (expiredVotes.length === 0) return;
-
-    await env.VOTE_REMOVE.sendBatch(
-      expiredVotes
-        .map(
-          (vote) =>
-            ({
-              id: vote.id.toString(),
-              guildId: vote.guildId,
-              userId: vote.userId,
-              roleId: vote.roleId,
-              expiresAt: vote.expiresAt,
-              timestamp: new Date().toISOString(),
-            } as QueueMessageBody),
-        )
-        .map((message) => ({ contentType: "json", body: message })),
-    );
   },
 
   async queue(batch, env, ctx): Promise<void> {

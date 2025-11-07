@@ -37,7 +37,7 @@
     }
   ],
   "triggers": {
-    "crons": ["*/10 * * * *"] // every 10 minutes
+    "crons": ["0 2 * * *", "0 3 * * 0"] // every day at 2 AM, every sunday at 3 AM
   },
   "queues": {
     "producers": [
