@@ -14,19 +14,6 @@
   "observability": {
     "enabled": true
   },
-  //   "queues": {
-  //     "consumers": [
-  //       {
-  //         "queue": "my-queue"
-  //       }
-  //     ],
-  //     "producers": [
-  //       {
-  //         "binding": "MY_QUEUE",
-  //         "queue": "my-queue"
-  //       }
-  //     ]
-  //   },
   "d1_databases": [
     {
       "binding": "vote_handler",
@@ -48,6 +35,10 @@
       {
         "queue": "voteremove",
         "binding": "VOTE_REMOVE"
+      },
+      {
+        "queue": "forwardwebhook",
+        "binding": "forwardwebhook"
       }
     ],
     "consumers": [
@@ -60,6 +51,11 @@
         "queue": "voteremove",
         "type": "worker",
         "max_retries": 5
+      },
+      {
+        "queue": "forwardwebhook",
+        "type": "worker",
+        "max_retries": 10 // We won't hit that because of the logic, but just to be safe
       }
     ]
   }
