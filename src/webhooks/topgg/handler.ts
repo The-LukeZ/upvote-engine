@@ -1,15 +1,17 @@
 import { Hono } from "hono";
-import { HonoBindings, HonoVariables, QueueMessageBody } from "../../../types";
-import { TopGGWebhook } from "./webhook";
+import { HonoContextEnv, QueueMessageBody } from "../../../types";
+import { WebhookHandler } from "../webhook";
 import { makeDB } from "../../db/util";
 import { applications } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../snowflake";
 import dayjs from "dayjs";
+import { TopGGPayload } from "../../../types/webhooks";
 
-const topggApp = new Hono<{ Bindings: HonoBindings; Variables: HonoVariables }, {}, "/topgg">();
+const topggApp = new Hono<HonoContextEnv, {}, "/topgg">();
 
-topggApp.post("/webhook/:applicationId", async (c) => {
+// Path: /webhook/topgg/:applicationId
+topggApp.post("/:applicationId", async (c) => {
   const appId = c.req.param("applicationId");
   console.log(`Received Top.gg webhook for application ID: ${appId}`);
   const db = makeDB(c.env);
@@ -20,18 +22,17 @@ topggApp.post("/webhook/:applicationId", async (c) => {
     return c.json({ error: "Application not found" }, 404);
   }
 
-  const valRes = await new TopGGWebhook(appCfg?.secret).validateRequest(c);
+  const valRes = await new WebhookHandler<TopGGPayload>(appCfg?.secret).validateRequest(c);
   console.log("Validation result:", valRes);
   if (!valRes.isValid || !valRes.payload) {
     return c.json({ error: "Invalid request" }, 403);
   }
 
   const vote = valRes.payload;
-  console.log("Received vote:", vote);
 
   if (vote.type === "test") {
     console.log("Received test vote payload");
-    return c.json({ status: "Test vote received" });
+    return new Response(null, { status: 200 });
   }
 
   const voteId = generateSnowflake().toString();
@@ -45,9 +46,10 @@ topggApp.post("/webhook/:applicationId", async (c) => {
     roleId: appCfg.voteRoleId,
     expiresAt: expiresAt,
     timestamp: new Date().toISOString(),
+    source: "topgg",
   } as QueueMessageBody);
 
-  return c.json({ status: "Vote received" });
+  return new Response(null, { status: 200 });
 });
 
 export default topggApp;

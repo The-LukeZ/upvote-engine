@@ -155,11 +155,11 @@ class CommandInteractionOptionResolver {
    * @param required Whether to throw an error if the option is not found.
    * @returns The value of the option, or null if not set and not required.
    */
-  getString(name: string, required?: boolean): string | null;
-  getString(name: string, required: true): string;
-  getString(name: string, required: boolean = false): string | null {
+  getString<T extends string = string>(name: string, required?: boolean): T | null;
+  getString<T extends string = string>(name: string, required: true): T;
+  getString<T extends string = string>(name: string, required: boolean = false): T | null {
     const option = this.get(name, ApplicationCommandOptionType.String, required);
-    return option?.value ?? null;
+    return (option?.value as T) ?? null;
   }
 
   /**

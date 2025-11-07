@@ -19,6 +19,13 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("add")
             .setDescription("Add a new app")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to add").setRequired(true))
+            .addStringOption((opt) =>
+              opt
+                .setName("source")
+                .setDescription("The bot listing source")
+                .setRequired(true)
+                .addChoices({ name: "Top.gg", value: "topgg" }, { name: "Discord Bot List", value: "dbl" }),
+            )
             .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
             .addIntegerOption(
               (op) =>
@@ -35,6 +42,13 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("edit")
             .setDescription("Edit an existing app")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to edit").setRequired(true))
+            .addStringOption((opt) =>
+              opt
+                .setName("source")
+                .setDescription("The bot listing source")
+                .setRequired(true)
+                .addChoices({ name: "Top.gg", value: "topgg" }, { name: "Discord Bot List", value: "dbl" }),
+            )
             .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(false))
             .addIntegerOption((op) =>
               op
@@ -52,7 +66,7 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
           sub
             .setName("remove")
             .setDescription("Remove an app")
-            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true))
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true)),
         ),
     ),
 ];
