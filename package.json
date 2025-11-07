@@ -13,7 +13,6 @@
     "register": "tsx --env-file=.env src/registerCommands.ts",
     "migrate": "wrangler d1 migrations apply vote_handler --remote",
     "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "drizzle:migrate": "drizzle-kit migrate --config drizzle.config.ts",
     "drizzle:push": "drizzle-kit push --config drizzle.config.ts",
     "docs:dev": "astro dev --config docs/config.mjs",
     "docs:build": "astro build --config docs/config.mjs",
