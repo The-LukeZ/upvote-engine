@@ -29,13 +29,14 @@ export const GetSupportedPlatform = (platform: SupportedPlatforms) => supportedP
  */
 export const platformsWithTests = ["topgg"];
 
-export const getTestNoticeForPlatform = (platform: SupportedPlatforms) => {
+export const getTestNoticeForPlatform = (platform: SupportedPlatforms, botId: string) => {
   if (platformsWithTests.includes(platform)) {
-    return `${heading("Testing Votes", 3)}\nYou can use the **Send Test** feature on ${GetSupportedPlatform(
-      platform,
-    )} to verify that the webhook is working correctly. ${bold(
-      "[You need to install the bot as a user application to receive test votes.]()",
-    )}`;
+    return (
+      `${heading("Testing Votes", 3)}\nYou can use the **Send Test** feature on ${GetSupportedPlatform(
+        platform,
+      )} to verify that the webhook is working correctly. ` +
+      bold(`[You need to install the bot as a user application](${addBotUrl(botId, 1)}) to receive test vote confirmations!`)
+    );
   }
   return "";
 };
