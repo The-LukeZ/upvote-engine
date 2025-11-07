@@ -79,3 +79,28 @@ export function randomStringWithSnowflake(length: number) {
       .join("") + generateSnowflake().toString()
   );
 }
+
+/**
+ * An array of delay intervals for retrying operations, used for exponential backoff.
+ *
+ * ```[0, 30, 60, 120, 300, 600, 1800, 3600]```
+ */
+export const delaySeconds = [0, 30, 60, 120, 300, 600, 1800, 3600]; // in seconds; we start at 0, because first attempt has number 1
+
+/**
+ * Calculates a delay with added jitter to prevent thundering herd problems.
+ *
+ * @param baseDelay - The base delay time in milliseconds
+ * @param jitterFactor - A multiplier (0-1) that determines the maximum jitter as a fraction of baseDelay
+ * @returns The calculated delay with jitter applied, rounded down to the nearest integer
+ *
+ * @example
+ * ```typescript
+ * // Add up to 10% jitter to a 10s base delay
+ * const delay = jitterDelay(10, 0.1); // Returns 10-11s
+ * ```
+ */
+export const jitterDelay = (baseDelay: number, jitterFactor: number) => {
+  const jitter = Math.random() * jitterFactor * baseDelay;
+  return Math.floor(baseDelay + jitter);
+};
