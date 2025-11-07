@@ -11,7 +11,7 @@ export const applications = sqliteTable(
     roleDurationSeconds: integer("role_duration_seconds"), // Added per-bot per-source
     createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
   },
-  (table) => [primaryKey({ columns: [table.applicationId, table.source] })],
+  (table) => [primaryKey({ columns: [table.applicationId, table.source, table.guildId] })], // Updated: Include guildId in primary key
 );
 
 export const votes = sqliteTable("votes", {
