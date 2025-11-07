@@ -8,7 +8,7 @@ import { randomStringWithSnowflake, sanitizeSecret } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
-import { GetSupportedPlatform, PlatformWebhookUrl } from "./constants";
+import { GetSupportedPlatform, hostnamePattern, PlatformWebhookUrl } from "./constants";
 import { ForwardingPayload } from "../types/webhooks";
 
 const MAX_APPS_PER_GUILD = 25;
@@ -361,6 +361,19 @@ async function handleForwarding(c: MyContext, ctx: ChatInputCommandInteraction, 
   const subcommand = ctx.options.getSubcommand(true) as "set" | "edit" | "remove" | "view";
   console.log("Handling forwarding subcommand:", subcommand);
 
+  const urlOrigin = new URL(c.req.url).origin;
+  const urlOption = ctx.options.getString("url");
+  if (urlOption && !isValidForwardingUrl(urlOrigin, urlOption)) {
+    return ctx.reply(
+      {
+        content:
+          "The provided URL is not valid for forwarding.\n" +
+          "Please ensure it is a valid URL and not pointing to localhost, an IP address, or this service's own domain.",
+      },
+      true,
+    );
+  }
+
   switch (subcommand) {
     case "set":
       return handleSetForwarding(ctx, db);
@@ -668,6 +681,24 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
       content: `Failed to view forwarding configuration: ${error instanceof Error ? error.message : "Unknown error"}`,
     });
   }
+}
+
+function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
+  // 1. Is it even a url?
+  try {
+    const _url = new URL(url);
+    // 2. Do NOT allow localhost, ips and not the current origin
+    if (_url.origin === currentOrigin) {
+      return false;
+    } else if (_url.hostname === "localhost" || _url.hostname === "127.0.0.1" || _url.hostname === "::1") {
+      return false;
+    } else if (!hostnamePattern.test(_url.hostname)) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 // TODO: test new commands + update wiki pages + add wiki page for forwarding (must be a really detailed one)

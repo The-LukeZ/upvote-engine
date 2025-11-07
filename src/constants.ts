@@ -16,3 +16,5 @@ export const supportedPlatforms = {
 } satisfies Record<SupportedPlatforms, string>;
 
 export const GetSupportedPlatform = (platform: SupportedPlatforms) => supportedPlatforms[platform];
+
+export const hostnamePattern = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
