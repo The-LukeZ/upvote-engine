@@ -34,7 +34,7 @@ class WebhookHandler<T extends WebhookPayload> {
     };
   }
 
-  private _formatIncoming(body: T & { query: string }): T {
+  private _formatIncoming(body: T): T {
     const out: T = { ...body };
     return out;
   }

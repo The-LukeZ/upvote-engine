@@ -232,7 +232,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       return ctx.editReply({ content: error.message || "Failed to add app configuration. Please try again." });
     }
 
-    await ctx.editReply(buildAppInfo(newCfg, "create"));
+    await ctx.editReply(buildAppInfo(ctx.applicationId, newCfg, "create"));
     console.log("Guild configuration inserted into database");
   } catch (error) {
     console.error("Error extracting parameters or adding app configuration:", error);
@@ -258,12 +258,12 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
   const durationHours = ctx.options.getInteger("duration");
   const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
-  const guildId = ctx.guildId;
+  const guildId = ctx.guildId!;
   const generateNewSecret = ctx.options.getBoolean("generate-secret") ?? false;
   console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId, generateNewSecret });
 
-  if (!guildId) {
-    return ctx.editReply({ content: "This command can only be used in a server." });
+  if (!roleId && !durationSeconds && !generateNewSecret) {
+    return ctx.editReply({ content: "Please provide at least one field to update." });
   }
 
   let newSecret: string | undefined = undefined;
@@ -292,7 +292,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     });
   }
 
-  await ctx.editReply(buildAppInfo(result, "edit", !!newSecret));
+  await ctx.editReply(buildAppInfo(ctx.applicationId, result, "edit", !!newSecret));
   console.log("Guild configuration updated in database");
 }
 
@@ -300,7 +300,12 @@ function validateBot(bot: object & { bot?: boolean; id: string }, ownApplication
   return !!(bot.bot && bot.id !== ownApplicationId);
 }
 
-function buildAppInfo(cfg: ApplicationCfg, action: "edit" | "create", secretVisible: boolean = false): { embeds: APIEmbed[] } {
+function buildAppInfo(
+  clientId: string,
+  cfg: ApplicationCfg,
+  action: "edit" | "create",
+  secretVisible: boolean = false,
+): { embeds: APIEmbed[] } {
   secretVisible = secretVisible || action === "create";
   const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
   const fields = [
@@ -321,23 +326,24 @@ function buildAppInfo(cfg: ApplicationCfg, action: "edit" | "create", secretVisi
     },
   ];
 
-  const embeds: APIEmbed[] = [
-    {
-      description: [
-        heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>:`, 3),
-        `Successfully updated configuration for bot <@${cfg.applicationId}> in this server for source ${bold(
-          GetSupportedPlatform(cfg.source),
-        )}.`,
-      ].join("\n"),
-      color: action === "create" ? Colors.Green : Colors.Yellow,
-      fields: fields,
-    },
-  ];
-
-  let embed2FieldValue = codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId));
   if (platformsWithTests.includes(cfg.source)) {
-    embed2FieldValue += getTestNoticeForPlatform(cfg.source, cfg.applicationId);
+    fields.push({
+      name: "Test Vote Notice",
+      value: getTestNoticeForPlatform(cfg.source, clientId),
+      inline: false,
+    });
   }
+
+  const embed1: APIEmbed = {
+    description: [
+      heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>:`, 3),
+      `Successfully updated configuration for bot <@${cfg.applicationId}> in this server for source ${bold(
+        GetSupportedPlatform(cfg.source),
+      )}.`,
+    ].join("\n"),
+    color: action === "create" ? Colors.Green : Colors.Yellow,
+    fields: fields,
+  };
 
   const embed2: APIEmbed = {
     color: Colors.Yellow,
@@ -360,10 +366,8 @@ function buildAppInfo(cfg: ApplicationCfg, action: "edit" | "create", secretVisi
     ],
   };
 
-  embeds.push(embed2);
-
   return {
-    embeds,
+    embeds: [embed1, embed2],
   };
 }
 

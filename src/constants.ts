@@ -1,9 +1,9 @@
-import { bold, heading } from "@discordjs/builders";
+import { bold } from "@discordjs/builders";
 import { SupportedPlatforms } from "../types";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
 
 export const addBotUrl = (botId: string, integrationType: ApplicationIntegrationType = ApplicationIntegrationType.GuildInstall) =>
-  `https://discord.com/oauth2/authorize?integration_type=${integrationType}&client_id=${botId}` as const;
+  `https://discord.com/oauth2/authorize?integration_type=${integrationType}&client_id=${botId}&scopes=bot+applications.commands` as const;
 
 /**
  * Generates the Platform webhook URL for a given application ID.
@@ -29,13 +29,11 @@ export const GetSupportedPlatform = (platform: SupportedPlatforms) => supportedP
  */
 export const platformsWithTests = ["topgg"];
 
-export const getTestNoticeForPlatform = (platform: SupportedPlatforms, botId: string) => {
+export const getTestNoticeForPlatform = (platform: SupportedPlatforms, clientId: string) => {
   if (platformsWithTests.includes(platform)) {
     return (
-      `${heading("Testing Votes", 3)}\nYou can use the **Send Test** feature on ${GetSupportedPlatform(
-        platform,
-      )} to verify that the webhook is working correctly. ` +
-      bold(`[You need to install the bot as a user application](${addBotUrl(botId, 1)}) to receive test vote confirmations!`)
+      `You can use the **Send Test** feature on ${GetSupportedPlatform(platform)} to verify that the webhook is working correctly. ` +
+      bold(`[You need to install the bot as a user application](${addBotUrl(clientId, 1)}) to receive test vote confirmations!`)
     );
   }
   return "";

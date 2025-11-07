@@ -14,7 +14,7 @@ const topggApp = new Hono<HonoContextEnv, {}, "/topgg">();
 // Path: /webhook/topgg/:applicationId
 topggApp.post("/:applicationId", async (c) => {
   const appId = c.req.param("applicationId");
-  console.log(`Received Top.gg webhook for application ID: ${appId}`);
+  console.log(`Received Top.gg webhook for application ID: ${appId}`, { daAuthHeader: c.req.header("authorization") });
   const db = makeDB(c.env);
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
 

@@ -76,7 +76,7 @@ export function isMessageComponentInteraction(interaction: APIInteraction): inte
 }
 
 export function randomStringWithSnowflake(length: number) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.-!§$%&/()=?+#*";
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._+=!@";
   // The snowflake ensures uniqueness across calls
   return (
     Array.from({ length })
@@ -125,12 +125,19 @@ export async function dmUserOnTestVote(
   env: Env,
   { userId, applicationId, source }: { userId: string; applicationId: string; source: SupportedPlatforms },
 ) {
+  console.log(`Starting DM process for test vote - userId: ${userId}, applicationId: ${applicationId}, source: ${source}`);
+
   const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
   const existingUserDM = await db.select({ dmId: users.dmId }).from(users).where(eq(users.id, userId)).limit(1).get();
+
+  console.log(`Existing DM check result:`, existingUserDM);
+
   let dmChannelId: string;
   if (existingUserDM?.dmId) {
     dmChannelId = existingUserDM.dmId;
+    console.log(`Using existing DM channel: ${dmChannelId}`);
   } else {
+    console.log(`Creating new DM channel for user: ${userId}`);
     try {
       const response = await rest.post(Routes.userChannels(), {
         body: {
@@ -140,12 +147,14 @@ export async function dmUserOnTestVote(
       });
       const dmChannel = response as APIDMChannel;
       dmChannelId = dmChannel.id;
+      console.log(`Created new DM channel: ${dmChannelId}`);
     } catch (error) {
-      console.error("Failed to create DM channel for test vote:", { error });
+      console.error("Failed to create DM channel for test vote:", { error, userId });
       return;
     }
   }
 
+  console.log(`Sending test vote notification to DM channel: ${dmChannelId}`);
   try {
     await rest.post(Routes.channelMessages(dmChannelId), {
       body: {
@@ -158,8 +167,9 @@ export async function dmUserOnTestVote(
         ],
       },
     });
+    console.log(`Successfully sent test vote notification to user: ${userId}`);
   } catch (error) {
-    console.error("Failed to send DM for test vote:", { error });
+    console.error("Failed to send DM for test vote:", { error, userId, dmChannelId });
     return;
   }
 }
