@@ -127,6 +127,8 @@ app.post("/", async (c) => {
   }
 });
 
+app.all("*", (c) => c.text("Not Found.", 404));
+
 export default {
   fetch: app.fetch,
 
