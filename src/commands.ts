@@ -259,7 +259,8 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   const durationHours = ctx.options.getInteger("duration");
   const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
   const guildId = ctx.guildId;
-  console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
+  const generateNewSecret = ctx.options.getBoolean("generate-secret") ?? false;
+  console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId, generateNewSecret });
 
   if (!guildId) {
     return ctx.editReply({ content: "This command can only be used in a server." });
@@ -273,7 +274,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   if (durationSeconds) {
     updateFields.roleDurationSeconds = durationSeconds;
   }
-  if (!!ctx.options.getBoolean("generate-secret")) {
+  if (generateNewSecret) {
     newSecret = randomStringWithSnowflake(32);
     updateFields.secret = newSecret;
   }
@@ -299,11 +300,8 @@ function validateBot(bot: object & { bot?: boolean; id: string }, ownApplication
   return !!(bot.bot && bot.id !== ownApplicationId);
 }
 
-function buildAppInfo(
-  cfg: ApplicationCfg,
-  action: "edit" | "create",
-  secretVisible: boolean = action === "create" ? true : false,
-): { embeds: APIEmbed[] } {
+function buildAppInfo(cfg: ApplicationCfg, action: "edit" | "create", secretVisible: boolean = false): { embeds: APIEmbed[] } {
+  secretVisible = secretVisible || action === "create";
   const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
   const fields = [
     {
@@ -352,15 +350,17 @@ function buildAppInfo(
         name: "Webhook Endpoint",
         value: codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId)),
       },
+      {
+        name: "Webhook Secret",
+        value: [
+          codeBlock(secretVisible ? cfg.secret : sanitizeSecret(cfg.secret)),
+          ":warning: **Keep this secret safe! It will not be shown again.**",
+        ].join("\n"),
+      },
     ],
   };
 
-  if (secretVisible) {
-    embed2.fields!.push({
-      name: "Webhook Secret",
-      value: [codeBlock(sanitizeSecret(cfg.secret)), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
-    });
-  }
+  embeds.push(embed2);
 
   return {
     embeds,

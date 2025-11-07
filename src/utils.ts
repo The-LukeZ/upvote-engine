@@ -122,9 +122,10 @@ export function sanitizeSecret(secret: string) {
 
 export async function dmUserOnTestVote(
   db: DrizzleDB,
-  rest: REST,
+  env: Env,
   { userId, applicationId, source }: { userId: string; applicationId: string; source: SupportedPlatforms },
 ) {
+  const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
   const existingUserDM = await db.select({ dmId: users.dmId }).from(users).where(eq(users.id, userId)).limit(1).get();
   let dmChannelId: string;
   if (existingUserDM?.dmId) {
