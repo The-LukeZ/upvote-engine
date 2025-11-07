@@ -148,7 +148,9 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
             db
               .select()
               .from(votes)
-              .where(and(eq(votes.userId, v.userId), eq(votes.guildId, v.guildId), gt(votes.expiresAt, currentTs))),
+              .where(
+                and(eq(votes.userId, v.userId), eq(votes.guildId, v.guildId), isNotNull(votes.expiresAt), gt(votes.expiresAt, currentTs)),
+              ),
           ),
         ),
       );
