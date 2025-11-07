@@ -18,9 +18,6 @@ export const forwardings = sqliteTable("forwardings", {
   applicationId: text("application_id")
     .references(() => applications.applicationId, { onDelete: "cascade" })
     .primaryKey(),
-  source: text("source", { enum: ["topgg", "dbl"] })
-    .references(() => applications.source)
-    .primaryKey(),
   targetUrl: text("target_url").notNull(),
   secret: text("secret").notNull(),
 });
