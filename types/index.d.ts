@@ -14,7 +14,7 @@ import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction
 import { DrizzleD1Database } from "drizzle-orm/d1";
 import { makeDB } from "../src/db/util";
 import { WebhookPayload } from "./webhooks";
-import { NewVote, ApplicationCfg } from "../src/db/schema";
+import { NewVote, ApplicationCfg, APIVote } from "../src/db/schema";
 
 export * from "./db";
 export * from "./topgg";
@@ -53,11 +53,7 @@ export interface APIInteractionDataResolvedCollections {
 
 export type DrizzleDB = ReturnType<typeof makeDB>;
 
-export interface QueueMessageBody extends Omit<NewVote, "id"> {
-  /**
-   * Stringified bigint ID of the vote record
-   */
-  id: string;
+export interface QueueMessageBody extends APIVote {
   timestamp: string;
 }
 

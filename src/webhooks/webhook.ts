@@ -57,6 +57,8 @@ class WebhookHandler<T extends WebhookPayload> {
       return { isValid: false };
     }
   }
+
+  public buildForwardPayload(payload: any): any {}
 }
 
 export { WebhookHandler, type WebhookPayload };

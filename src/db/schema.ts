@@ -40,3 +40,4 @@ export type NewApplicationCfg = typeof applications.$inferInsert;
 
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
+export type APIVote = Omit<Vote, "id"> & { id: string };

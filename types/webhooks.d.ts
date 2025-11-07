@@ -1,3 +1,5 @@
+import type { APIVote } from "../src/db/schema";
+
 /**
  * @see {@link https://docs.top.gg/docs/Resources/webhooks/#bot-webhooks}
  */
@@ -49,3 +51,30 @@ export interface DBLPayload {
 }
 
 export type WebhookPayload = TopGGPayload | DBLPayload;
+
+type WebhookPayloadMapping = {
+  topgg: TopGGPayload;
+  dbl: DBLPayload;
+};
+
+/**
+ * The payload forwarded to external webhooks
+ */
+export type ForwardPayload<TSource extends APIVote["source"]> = {
+  /**
+   * The vote information
+   */
+  vote: APIVote & { source: TSource };
+  /**
+   * The original webhook payload. Can be inferred based on the vote source.
+   */
+  payload: WebhookPayloadMapping[TSource];
+};
+
+export type MessageQueuePayload = {
+  /**
+   * The time the forward was created
+   */
+  timestamp: string;
+  payload: ForwardPayload<APIVote["source"]>;
+};
