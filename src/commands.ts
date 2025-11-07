@@ -152,6 +152,19 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       });
     }
 
+    const existingApp = await db
+      .select()
+      .from(applications)
+      .where(and(eq(applications.applicationId, bot.id)))
+      .limit(1)
+      .get();
+
+    if (existingApp && existingApp.guildId === ctx.guildId) {
+      return ctx.editReply({ content: "This bot is already configured for this server." });
+    } else if (existingApp) {
+      return ctx.editReply({ content: "This bot is already configured for another server." });
+    }
+
     const role = ctx.options.getRole("role", true);
     const roleId = role.id;
 
@@ -178,13 +191,10 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
           roleDurationSeconds: durationSeconds ? durationSeconds : null,
           secret: generatedSecret,
         })
-        .returning()
-        .get();
+        .onConflictDoNothing();
     } catch (error) {
-      if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
-        return ctx.editReply({ content: "This bot is already configured for this guild." });
-      }
-      throw error;
+      console.error("Error inserting app configuration into database:", error);
+      return ctx.editReply({ content: "Failed to add app configuration. Please try again." });
     }
 
     const durationText = durationSeconds ? `${Math.floor(durationSeconds / 3600)} hour(s)` : "Permanent";
