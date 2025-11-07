@@ -226,7 +226,7 @@ export default {
         await deleteOldVotes(db);
         break;
 
-      case "0 3 * * 0": // every sunday at 3 AM
+      case "0 3 * * 1": // every sunday at 3 AM (CF uses 1 = Sunday)
         console.log("Running weekly guild cleanup");
         ctx.waitUntil(cleanupInvalidGuilds(db, env));
         break;
