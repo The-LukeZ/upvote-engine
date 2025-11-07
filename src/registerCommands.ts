@@ -25,7 +25,7 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
                 op
                   .setName("duration")
                   .setDescription("Duration in hours (!) for which the role will be active")
-                  .setRequired(true)
+                  .setRequired(false)
                   .setMinValue(1)
                   .setMaxValue(336), // 14 days
             ),
@@ -35,12 +35,12 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("edit")
             .setDescription("Edit an existing app")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to edit").setRequired(true))
-            .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
+            .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(false))
             .addIntegerOption((op) =>
               op
                 .setName("duration")
                 .setDescription("Duration in hours (!) for which the role will be active")
-                .setRequired(true)
+                .setRequired(false)
                 .setMinValue(1)
                 .setMaxValue(336),
             )
