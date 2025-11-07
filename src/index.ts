@@ -54,7 +54,7 @@ const app = new Hono<HonoContextEnv>();
 app.use("*", poweredBy({ serverName: "Venocix" }));
 app.get("/", (c) =>
   c.html(
-    `<h1>👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend. Visit the <a href="/info">info page</a> to learn more about this bot.</p>`,
+    `<head><script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script></head><body><h1>👋 ${c.env.DISCORD_APP_ID}</h1><p>Welcome my friend. Visit the <a href="/info">info page</a> to learn more about this bot.</p></body>`,
   ),
 );
 app.post("/health", (c) => c.text("OK"));
