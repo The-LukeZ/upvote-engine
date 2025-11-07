@@ -62,9 +62,7 @@ export type WebhookSource<WithTest extends boolean = false> = WithTest extends t
 // The forwarding payload sent to other services
 export type ForwardingPayload<TSource extends WebhookSource<true>> = {
   /**
-   * The time the vote was initially received
-   *
-   * ISO 8601 timestamp
+   * An ISO 8601 string indicating when the original vote was received by our service.
    */
   timestamp: string;
   /**
@@ -78,7 +76,9 @@ export type ForwardingPayload<TSource extends WebhookSource<true>> = {
    */
   source: TSource;
   /**
-   * The original webhook payload. Can be inferred based on the vote source.
+   * The original, unmodified JSON payload from the source platform. Its structure will vary depending on the `source`.
+   *
+   * If `source` is `test`, this field will be `null`.
    */
   payload: TSource extends "test" ? null : WebhookPayloadMapping[TSource];
 };
