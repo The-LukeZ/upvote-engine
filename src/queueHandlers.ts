@@ -2,9 +2,9 @@ import dayjs from "dayjs";
 import { QueueMessageBody } from "../types";
 import { votes } from "./db/schema";
 import { makeDB } from "./db/util";
-import { API } from "@discordjs/core";
 import { REST } from "@discordjs/rest";
-import { eq, inArray } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
+import { Routes } from "discord-api-types/v10";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
   console.log(`Processing vote apply batch with ${batch.messages.length} messages`);
@@ -28,12 +28,12 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     })),
   );
 
-  const api = new API(new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN));
+  const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
   const successfulAdds = new Set<bigint>();
   for (const message of messages) {
     try {
       console.log(`Assigning role ${message.body.roleId} to user ${message.body.userId} in guild ${message.body.guildId}`);
-      await api.guilds.addRoleToMember(message.body.guildId, message.body.userId, message.body.roleId);
+      await rest.put(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
       successfulAdds.add(message.body.id);
     } catch (error) {
       console.error(`Failed to assign role for vote ID ${message.body.id}:`, error);
@@ -56,12 +56,12 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
     console.log(`Removing vote for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
   }
 
-  const api = new API(new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN));
+  const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
   const successfulRemovals = new Set<bigint>();
   for (const message of batch.messages) {
     try {
       console.log(`Removing role ${message.body.roleId} from user ${message.body.userId} in guild ${message.body.guildId}`);
-      await api.guilds.removeRoleFromMember(message.body.guildId, message.body.userId, message.body.roleId);
+      await rest.delete(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
       successfulRemovals.add(message.body.id);
     } catch (error) {
       console.error(`Failed to remove role for vote ID ${message.body.id}:`, error);
