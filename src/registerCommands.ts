@@ -53,9 +53,6 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("remove")
             .setDescription("Remove an app")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true))
-            .addBooleanOption((opt) =>
-              opt.setName("delete-votes").setDescription("Whether to delete all vote data for this app as well").setRequired(false),
-            ),
         ),
     ),
 ];

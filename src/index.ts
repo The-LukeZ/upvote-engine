@@ -207,8 +207,7 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
   if (invalidGuilds.length > 0) {
     console.log(`Deleting data for ${invalidGuilds.length} invalid guilds`);
 
-    await db.delete(applications).where(inArray(applications.guildId, invalidGuilds));
-    await db.delete(votes).where(inArray(votes.guildId, invalidGuilds));
+    await db.delete(applications).where(inArray(applications.guildId, invalidGuilds)); // Cascade deletes votes
 
     console.log(`Cleanup complete. Removed data for guilds: ${invalidGuilds.join(", ")}`);
   }

@@ -11,7 +11,9 @@ export const applications = sqliteTable("applications", {
 
 export const votes = sqliteTable("votes", {
   id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID
-  applicationId: text("application_id").notNull(),
+  applicationId: text("application_id")
+    .notNull()
+    .references(() => applications.applicationId, { onDelete: "cascade" }),
   guildId: text("guild_id").notNull(),
   userId: text("user_id").notNull(),
   roleId: text("role_id").notNull(),
