@@ -18,6 +18,7 @@ import { votes } from "./db/schema";
 import { and, isNotNull, lt, lte } from "drizzle-orm";
 import dayjs from "dayjs";
 import { handleComponentInteraction } from "./components";
+import { X509Certificate } from "crypto";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -67,7 +68,7 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
-// app.route("/topgg", topggApp);
+app.route("/topgg", topggApp);
 
 app.post("/", async (c) => {
   const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
@@ -97,6 +98,18 @@ app.post("/", async (c) => {
         type: InteractionResponseType.Pong,
       });
     }
+    case InteractionType.ModalSubmit:
+      c.executionCtx.waitUntil(
+        new Promise(async function (resolve) {
+          if (isModalInteraction(interaction)) {
+            c.set("modal", new ModalInteraction(api, interaction));
+            await handleComponentInteraction(c);
+          }
+          return resolve(undefined);
+        }),
+      );
+
+      return c.json({}, 202); // Accepted for processing
     case InteractionType.ApplicationCommand:
       c.executionCtx.waitUntil(
         new Promise(async function (resolve) {
@@ -104,9 +117,6 @@ app.post("/", async (c) => {
             console.log("Received Chat Input Command Interaction:", interaction.data.name);
             c.set("command", new ChatInputCommandInteraction(api, interaction));
             await handleCommand(c); // Wants APIChatInputApplicationCommandInteraction
-          } else if (isModalInteraction(interaction)) {
-            c.set("modal", new ModalInteraction(api, interaction));
-            await handleComponentInteraction(c);
           }
           return resolve(undefined);
         }),
