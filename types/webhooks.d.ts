@@ -1,4 +1,4 @@
-import type { APIVote } from "../src/db/schema";
+import type { APIVote, ForwardingCfg } from "../src/db/schema";
 
 /**
  * @see {@link https://docs.top.gg/docs/Resources/webhooks/#bot-webhooks}
@@ -77,4 +77,5 @@ export type MessageQueuePayload = {
    */
   timestamp: string;
   payload: ForwardPayload<APIVote["source"]>;
+  to: ForwardingCfg;
 };
