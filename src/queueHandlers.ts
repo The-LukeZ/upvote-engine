@@ -20,9 +20,14 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
   if (validMessages.length !== messages.length) {
     console.warn(`Filtered out ${messages.length - validMessages.length} messages with invalid id`);
   }
+  if (validMessages.length === 0) {
+    console.log("No valid messages to process after filtering. Exiting.");
+    return;
+  }
+
   await db.insert(votes).values(
     validMessages.map((message) => ({
-      id: message.body.id,
+      id: BigInt(message.body.id),
       guildId: message.body.guildId,
       userId: message.body.userId,
       roleId: message.body.roleId,
@@ -37,7 +42,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     try {
       console.log(`Assigning role ${message.body.roleId} to user ${message.body.userId} in guild ${message.body.guildId}`);
       await rest.put(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
-      successfulAdds.add(message.body.id);
+      successfulAdds.add(BigInt(message.body.id));
     } catch (error) {
       console.error(`Failed to assign role for vote ID ${message.body.id}:`, error);
     }
@@ -65,7 +70,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
     try {
       console.log(`Removing role ${message.body.roleId} from user ${message.body.userId} in guild ${message.body.guildId}`);
       await rest.delete(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
-      successfulRemovals.add(message.body.id);
+      successfulRemovals.add(BigInt(message.body.id));
     } catch (error) {
       console.error(`Failed to remove role for vote ID ${message.body.id}:`, error);
     }

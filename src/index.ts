@@ -160,7 +160,7 @@ export default {
         .map(
           (vote) =>
             ({
-              id: vote.id,
+              id: vote.id.toString(),
               guildId: vote.guildId,
               userId: vote.userId,
               roleId: vote.roleId,

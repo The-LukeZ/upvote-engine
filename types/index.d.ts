@@ -45,6 +45,10 @@ export interface APIInteractionDataResolvedCollections {
 
 export type DrizzleDB = ReturnType<typeof makeDB>;
 
-export interface QueueMessageBody extends NewVote {
+export interface QueueMessageBody extends Omit<NewVote, "id"> {
+  /**
+   * Stringified bigint ID of the vote record
+   */
+  id: string;
   timestamp: string;
 }
