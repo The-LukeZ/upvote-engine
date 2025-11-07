@@ -31,7 +31,7 @@ topggApp.post("/:applicationId", async (c) => {
   const vote = valRes.payload;
 
   if (vote.type === "test") {
-    console.log("Received test vote payload");
+    console.log("Received test vote payload", { vote });
     return new Response(null, { status: 200 });
   }
 
