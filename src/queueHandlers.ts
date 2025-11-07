@@ -2,9 +2,9 @@ import dayjs from "dayjs";
 import { QueueMessageBody } from "../types";
 import { votes } from "./db/schema";
 import { makeDB } from "./db/util";
-import { REST } from "@discordjs/rest";
+import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
-import { Routes } from "discord-api-types/v10";
+import { RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
 import { ForwardPayload, MessageQueuePayload } from "../types/webhooks";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
@@ -14,6 +14,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     const body = message.body;
     console.log(`Applying vote for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
   }
+
   // filter out messages older than 12 hours to avoid applying expired votes
   const twelveHoursAgo = dayjs().subtract(12, "hour");
   const messages = batch.messages.filter((message) => dayjs(message.body.timestamp).isAfter(twelveHoursAgo));
@@ -43,7 +44,13 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
       successfulAdds.add(BigInt(message.body.id));
       message.ack();
     } catch (error) {
-      console.error(`Failed to assign role for vote ID ${message.body.id}:`, error); // TODO: Find a way to dismiss "user not found" errors when applying role
+      if (error instanceof DiscordAPIError && error.code === RESTJSONErrorCodes.UnknownMember) {
+        message.ack();
+        console.warn(`User ${message.body.userId} not found in guild ${message.body.guildId}, acknowledging message.`);
+        continue;
+      }
+      console.error(`Failed to assign role for vote ID ${message.body.id}:`, error);
+      message.retry({ delaySeconds: 60 });
     }
   }
 
