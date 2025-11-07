@@ -43,6 +43,11 @@ export const votes = sqliteTable(
   ],
 );
 
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(), // Discord User ID
+  dmId: text("dm_id").unique(),
+});
+
 export type ApplicationCfg = typeof applications.$inferSelect;
 export type NewApplicationCfg = typeof applications.$inferInsert;
 
