@@ -8,7 +8,7 @@ import { randomStringWithSnowflake } from "./utils";
 import dayjs from "dayjs";
 import { Colors } from "./discord/colors";
 import { makeDB } from "./db/util";
-import { TopGGWebhookUrl } from "./constants";
+import { PlatformWebhookUrl } from "./constants";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -222,7 +222,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
         description: [
           `Add the following configuration to your bot on Top.gg to enable vote role rewards:`,
           "### Webhook URL",
-          codeBlock(TopGGWebhookUrl(bot.id)),
+          codeBlock(PlatformWebhookUrl("topgg", bot.id)),
           "### Secret",
           codeBlock(generatedSecret),
           "",

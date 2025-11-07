@@ -60,3 +60,5 @@ export interface QueueMessageBody extends Omit<NewVote, "id"> {
   id: string;
   timestamp: string;
 }
+
+export type SupportedPlatforms = "topgg";
