@@ -26,6 +26,7 @@ import { handleComponentInteraction } from "./components";
 import webhookApp from "./webhooks";
 import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
+import { addBotUrl } from "./constants";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -102,21 +103,11 @@ app.post("/discord-webhook", async (c) => {
   return c.text("Event received", 200);
 });
 
-app.get("/invite/user", (c) =>
-  c.redirect(
-    `https://discord.com/oauth2/authorize?integration_type=${ApplicationIntegrationType.UserInstall}&client_id=${c.env.DISCORD_APP_ID}`,
-  ),
-);
-app.get("/invite", (c) =>
-  c.redirect(
-    `https://discord.com/oauth2/authorize?integration_type=${ApplicationIntegrationType.GuildInstall}&client_id=${c.env.DISCORD_APP_ID}`,
-  ),
-);
-app.get("/invite/bot", (c) =>
-  c.redirect(
-    `https://discord.com/oauth2/authorize?integration_type=${ApplicationIntegrationType.GuildInstall}&client_id=${c.env.DISCORD_APP_ID}`,
-  ),
-);
+const inviteRouter = new Hono<HonoContextEnv>();
+inviteRouter.get("/user", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.UserInstall)));
+inviteRouter.all("*", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.GuildInstall)));
+app.route("/invite", inviteRouter);
+
 app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APP_ID));
 app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
