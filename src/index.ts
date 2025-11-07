@@ -13,11 +13,12 @@ import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { makeDB } from "./db/util";
 import { applications, Vote, votes } from "./db/schema";
-import { and, eq, inArray, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
 import dayjs from "dayjs";
 import { handleComponentInteraction } from "./components";
 import webhookApp from "./webhooks";
 import { generateSnowflake } from "./snowflake";
+import { alias } from "drizzle-orm/sqlite-core";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -135,10 +136,22 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
   const currentTs = dayjs().toISOString();
   let expiredVotes: Vote[] = [];
   try {
+    const v = alias(votes, "v");
     expiredVotes = await db
       .select()
-      .from(votes)
-      .where(and(isNotNull(votes.expiresAt), lte(votes.expiresAt, currentTs)));
+      .from(v)
+      .where(
+        and(
+          isNotNull(v.expiresAt),
+          lte(v.expiresAt, currentTs),
+          notExists(
+            db
+              .select()
+              .from(votes)
+              .where(and(eq(votes.userId, v.userId), eq(votes.guildId, v.guildId), gt(votes.expiresAt, currentTs))),
+          ),
+        ),
+      );
 
     console.log(`Found ${expiredVotes.length} expired votes to process`);
   } catch (error) {
