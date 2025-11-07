@@ -125,17 +125,6 @@ app.post("/", async (c) => {
         }),
       );
 
-      await c.env.VOTE_APPLY.send(
-        {
-          guildId: "123456789012345678",
-          userId: "987654321098765432",
-          timestamp: new Date().toISOString(),
-          roleId: "112233445566778899",
-          applicationId: c.env.DISCORD_APP_ID,
-        },
-        { contentType: "json" },
-      );
-
       return c.json({}, 202); // Accepted for processing
   }
 });
