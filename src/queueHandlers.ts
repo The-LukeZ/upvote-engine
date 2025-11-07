@@ -6,6 +6,7 @@ import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import { RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
 import { ForwardPayload, MessageQueuePayload } from "../types/webhooks";
+import { delaySeconds } from "./utils";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
   console.log(`Processing vote apply batch with ${batch.messages.length} messages`);
@@ -136,5 +137,38 @@ export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePaylo
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   for (const message of batch.messages) {
     const body = message.body;
+    // If timestamp is older than 1 hour, ack and skip
+    const oneHourAgo = dayjs().subtract(1, "hour");
+    if (dayjs(body.timestamp).isBefore(oneHourAgo)) {
+      console.log(`Skipping old webhook payload with timestamp ${body.timestamp}`);
+      message.ack();
+      continue;
+    }
+
+    try {
+      console.log(`Forwarding webhook payload to ${body.to.targetUrl}`);
+
+      await fetch(body.to.targetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: body.to.secret,
+        },
+        body: JSON.stringify(body.payload),
+        signal: AbortSignal.timeout(5000), // wait 5 seconds max
+      });
+    } catch (error) {
+      console.error(`Failed to forward webhook payload to ${body.to.targetUrl}:`, error);
+      const delay = delaySeconds[message.attempts]; // Exponential backoff between 30s and 1h
+      // ack and skip if delay is undefined (max attempts reached = out of bounds)
+      if (delay === undefined) {
+        console.warn(`Max retry delay exceeded for webhook payload to ${body.to.targetUrl}, acknowledging message.`);
+        message.ack();
+        continue;
+      }
+
+      message.retry({ delaySeconds: delay });
+      continue;
+    }
   }
 }
