@@ -46,7 +46,11 @@ You are responsible for keeping your webhook secrets secure. If you believe your
 
 - **Vote Data**: Retained until the bot is removed from your Discord server. This includes information about the user who voted, the application for which the vote was cast, the timestamp of the vote, the timestamp for when the role should expire (if applicable), and the unique vote ID.
 - **Application Configurations**: Retained until the bot is removed from your Discord server
-- All associated data is deleted when you use commands like `/config app remove`
+- All associated data is deleted when you use commands like `/config app remove` and set the option to delete vote data as well.
+
+### When is your data deleted?
+
+After removing the bot from your Discord server, no data is deleted immediately. A scheduled task runs every Sunday on 3 AM UTC to clean up data for guilds where the bot is no longer present. This includes deleting all vote data and application configurations associated with those guilds.
 
 ## 5. Data Sharing
 
