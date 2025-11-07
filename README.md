@@ -2,7 +2,7 @@
 
 Automatically assign and remove roles based on user votes on top.gg.
 
-How it's done:
+## How it's done
 
 - Cloudflare Worker built with Hono
 - Webhook endpoint for top.gg vote notifications
@@ -15,6 +15,14 @@ How it's done:
   - discord-api-types
 
 If you want to contribute, feel free to open issues or pull requests!
+
+## License
+
+PolyForm Internal Use License 1.0.0
+
+In plain terms, you can use and modify the software for you or your organization's internal projects,
+but you cannot ship your own product or service that competes with the original software,
+nor can you use it in a production environment.
 
 ---
 
