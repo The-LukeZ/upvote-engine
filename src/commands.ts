@@ -152,10 +152,12 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       });
     }
 
+    const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+
     const existingApp = await db
-      .select()
+      .select({ guildId: applications.guildId })
       .from(applications)
-      .where(and(eq(applications.applicationId, bot.id)))
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
       .limit(1)
       .get();
 
@@ -185,8 +187,9 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       await db
         .insert(applications)
         .values({
-          guildId: guildId,
           applicationId: bot.id,
+          source: source,
+          guildId: guildId,
           voteRoleId: roleId,
           roleDurationSeconds: durationSeconds ? durationSeconds : null,
           secret: generatedSecret,
@@ -253,8 +256,9 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
-  const role = ctx.options.getRole("role", true);
-  const roleId = role.id;
+  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+  const role = ctx.options.getRole("role");
+  const roleId = role?.id;
 
   const durationHours = ctx.options.getInteger("duration");
   const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
@@ -266,22 +270,24 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   }
 
   let newSecret: string | undefined = undefined;
-  let updateFields: Partial<ApplicationCfg> = {
-    voteRoleId: roleId,
-    roleDurationSeconds: durationSeconds,
-  };
+  let updateFields: Partial<ApplicationCfg> = {};
+  if (roleId) {
+    updateFields.voteRoleId = roleId;
+  }
+  if (durationSeconds) {
+    updateFields.roleDurationSeconds = durationSeconds;
+  }
   if (!!ctx.options.getBoolean("generate-secret")) {
     newSecret = randomStringWithSnowflake(32);
     updateFields.secret = newSecret;
   }
 
-  const result: ApplicationCfg[] = await db
+  const result = await db
     .update(applications)
     .set(updateFields)
-    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id)))
-    .returning();
+    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id)));
 
-  if (result.length === 0) {
+  if (result.meta.changes === 0) {
     return ctx.editReply({ content: "No existing configuration found for this bot in this guild. Use `/config app add` to add it." });
   }
 

@@ -13,7 +13,7 @@ import { ModalInteraction } from "../src/discord/ModalInteraction";
 import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction";
 import { DrizzleD1Database } from "drizzle-orm/d1";
 import { makeDB } from "../src/db/util";
-import { WebhookPayload } from "./topgg";
+import { WebhookPayload } from "./webhooks";
 import { NewVote } from "../src/db/schema";
 
 export * from "./db";

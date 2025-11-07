@@ -1,17 +1,17 @@
 import { Hono } from "hono";
 import { HonoContextEnv, QueueMessageBody } from "../../../types";
-import { WebhookHandler } from "../webhook";
 import { makeDB } from "../../db/util";
 import { applications } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../snowflake";
 import dayjs from "dayjs";
-import { TopGGPayload } from "../../../types/webhooks";
+import { WebhookHandler } from "../webhook";
+import { DBLPayload } from "../../../types/webhooks";
 
-const topggApp = new Hono<HonoContextEnv, {}, "/topgg">();
+const dblApp = new Hono<HonoContextEnv, {}, "/dbl">();
 
 // Path: /webhook/topgg/:applicationId
-topggApp.post("/:applicationId", async (c) => {
+dblApp.post("/:applicationId", async (c) => {
   const appId = c.req.param("applicationId");
   console.log(`Received Top.gg webhook for application ID: ${appId}`);
   const db = makeDB(c.env);
@@ -22,7 +22,7 @@ topggApp.post("/:applicationId", async (c) => {
     return c.json({ error: "Application not found" }, 404);
   }
 
-  const valRes = await new WebhookHandler<TopGGPayload>(appCfg?.secret).validateRequest(c);
+  const valRes = await new WebhookHandler<DBLPayload>(appCfg?.secret).validateRequest(c);
   console.log("Validation result:", valRes);
   if (!valRes.isValid || !valRes.payload) {
     return c.json({ error: "Invalid request" }, 403);
@@ -30,26 +30,21 @@ topggApp.post("/:applicationId", async (c) => {
 
   const vote = valRes.payload;
 
-  if (vote.type === "test") {
-    console.log("Received test vote payload");
-    return new Response(null, { status: 200 });
-  }
-
   const voteId = generateSnowflake().toString();
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
 
   c.env.VOTE_APPLY.send({
     id: voteId,
-    userId: vote.user,
+    userId: vote.id,
     applicationId: appId,
     guildId: appCfg.guildId,
     roleId: appCfg.voteRoleId,
     expiresAt: expiresAt,
     timestamp: new Date().toISOString(),
-    source: "topgg",
+    source: "dbl",
   } as QueueMessageBody);
 
   return new Response(null, { status: 200 });
 });
 
-export default topggApp;
+export default dblApp;

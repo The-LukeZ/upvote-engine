@@ -1,19 +1,25 @@
-import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, blob, primaryKey } from "drizzle-orm/sqlite-core";
 
-export const applications = sqliteTable("applications", {
-  applicationId: text("application_id").primaryKey(),
-  secret: text("secret").notNull().unique(),
-  guildId: text("guild_id").notNull(),
-  voteRoleId: text("vote_role_id").notNull(), // Added per-bot
-  roleDurationSeconds: integer("role_duration_seconds"), // Added per-bot
-  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-});
+export const applications = sqliteTable(
+  "applications",
+  {
+    applicationId: text("application_id").notNull(),
+    source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
+    secret: text("secret").notNull().unique(),
+    guildId: text("guild_id").notNull(),
+    voteRoleId: text("vote_role_id").notNull(), // Added per-bot per-source
+    roleDurationSeconds: integer("role_duration_seconds"), // Added per-bot per-source
+    createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+  },
+  (table) => [primaryKey({ columns: [table.applicationId, table.source] })],
+);
 
 export const votes = sqliteTable("votes", {
   id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID
   applicationId: text("application_id")
     .notNull()
     .references(() => applications.applicationId, { onDelete: "cascade" }),
+  source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
   guildId: text("guild_id").notNull(),
   userId: text("user_id").notNull(),
   roleId: text("role_id").notNull(),
