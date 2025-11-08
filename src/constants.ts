@@ -3,7 +3,9 @@ import { SupportedPlatforms } from "../types";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
 
 export const addBotUrl = (botId: string, integrationType: ApplicationIntegrationType = ApplicationIntegrationType.GuildInstall) =>
-  `https://discord.com/oauth2/authorize?integration_type=${integrationType}&client_id=${botId}&scopes=bot+applications.commands` as const;
+  `https://discord.com/oauth2/authorize?integration_type=${integrationType}&client_id=${botId}&scope=applications.commands${
+    integrationType === 0 ? "+bot" : ""
+  }` as const;
 
 /**
  * Generates the Platform webhook URL for a given application ID.
