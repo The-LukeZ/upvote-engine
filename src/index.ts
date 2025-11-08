@@ -27,6 +27,7 @@ import webhookApp from "./webhooks";
 import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
 import { addBotUrl } from "./constants";
+import { serveStatic } from "hono/cloudflare-workers";
 
 // router.post("/discord-webhook", async (req, env: Env) => {
 //   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
@@ -60,34 +61,7 @@ const app = new Hono<HonoContextEnv>();
 
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
-app.get("/", (c) =>
-  c.html(
-    `
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-</head>
-<body class="text-lg bg-slate-900 text-slate-200 p-4 font-sans min-h-screen">
-  <div class="max-w-2xl mx-auto  space-y-6">
-    <div>
-      <h1 class="text-2xl sm:text-3xl font-bold mb-2">👋 ${c.env.DISCORD_APP_ID}</h1>
-      <p class="text-lg">Welcome, my friend.</p>
-    </div>
-
-    <div>
-      <p class="mb-4 text-lg">This is the home of the <strong>Upvote Engine</strong>, a Discord bot voting handler service.</p>
-      <p class="mb-4 text-lg">Useful links:</p>
-      <ul class="list-disc list-inside px-2 sm:px-4 space-y-2">
-      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/invite">Invite Bot</a></li>
-      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/info">Bot Info</a></li>
-      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/github">GitHub</a></li>
-      <li><a class="text-blue-400 hover:text-blue-300 hover:underline text-lg" href="/wiki">Wiki</a></li>
-      </ul>
-    </div>
-  </div>
-</body>`,
-  ),
-);
+app.get("/", serveStatic({ root: "./public", path: "index.html", manifest: "__STATIC_CONTENT_MANIFEST" }));
 app.post("/health", (c) => c.text("OK"));
 app.post("/discord-webhook", async (c) => {
   const { isValid, interaction: event } = await verifyDiscordRequest<APIWebhookEvent>(c.req, c.env);
