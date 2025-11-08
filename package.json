@@ -1,46 +1,43 @@
 {
-  "name": "upvote-engine",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "bulk-secrets": "wrangler secret bulk .env",
-    "deploy": "wrangler deploy",
-    "build": "wrangler build",
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "cf-typegen": "wrangler types",
-    "register": "tsx --env-file=.env src/registerCommands.ts",
-    "migrate": "wrangler d1 migrations apply vote_handler --remote",
-    "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "drizzle:push": "drizzle-kit push --config drizzle.config.ts",
-    "docs:dev": "astro dev --config docs/config.mjs",
-    "docs:build": "astro build --config docs/config.mjs",
-    "docs:preview": "astro preview --config docs/config.mjs",
-    "astro": "astro --config docs/config.mjs"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251107.0",
-    "@types/node": "^24.10.0",
-    "drizzle-kit": "^0.31.6",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.46.0"
-  },
-  "dependencies": {
-    "@discordjs/builders": "^1.13.0",
-    "@discordjs/collection": "^2.1.1",
-    "@discordjs/core": "^2.3.0",
-    "@discordjs/rest": "^2.6.0",
-    "@sapphire/snowflake": "^3.5.5",
-    "dayjs": "^1.11.19",
-    "discord-api-types": "^0.38.32",
-    "discord-interactions": "^4.4.0",
-    "drizzle-orm": "^0.44.7",
-    "hono": "^4.10.4"
-  },
-  "workspaces": [
-    "docs/*",
-    "src/*"
-  ]
+	"name": "upvote-engine",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bulk-secrets": "wrangler secret bulk .env",
+		"deploy": "wrangler deploy",
+		"build": "wrangler build",
+		"dev": "wrangler dev",
+		"start": "wrangler dev",
+		"cf-typegen": "wrangler types",
+		"register": "tsx --env-file=.env src/registerCommands.ts",
+		"migrate": "wrangler d1 migrations apply vote_handler --remote",
+		"drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
+		"drizzle:push": "drizzle-kit push --config drizzle.config.ts",
+		"docs:dev": "astro dev --config docs/config.mjs",
+		"docs:build": "astro build --config docs/config.mjs",
+		"docs:preview": "astro preview --config docs/config.mjs",
+		"astro": "astro --config docs/config.mjs"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20251107.0",
+		"@types/node": "^24.10.0",
+		"drizzle-kit": "^0.31.6",
+		"tsx": "^4.20.6",
+		"typescript": "^5.9.3",
+		"wrangler": "^4.46.0"
+	},
+	"dependencies": {
+		"@discordjs/builders": "^1.13.0",
+		"@discordjs/collection": "^2.1.1",
+		"@discordjs/core": "^2.3.0",
+		"@discordjs/rest": "^2.6.0",
+		"@sapphire/snowflake": "^3.5.5",
+		"dayjs": "^1.11.19",
+		"discord-api-types": "^0.38.32",
+		"discord-interactions": "^4.4.0",
+		"drizzle-orm": "^0.44.7",
+		"hono": "^4.10.4"
+	},
+	"license": "PolyForm Internal Use License 1.0.0"
 }
