@@ -36,4 +36,4 @@ nor can you use it in a production environment.
 
 ### TODO
 
-- [ ] Cut down on Logs (only log errors and **really** important info)
+- [ ] Cut down on Logs (only log errors and **really** important info) - currently there are about 60 logs in the whole project, which is excessive for production
