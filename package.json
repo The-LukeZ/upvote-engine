@@ -20,6 +20,7 @@
     "astro": "astro --config docs/config.mjs"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251107.0",
     "@types/node": "^24.10.0",
     "drizzle-kit": "^0.31.6",
     "tsx": "^4.20.6",
