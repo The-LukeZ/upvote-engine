@@ -29,22 +29,6 @@ import { alias } from "drizzle-orm/sqlite-core";
 import { addBotUrl } from "./constants";
 import { serveStatic } from "hono/cloudflare-workers";
 
-// router.post("/discord-webhook", async (req, env: Env) => {
-//   const { isValid, interaction: event } = await server.verifyDiscordRequest<APIWebhookEvent>(req, env);
-//   if (!isValid || !event) {
-//     return new Response("Bad request signature.", { status: 401 });
-//   }
-
-//   // This handles, when the app is removed from a guild
-//   // Handle webhook events here
-//   console.log("Received Discord Webhook Event:", event);
-
-//   return new Response("Event received", { status: 200 });
-// });
-
-// router.post("/topgg", webhookHandler);
-// router.all("*", () => new Response("Not Found.", { status: 404 }));
-
 async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
   const signature = req.header("x-signature-ed25519");
   const timestamp = req.header("x-signature-timestamp");
