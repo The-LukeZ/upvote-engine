@@ -28,8 +28,6 @@ import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
 import { addBotUrl } from "./constants";
 import { serveStatic } from "hono/cloudflare-workers";
-// @ts-expect-error - generated at build time I think
-import manifest from "__STATIC_CONTENT_MANIFEST";
 
 async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
   const signature = req.header("x-signature-ed25519");
@@ -47,7 +45,7 @@ const app = new Hono<HonoContextEnv>();
 
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
-app.get("/", serveStatic({ root: "./public", path: "index.html", manifest }));
+app.get("/", (c) => c.env.ASSETS.fetch("/index.html"));
 app.post("/health", (c) => c.text("OK"));
 app.post("/discord-webhook", async (c) => {
   const { isValid, interaction: event } = await verifyDiscordRequest<APIWebhookEvent>(c.req, c.env);
