@@ -40,7 +40,7 @@ topggApp.post("/:applicationId", async (c) => {
   const voteId = generateSnowflake().toString();
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
 
-  c.env.VOTE_APPLY.send({
+  await c.env.VOTE_APPLY.send({
     id: voteId,
     userId: vote.user,
     applicationId: appId,
@@ -53,7 +53,7 @@ topggApp.post("/:applicationId", async (c) => {
 
   const forwardPayload = await WebhookHandler.buildForwardPayload(db, appId, "topgg", vote);
   if (!!forwardPayload) {
-    c.env.FORWARD_WEBHOOK.send(forwardPayload);
+    await c.env.FORWARD_WEBHOOK.send(forwardPayload);
   }
 
   return new Response(null, { status: 200 });
