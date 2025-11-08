@@ -24,6 +24,11 @@ roles based on top.gg votes with minimal latency and maximum scalability due to 
 
 If you want to contribute, feel free to open issues or pull requests!
 
+## Notes
+
+- When setting this up yourself, you need to modify the `wrangler.jsonc` file to include your own bindings, account_id, and other necessary configurations.
+- Make sure to set up your database, environment variables, and queues as needed.
+
 ## License
 
 PolyForm Internal Use License 1.0.0
