@@ -27,7 +27,6 @@ import webhookApp from "./webhooks";
 import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
 import { addBotUrl } from "./constants";
-import { serveStatic } from "hono/cloudflare-workers";
 
 async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
   const signature = req.header("x-signature-ed25519");
