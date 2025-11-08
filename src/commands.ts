@@ -6,7 +6,7 @@ import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg } from "./db/schema";
 import { randomStringWithSnowflake, sanitizeSecret } from "./utils";
 import dayjs from "dayjs";
-import { Colors } from "./discord/colors";
+import { Colors } from "./discord/Colors";
 import { makeDB } from "./db/util";
 import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests, PlatformWebhookUrl } from "./constants";
 import { ForwardingPayload } from "../types/webhooks";

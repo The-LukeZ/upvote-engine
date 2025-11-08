@@ -23,7 +23,7 @@ import { generateSnowflake } from "./snowflake";
 import { DrizzleDB, SupportedPlatforms } from "../types";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
-import { Colors } from "./discord/colors";
+import { Colors } from "./discord/Colors";
 import { GetSupportedPlatform } from "./constants";
 
 export class JsonResponse extends Response {
