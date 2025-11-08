@@ -148,7 +148,7 @@ export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePaylo
     try {
       console.log(`Forwarding webhook payload to ${body.to.targetUrl}`);
 
-      await fetch(body.to.targetUrl, {
+      const response = await fetch(body.to.targetUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -159,6 +159,13 @@ export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePaylo
         } satisfies ForwardingPayload<APIVote["source"]>),
         signal: AbortSignal.timeout(5000), // wait 5 seconds max
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to forward webhook payload, received status ${response.status}`);
+      }
+
+      console.log(`Successfully forwarded webhook payload to ${body.to.targetUrl}`);
+      message.ack();
     } catch (error) {
       console.error(`Failed to forward webhook payload to ${body.to.targetUrl}:`, error);
       const delay = delaySeconds[message.attempts]; // Exponential backoff between 30s and 1h
