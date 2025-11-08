@@ -12,6 +12,7 @@
   "limits": {
     "cpu_ms": 15000
   },
+  "account_id": "92d72ac72fb811275ce6e8d5263a9816",
   "observability": {
     "enabled": true
   },
