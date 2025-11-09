@@ -1,44 +1,18 @@
-import { verifyKey } from "./discordVerify";
-import { isChatInputCommandInteraction, isModalInteraction } from "./utils";
-import {
-  APIInteraction,
-  APIWebhookEvent,
-  ApplicationIntegrationType,
-  InteractionResponseType,
-  InteractionType,
-  Routes,
-} from "discord-api-types/v10";
-import { handleCommand } from "./commands";
-import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
+import { verifyDiscordRequest } from "./discordVerify";
+import { APIWebhookEvent, ApplicationIntegrationType, Routes } from "discord-api-types/v10";
 import { REST } from "@discordjs/rest";
-import { API } from "@discordjs/core/http-only";
-import { Hono, HonoRequest } from "hono";
+import { Hono } from "hono";
 import { poweredBy } from "hono/powered-by";
-import { cloneRawRequest } from "hono/request";
 import type { DrizzleDB, HonoContextEnv, QueueMessageBody } from "../types";
-import { ModalInteraction } from "./discord/ModalInteraction";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { makeDB } from "./db/util";
 import { applications, Vote, votes } from "./db/schema";
 import { and, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
 import dayjs from "dayjs";
-import { handleComponentInteraction } from "./components";
-import webhookApp from "./webhooks";
+import webhookApp from "./routes/webhooks";
 import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
 import { addBotUrl } from "./constants";
-
-async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
-  const signature = req.header("x-signature-ed25519");
-  const timestamp = req.header("x-signature-timestamp");
-  const body = await (await cloneRawRequest(req)).text();
-  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY));
-  if (!isValidRequest) {
-    return { isValid: false };
-  }
-
-  return { interaction: JSON.parse(body) as T, isValid: true };
-}
 
 const app = new Hono<HonoContextEnv>();
 
@@ -71,62 +45,6 @@ app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/w
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 
 app.route("/webhook", webhookApp);
-
-app.post("/", async (c) => {
-  const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
-  if (!isValid || !interaction) {
-    console.log("Invalid request signature");
-    return c.text("Bad request signature.", 401);
-  }
-
-  const rest = new REST({
-    version: "10",
-  }).setToken(c.env.DISCORD_TOKEN);
-  const api = new API(rest);
-
-  rest
-    .addListener("response", (request, response) => {
-      console.log(`[REST] ${request.method} ${request.path} -> ${response.status} ${response.statusText}`);
-    })
-    .addListener("restDebug", (info) => {
-      console.log(`[REST DEBUG] ${info}`);
-    });
-
-  // Handle Discord PING requests
-  switch (interaction.type) {
-    case InteractionType.Ping: {
-      console.log("Received Discord PING request");
-      return c.json({
-        type: InteractionResponseType.Pong,
-      });
-    }
-    case InteractionType.ModalSubmit:
-      c.executionCtx.waitUntil(
-        new Promise(async function (resolve) {
-          if (isModalInteraction(interaction)) {
-            c.set("modal", new ModalInteraction(api, interaction));
-            await handleComponentInteraction(c);
-          }
-          return resolve(undefined);
-        }),
-      );
-
-      return c.json({}, 202); // Accepted for processing
-    case InteractionType.ApplicationCommand:
-      c.executionCtx.waitUntil(
-        new Promise(async function (resolve) {
-          if (isChatInputCommandInteraction(interaction)) {
-            console.log("Received Chat Input Command Interaction:", interaction.data.name);
-            c.set("command", new ChatInputCommandInteraction(api, interaction));
-            await handleCommand(c); // Wants APIChatInputApplicationCommandInteraction
-          }
-          return resolve(undefined);
-        }),
-      );
-
-      return c.json({}, 202); // Accepted for processing
-  }
-});
 
 app.all("*", (c) => c.text("Not Found.", 404));
 

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { HonoContextEnv } from "../../types";
+import { HonoContextEnv } from "../../../types";
 import topggApp from "./topgg/handler";
 import dblApp from "./dbl/handler";
 

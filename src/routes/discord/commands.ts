@@ -1,21 +1,22 @@
 import { bold, codeBlock, ContainerBuilder, heading, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, MessageFlags } from "discord-api-types/v10";
-import { DrizzleDB, MyContext } from "../types";
-import { ChatInputCommandInteraction } from "./discord/ChatInputInteraction";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg } from "./db/schema";
-import { randomStringWithSnowflake, sanitizeSecret } from "./utils";
+import { DrizzleDB, MyContext } from "../../../types";
+import { ChatInputCommandInteraction } from "../../discord/ChatInputInteraction";
+import { applications, ApplicationCfg, forwardings, ForwardingCfg } from "../../db/schema";
+import { randomStringWithSnowflake, sanitizeSecret } from "../../utils";
 import dayjs from "dayjs";
-import { Colors } from "./discord/Colors";
-import { makeDB } from "./db/util";
-import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests, PlatformWebhookUrl } from "./constants";
-import { ForwardingPayload } from "../types/webhooks";
+import { Colors } from "../../discord/Colors";
+import { makeDB } from "../../db/util";
+import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests, PlatformWebhookUrl } from "../../constants";
+import { ForwardingPayload } from "../../../types/webhooks";
 
 const MAX_APPS_PER_GUILD = 25;
 
 export async function handleCommand(c: MyContext) {
   const ctx = c.get("command");
   console.log("Handling command:", ctx.commandName);
+
   try {
     switch (ctx.commandName) {
       case "ping":
