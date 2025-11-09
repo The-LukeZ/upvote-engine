@@ -5,6 +5,10 @@ import { supportedPlatforms } from "./constants";
 
 const commands: SlashCommandSubcommandsOnlyBuilder[] = [
   new SlashCommandBuilder()
+    .setName("help")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
+    .setDescription("Get help with using the bot"),
+  new SlashCommandBuilder()
     .setName("ping")
     .setIntegrationTypes(ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall)
     .setDescription("Replies with Pong!"),
@@ -122,6 +126,66 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setName("view")
             .setDescription("View the forwarding configuration")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
+        ),
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("guild-blacklist")
+        .setDescription("Manage blacklisted guilds")
+        .addSubcommand((sub) =>
+          sub
+            .setName("add")
+            .setDescription("Add a guild to the blacklist")
+            .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to blacklist").setRequired(true)),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("remove")
+            .setDescription("Remove a guild from the blacklist")
+            .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true)),
+        )
+        .addSubcommand((sub) =>
+          sub.setName("list").setDescription("List all blacklisted guilds"),
+        ),
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("user-blacklist")
+        .setDescription("Manage blacklisted users")
+        .addSubcommand((sub) =>
+          sub
+            .setName("add")
+            .setDescription("Add a user to the blacklist")
+            .addUserOption((opt) => opt.setName("user").setDescription("The user to blacklist").setRequired(true)),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("remove")
+            .setDescription("Remove a user from the blacklist")
+            .addUserOption((opt) => opt.setName("user").setDescription("The user to remove").setRequired(true)),
+        )
+        .addSubcommand((sub) =>
+          sub.setName("list").setDescription("List all blacklisted users"),
+        ),
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("app-blacklist")
+        .setDescription("Manage blacklisted applications")
+        .addSubcommand((sub) =>
+          sub
+            .setName("add")
+            .setDescription("Add an application to the blacklist")
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot to blacklist").setRequired(true)),
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName("remove")
+            .setDescription("Remove an application from the blacklist")
+            .addUserOption((opt) => opt.setName("bot").setDescription("The bot to remove").setRequired(true)),
+        )
+        .addSubcommand((sub) =>
+          sub.setName("list").setDescription("List all blacklisted applications"),
         ),
     ),
 ];
