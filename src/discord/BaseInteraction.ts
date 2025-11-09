@@ -97,11 +97,14 @@ abstract class BaseInteraction<Type extends InteractionType> {
     return this.getAppEntitlements().filter((entitlement) => entitlement.user_id === this.userId).length > 0;
   }
 
-  async reply(options: APIInteractionResponseCallbackData, forceEphemeral = true) {
+  async reply(options: APIInteractionResponseCallbackData | string, forceEphemeral = true) {
+    const replyOptions = typeof options === "string" ? { content: options } : options;
     if (forceEphemeral) {
-      options.flags = (options.flags ?? 0) | 64;
+      replyOptions.flags = (replyOptions.flags ?? 0) | 64;
     }
-    const response = await this.api.interactions.reply(this.id, this.token, options);
+    const response = await this.api.interactions.reply(this.id, this.token, replyOptions, {
+      signal: AbortSignal.timeout(5000),
+    });
     this.replied = true;
     return response;
   }
@@ -118,8 +121,9 @@ abstract class BaseInteraction<Type extends InteractionType> {
     return this.api.interactions.deferMessageUpdate(this.id, this.token);
   }
 
-  async editReply(options: APIInteractionResponseCallbackData, messageId: Snowflake | "@original" = "@original") {
-    const response = await this.api.interactions.editReply(this.applicationId, this.token, options, messageId, {
+  async editReply(options: APIInteractionResponseCallbackData | string, messageId: Snowflake | "@original" = "@original") {
+    const replyOptions = typeof options === "string" ? { content: options } : options;
+    const response = await this.api.interactions.editReply(this.applicationId, this.token, replyOptions, messageId, {
       signal: AbortSignal.timeout(5000),
     });
     this.replied = true;
