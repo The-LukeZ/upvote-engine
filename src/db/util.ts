@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { applications, votes } from "./schema";
+import { applications, blacklist, users, votes } from "./schema";
 
 /**
  * A function to create and return a Drizzle D1 database instance.
@@ -10,5 +10,5 @@ import { applications, votes } from "./schema";
  * @returns A Drizzle D1 database instance.
  */
 export function makeDB(env: Env) {
-  return drizzle(env.vote_handler, { schema: { applications, votes } });
+  return drizzle(env.vote_handler, { schema: { applications, votes, users, blacklist } });
 }
