@@ -1,5 +1,6 @@
 import { MyContext } from "../../../types";
 import { handleApp } from "./commands/app";
+import { handleAdmin } from "./commands/admin";
 
 export async function handleCommand(c: MyContext) {
   const ctx = c.get("command");
@@ -11,6 +12,8 @@ export async function handleCommand(c: MyContext) {
         return ctx.reply({ content: "Pong!" }, true);
       case "app":
         return handleApp(c, ctx);
+			case "admin":
+				return handleAdmin(c, ctx);
       default:
         return ctx.reply({ content: `Unknown command: ${ctx.commandName}` }, true);
     }
