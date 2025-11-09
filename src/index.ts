@@ -13,6 +13,7 @@ import webhookApp from "./routes/webhooks";
 import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
 import { addBotUrl } from "./constants";
+import { interactionsApp } from "./routes/discord";
 
 const app = new Hono<HonoContextEnv>();
 
@@ -45,6 +46,7 @@ app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/w
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 
 app.route("/webhook", webhookApp);
+app.route("/discord-interactions", interactionsApp);
 
 app.all("*", (c) => c.text("Not Found.", 404));
 
