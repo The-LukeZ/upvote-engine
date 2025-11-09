@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report a bug in the Discord bot
+title: "[BUG] "
+assignees: ["The-LukeZ"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!  
+        Please fill in as much information as possible—it helps us fix the issue faster.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: When I do X, Y happens…
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Numbered steps that let us reproduce the bug.
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Videos
+      description: Drag & drop images or paste links (GIFs, MP4, YouTube, etc.).
+      placeholder: |
+        https://...
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: |
+        Paste console output, error stack traces, or bot logs.  
+        Wrap with triple backticks for formatting.
+      render: bash
+      placeholder: |
