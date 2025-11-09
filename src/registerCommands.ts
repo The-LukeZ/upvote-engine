@@ -164,31 +164,31 @@ const guildCommands: { guildIds: string[]; data: SlashCommandSubcommandsOnlyBuil
             sub
               .setName("add")
               .setDescription("Add a user to the blacklist")
-              .addStringOption((opt) => opt.setName("user").setDescription("The user to blacklist").setRequired(true)),
+              .addStringOption((opt) => opt.setName("user-id").setDescription("The user to blacklist").setRequired(true)),
           )
           .addSubcommand((sub) =>
             sub
               .setName("remove")
               .setDescription("Remove a user from the blacklist")
-              .addStringOption((opt) => opt.setName("user").setDescription("The user to remove").setRequired(true)),
+              .addStringOption((opt) => opt.setName("user-id").setDescription("The user to remove").setRequired(true)),
           )
           .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted users")),
       )
       .addSubcommandGroup((group) =>
         group
-          .setName("app-blacklist")
+          .setName("bot-blacklist")
           .setDescription("Manage blacklisted applications")
           .addSubcommand((sub) =>
             sub
               .setName("add")
               .setDescription("Add an application to the blacklist")
-              .addStringOption((opt) => opt.setName("bot").setDescription("The bot to blacklist").setRequired(true)),
+              .addStringOption((opt) => opt.setName("bot-id").setDescription("The bot to blacklist").setRequired(true)),
           )
           .addSubcommand((sub) =>
             sub
               .setName("remove")
               .setDescription("Remove an application from the blacklist")
-              .addStringOption((opt) => opt.setName("bot").setDescription("The bot to remove").setRequired(true)),
+              .addStringOption((opt) => opt.setName("bot-id").setDescription("The bot to remove").setRequired(true)),
           )
           .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted applications")),
       ),
