@@ -1,13 +1,13 @@
 import { Hono } from "hono";
-import { HonoContextEnv, QueueMessageBody } from "../../../types";
+import { HonoContextEnv, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../webhook";
-import { makeDB } from "../../db/util";
-import { applications } from "../../db/schema";
+import { makeDB } from "../../../db/util";
+import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSnowflake } from "../../snowflake";
+import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
-import { TopGGPayload } from "../../../types/webhooks";
-import { dmUserOnTestVote } from "../../utils";
+import { TopGGPayload } from "../../../../types/webhooks";
+import { dmUserOnTestVote } from "../../../utils";
 
 const topggApp = new Hono<HonoContextEnv, {}, "/topgg">();
 

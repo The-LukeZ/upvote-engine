@@ -1,3 +1,6 @@
+import { APIInteraction, APIWebhookEvent } from "discord-api-types/v10";
+import { cloneRawRequest, HonoRequest } from "hono/request";
+
 export const subtleCrypto = crypto.subtle;
 
 /**
@@ -98,4 +101,16 @@ export async function verifyKey(
   } catch (_ex) {
     return false;
   }
+}
+
+export async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
+  const signature = req.header("x-signature-ed25519");
+  const timestamp = req.header("x-signature-timestamp");
+  const body = await (await cloneRawRequest(req)).text();
+  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY));
+  if (!isValidRequest) {
+    return { isValid: false };
+  }
+
+  return { interaction: JSON.parse(body) as T, isValid: true };
 }

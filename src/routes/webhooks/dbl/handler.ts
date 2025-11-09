@@ -1,12 +1,12 @@
 import { Hono } from "hono";
-import { HonoContextEnv, QueueMessageBody } from "../../../types";
-import { makeDB } from "../../db/util";
-import { applications } from "../../db/schema";
+import { HonoContextEnv, QueueMessageBody } from "../../../../types";
+import { makeDB } from "../../../db/util";
+import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSnowflake } from "../../snowflake";
+import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
 import { WebhookHandler } from "../webhook";
-import { DBLPayload } from "../../../types/webhooks";
+import { DBLPayload } from "../../../../types/webhooks";
 
 const dblApp = new Hono<HonoContextEnv, {}, "/dbl">();
 
