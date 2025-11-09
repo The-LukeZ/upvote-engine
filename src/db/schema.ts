@@ -48,6 +48,14 @@ export const users = sqliteTable("users", {
   dmId: text("dm_id").unique(),
 });
 
+export const blacklist = sqliteTable("blacklist", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  guildId: text("guild_id"),
+  userId: text("user_id"),
+  applicationId: text("application_id"),
+  reason: text("reason"),
+});
+
 export type ApplicationCfg = typeof applications.$inferSelect;
 export type NewApplicationCfg = typeof applications.$inferInsert;
 
@@ -60,3 +68,6 @@ export type NewForwardingCfg = typeof forwardings.$inferInsert;
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+export type BlacklistEntry = typeof blacklist.$inferSelect;
+export type NewBlacklistEntry = typeof blacklist.$inferInsert;
