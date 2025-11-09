@@ -127,7 +127,12 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setDescription("View the forwarding configuration")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
         ),
-    )
+    ),
+  new SlashCommandBuilder()
+    .setName("admin")
+    .setDescription("Administrative commands")
+    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
+    .setDefaultMemberPermissions(8)
     .addSubcommandGroup((group) =>
       group
         .setName("guild-blacklist")
@@ -144,9 +149,7 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setDescription("Remove a guild from the blacklist")
             .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true)),
         )
-        .addSubcommand((sub) =>
-          sub.setName("list").setDescription("List all blacklisted guilds"),
-        ),
+        .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted guilds")),
     )
     .addSubcommandGroup((group) =>
       group
@@ -156,17 +159,15 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
           sub
             .setName("add")
             .setDescription("Add a user to the blacklist")
-            .addUserOption((opt) => opt.setName("user").setDescription("The user to blacklist").setRequired(true)),
+            .addStringOption((opt) => opt.setName("user").setDescription("The user to blacklist").setRequired(true)),
         )
         .addSubcommand((sub) =>
           sub
             .setName("remove")
             .setDescription("Remove a user from the blacklist")
-            .addUserOption((opt) => opt.setName("user").setDescription("The user to remove").setRequired(true)),
+            .addStringOption((opt) => opt.setName("user").setDescription("The user to remove").setRequired(true)),
         )
-        .addSubcommand((sub) =>
-          sub.setName("list").setDescription("List all blacklisted users"),
-        ),
+        .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted users")),
     )
     .addSubcommandGroup((group) =>
       group
@@ -176,17 +177,15 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
           sub
             .setName("add")
             .setDescription("Add an application to the blacklist")
-            .addUserOption((opt) => opt.setName("bot").setDescription("The bot to blacklist").setRequired(true)),
+            .addStringOption((opt) => opt.setName("bot").setDescription("The bot to blacklist").setRequired(true)),
         )
         .addSubcommand((sub) =>
           sub
             .setName("remove")
             .setDescription("Remove an application from the blacklist")
-            .addUserOption((opt) => opt.setName("bot").setDescription("The bot to remove").setRequired(true)),
+            .addStringOption((opt) => opt.setName("bot").setDescription("The bot to remove").setRequired(true)),
         )
-        .addSubcommand((sub) =>
-          sub.setName("list").setDescription("List all blacklisted applications"),
-        ),
+        .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted applications")),
     ),
 ];
 
