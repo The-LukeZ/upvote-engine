@@ -128,65 +128,71 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
         ),
     ),
-  new SlashCommandBuilder()
-    .setName("admin")
-    .setDescription("Administrative commands")
-    .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
-    .setDefaultMemberPermissions(8)
-    .addSubcommandGroup((group) =>
-      group
-        .setName("guild-blacklist")
-        .setDescription("Manage blacklisted guilds")
-        .addSubcommand((sub) =>
-          sub
-            .setName("add")
-            .setDescription("Add a guild to the blacklist")
-            .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to blacklist").setRequired(true)),
-        )
-        .addSubcommand((sub) =>
-          sub
-            .setName("remove")
-            .setDescription("Remove a guild from the blacklist")
-            .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true)),
-        )
-        .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted guilds")),
-    )
-    .addSubcommandGroup((group) =>
-      group
-        .setName("user-blacklist")
-        .setDescription("Manage blacklisted users")
-        .addSubcommand((sub) =>
-          sub
-            .setName("add")
-            .setDescription("Add a user to the blacklist")
-            .addStringOption((opt) => opt.setName("user").setDescription("The user to blacklist").setRequired(true)),
-        )
-        .addSubcommand((sub) =>
-          sub
-            .setName("remove")
-            .setDescription("Remove a user from the blacklist")
-            .addStringOption((opt) => opt.setName("user").setDescription("The user to remove").setRequired(true)),
-        )
-        .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted users")),
-    )
-    .addSubcommandGroup((group) =>
-      group
-        .setName("app-blacklist")
-        .setDescription("Manage blacklisted applications")
-        .addSubcommand((sub) =>
-          sub
-            .setName("add")
-            .setDescription("Add an application to the blacklist")
-            .addStringOption((opt) => opt.setName("bot").setDescription("The bot to blacklist").setRequired(true)),
-        )
-        .addSubcommand((sub) =>
-          sub
-            .setName("remove")
-            .setDescription("Remove an application from the blacklist")
-            .addStringOption((opt) => opt.setName("bot").setDescription("The bot to remove").setRequired(true)),
-        )
-        .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted applications")),
-    ),
+];
+
+const guildCommands: { guildIds: string[]; data: SlashCommandSubcommandsOnlyBuilder }[] = [
+  {
+    guildIds: [process.env.ADMIN_GUILD_ID!],
+    data: new SlashCommandBuilder()
+      .setName("admin")
+      .setDescription("Administrative commands")
+      .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
+      .setDefaultMemberPermissions(8)
+      .addSubcommandGroup((group) =>
+        group
+          .setName("guild-blacklist")
+          .setDescription("Manage blacklisted guilds")
+          .addSubcommand((sub) =>
+            sub
+              .setName("add")
+              .setDescription("Add a guild to the blacklist")
+              .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to blacklist").setRequired(true)),
+          )
+          .addSubcommand((sub) =>
+            sub
+              .setName("remove")
+              .setDescription("Remove a guild from the blacklist")
+              .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true)),
+          )
+          .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted guilds")),
+      )
+      .addSubcommandGroup((group) =>
+        group
+          .setName("user-blacklist")
+          .setDescription("Manage blacklisted users")
+          .addSubcommand((sub) =>
+            sub
+              .setName("add")
+              .setDescription("Add a user to the blacklist")
+              .addStringOption((opt) => opt.setName("user").setDescription("The user to blacklist").setRequired(true)),
+          )
+          .addSubcommand((sub) =>
+            sub
+              .setName("remove")
+              .setDescription("Remove a user from the blacklist")
+              .addStringOption((opt) => opt.setName("user").setDescription("The user to remove").setRequired(true)),
+          )
+          .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted users")),
+      )
+      .addSubcommandGroup((group) =>
+        group
+          .setName("app-blacklist")
+          .setDescription("Manage blacklisted applications")
+          .addSubcommand((sub) =>
+            sub
+              .setName("add")
+              .setDescription("Add an application to the blacklist")
+              .addStringOption((opt) => opt.setName("bot").setDescription("The bot to blacklist").setRequired(true)),
+          )
+          .addSubcommand((sub) =>
+            sub
+              .setName("remove")
+              .setDescription("Remove an application from the blacklist")
+              .addStringOption((opt) => opt.setName("bot").setDescription("The bot to remove").setRequired(true)),
+          )
+          .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted applications")),
+      ),
+  },
 ];
 
 /**
@@ -197,12 +203,16 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
 
 const token = process.env.DISCORD_TOKEN;
 const applicationId = process.env.DISCORD_APP_ID;
+const adminGuildId = process.env.ADMIN_GUILD_ID;
 
 if (!token) {
   throw new Error("The DISCORD_APP_TOKEN environment variable is required.");
 }
 if (!applicationId) {
   throw new Error("The DISCORD_APP_ID environment variable is required.");
+}
+if (!adminGuildId && guildCommands.length > 0) {
+  throw new Error("The ADMIN_GUILD_ID environment variable is required to register guild commands.");
 }
 
 /**
@@ -221,7 +231,37 @@ async function registerGlobalCommands() {
     console.error("Error registering commands");
     console.error(response);
   }
+
+  if (guildCommands.length > 0) {
+    await registerGuildCommands(rest);
+  }
   return response;
+}
+
+async function registerGuildCommands(rest: REST) {
+  const perGuild: Record<string, SlashCommandSubcommandsOnlyBuilder[]> = guildCommands.reduce((acc, guildCommand) => {
+    for (const guildId of guildCommand.guildIds) {
+      if (!acc[guildId]) {
+        acc[guildId] = [];
+      }
+      acc[guildId].push(guildCommand.data);
+    }
+    return acc;
+  }, {} as any);
+
+  for (const guildId in perGuild) {
+    const commands = perGuild[guildId];
+    const response = (await rest.put(Routes.applicationGuildCommands(applicationId!, guildId), {
+      body: commands.map((cmd) => cmd.toJSON()),
+    })) as RESTPutAPIApplicationCommandsResult;
+
+    if (response) {
+      console.log(`Registered guild commands for guild ${guildId}`);
+    } else {
+      console.error(`Error registering guild commands for guild ${guildId}`);
+      console.error(response);
+    }
+  }
 }
 
 await registerGlobalCommands();
