@@ -67,3 +67,5 @@ app.post("/", async (c) => {
       return c.json({}, 202); // Accepted for processing
   }
 });
+
+export { app as interactionsApp };
