@@ -33,7 +33,7 @@ app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/w
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/issue", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
 app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
-app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions"));
+app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
 
 app.route("/webhook", webhookApp);
 app.route("/discord", interactionsApp);
