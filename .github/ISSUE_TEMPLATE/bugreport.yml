@@ -51,8 +51,7 @@ body:
     attributes:
       label: Screenshots / Videos
       description: Drag & drop images or paste links (GIFs, MP4, YouTube, etc.).
-      placeholder: |
-        https://...
+      placeholder: "https://..."
     validations:
       required: false
 
@@ -64,4 +63,3 @@ body:
         Paste console output, error stack traces, or bot logs.  
         Wrap with triple backticks for formatting.
       render: bash
-      placeholder: |
