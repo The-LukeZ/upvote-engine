@@ -10,9 +10,9 @@ import { handleComponentInteraction } from "../../components";
 import { ChatInputCommandInteraction } from "../../discord/ChatInputInteraction";
 import { handleCommand } from "./commands";
 
-const app = new Hono<HonoContextEnv, {}, "/discord-interactions">();
+const app = new Hono<HonoContextEnv, {}, "/discord">();
 
-app.post("/", async (c) => {
+app.post("/interactions", async (c) => {
   const { isValid, interaction } = await verifyDiscordRequest(c.req, c.env);
   if (!isValid || !interaction) {
     console.log("Invalid request signature");
