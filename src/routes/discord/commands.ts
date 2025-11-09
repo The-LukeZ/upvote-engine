@@ -1,6 +1,7 @@
 import { MyContext } from "../../../types";
 import { handleApp } from "./commands/app";
 import { handleAdmin } from "./commands/admin";
+import { handleHelp } from "./commands/help";
 
 export async function handleCommand(c: MyContext) {
   const ctx = c.get("command");
@@ -8,6 +9,8 @@ export async function handleCommand(c: MyContext) {
 
   try {
     switch (ctx.commandName) {
+	  case "help":
+	    return handleHelp(c, ctx);
       case "ping":
         return ctx.reply({ content: "Pong!" }, true);
       case "app":
