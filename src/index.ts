@@ -21,19 +21,6 @@ const app = new Hono<HonoContextEnv>();
 app.use("*", poweredBy({ serverName: "Venocix" }));
 app.get("/", (c) => c.env.ASSETS.fetch("/index.html"));
 app.post("/health", (c) => c.text("OK"));
-app.post("/discord-webhook", async (c) => {
-  const { isValid, interaction: event } = await verifyDiscordRequest<APIWebhookEvent>(c.req, c.env);
-  if (!isValid || !event) {
-    console.log("Invalid webhook request signature");
-    return c.text("Bad request signature.", 401);
-  }
-
-  // This handles, when the app is removed from a guild
-  // Handle webhook events here
-  console.log("Received Discord Webhook Event:", event);
-
-  return c.text("Event received", 200);
-});
 
 const inviteRouter = new Hono<HonoContextEnv>();
 inviteRouter.get("/user", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.UserInstall)));
@@ -44,6 +31,9 @@ app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/"
 app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
+app.get("/issue", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
+app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
+app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions"));
 
 app.route("/webhook", webhookApp);
 app.route("/discord", interactionsApp);
