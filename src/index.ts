@@ -137,14 +137,14 @@ export default {
     const db = makeDB(env);
 
     switch (controller.cron) {
-      case "0 2 * * *": // every day at 2 AM
-        console.log("Running daily expired votes handler");
+      case "*/5 * * * *": // every 5 mins
+        console.log("Running expired votes handler");
         await handleExpiredVotes(env, db);
         await deleteOldVotes(db);
         break;
 
       case "0 3 * * 1": // every sunday at 3 AM (CF uses 1 = Sunday)
-        console.log("Running weekly guild cleanup");
+        console.log("Running guild cleanup");
         ctx.waitUntil(cleanupInvalidGuilds(db, env));
         break;
 

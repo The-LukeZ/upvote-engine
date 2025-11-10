@@ -30,7 +30,7 @@
     "binding": "ASSETS"
   },
   "triggers": {
-    "crons": ["0 2 * * *", "0 3 * * 1"] // every day at 2 AM, every sunday at 3 AM
+    "crons": ["*/5 * * * *", "0 3 * * 1"] // every 5 mins, every sunday at 3 AM
   },
   "queues": {
     "producers": [
