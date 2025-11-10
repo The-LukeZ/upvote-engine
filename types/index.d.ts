@@ -41,7 +41,7 @@ export interface HonoContextEnv {
   Variables: HonoVariables;
 }
 
-export type MyContext = Context<HonoContextEnv, "/", BlankInput>;
+export type MyContext<TExtraBindings extends object = {}> = Context<HonoContextEnv & { Bindings: TExtraBindings }, "/", BlankInput>;
 
 export interface APIInteractionDataResolvedCollections {
   users?: Collection<Snowflake, APIUser>;
