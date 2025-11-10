@@ -1,19 +1,20 @@
-import { verifyDiscordRequest } from "./discordVerify";
-import { APIWebhookEvent, ApplicationIntegrationType, Routes } from "discord-api-types/v10";
+import { DurableObject } from "cloudflare:workers";
+import { ApplicationIntegrationType, Routes } from "discord-api-types/v10";
 import { REST } from "@discordjs/rest";
 import { Hono } from "hono";
 import { poweredBy } from "hono/powered-by";
-import type { DrizzleDB, HonoContextEnv, QueueMessageBody } from "../types";
-import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
-import { makeDB } from "./db/util";
-import { applications, Vote, votes } from "./db/schema";
 import { and, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
-import dayjs from "dayjs";
-import webhookApp from "./routes/webhooks";
-import { generateSnowflake } from "./snowflake";
 import { alias } from "drizzle-orm/sqlite-core";
+import dayjs from "dayjs";
+
+import type { DrizzleDB, HonoContextEnv, QueueMessageBody } from "../types";
+import { makeDB } from "./db/util";
+import { applications, blacklist, Vote, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
+import { generateSnowflake } from "./snowflake";
+import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { interactionsApp } from "./routes/discord";
+import webhookApp from "./routes/webhooks";
 
 const app = new Hono<HonoContextEnv>();
 
@@ -165,3 +166,41 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env, any>;
+
+export class BlacklistCacheDO extends DurableObject {
+  readonly blacklistedGuilds: Set<string> = new Set<string>();
+  readonly blacklistedUsers: Set<string> = new Set<string>();
+  readonly blacklistedBots: Set<string> = new Set<string>();
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
+
+    state.blockConcurrencyWhile(async () => {
+      const db = makeDB(env);
+      const blacklistEntries = await db.select().from(blacklist).all();
+
+      for (const entry of blacklistEntries) {
+        if (entry.guildId) {
+          this.blacklistedGuilds.add(entry.guildId);
+        } else if (entry.userId) {
+          this.blacklistedUsers.add(entry.userId);
+        } else if (entry.applicationId) {
+          this.blacklistedBots.add(entry.applicationId);
+        }
+      }
+    });
+  }
+
+  async isBlacklisted(id: string, type: "g" | "u" | "b"): Promise<boolean> {
+    switch (type) {
+      case "g":
+        return this.blacklistedGuilds.has(id);
+      case "u":
+        return this.blacklistedUsers.has(id);
+      case "b":
+        return this.blacklistedBots.has(id);
+      default:
+        return false;
+    }
+  }
+}

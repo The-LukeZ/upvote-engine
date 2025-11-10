@@ -64,5 +64,19 @@
         "max_retries": 10 // We won't hit that because of the logic, but just to be safe
       }
     ]
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BLACKLIST",
+        "class_name": "BlacklistCacheDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BlacklistCacheDO"]
+    }
+  ]
 }
