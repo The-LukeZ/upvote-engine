@@ -131,6 +131,8 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
 }
 
 async function updateGuildCount(env: Env, db: DrizzleDB) {
+  if (!env.DISCORD_APP_ID || !env.TOP_GG_TOKEN) return;
+
   const guildCount = await db.select({ count: count() }).from(applications).get();
   try {
     const res = await fetch(`https://top.gg/api/bots/${env.DISCORD_APP_ID}/stats`, {
