@@ -3,6 +3,7 @@ import {
   type Snowflake,
   APIChatInputApplicationCommandInteraction,
   APIModalSubmitInteraction,
+  APIUser,
   InteractionType,
   Routes,
 } from "discord-api-types/v10";
@@ -54,7 +55,7 @@ abstract class BaseInteraction<Type extends InteractionType> {
   }
 
   get user() {
-    return this.data.member?.user ?? this.data.user;
+    return (this.data.user ?? this.data.member?.user) as APIUser; // One is always given.
   }
 
   get member() {
