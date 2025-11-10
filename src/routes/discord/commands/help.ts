@@ -24,21 +24,33 @@ const helpMsg = (urlBase: string) => ({
                 style: 5,
                 label: "All Links",
                 url: urlBase,
+								emoji: {
+									name: "🌐"
+								}
               }),
               new ButtonBuilder({
                 style: 5,
                 label: "Wiki",
                 url: urlBase + "/wiki",
+								emoji: {
+									name: "📖"
+								}
               }),
               new ButtonBuilder({
                 style: 5,
                 label: "Report a Bug",
                 url: urlBase + "/bug",
+								emoji: {
+									name: "🚨"
+								}
               }),
               new ButtonBuilder({
                 style: 5,
                 label: "Q & A",
                 url: urlBase + "/help",
+								emoji: {
+									name: "🙋‍♂️"
+								}
               }),
             )
       )
@@ -48,7 +60,7 @@ const helpMsg = (urlBase: string) => ({
             .addTextDisplayComponents(
               (t) => 
                 t.setContent(
-                  "If you like this project, you can support the creator, by buying him a cup of tea! (He doesn't drink coffee)"
+                  "💙 If you like this project, you can support the creator, by buying him a cup of tea! (He doesn't drink coffee)"
                 )
             )
             .setButtonAccessory(
@@ -56,6 +68,9 @@ const helpMsg = (urlBase: string) => ({
                 style: 5,
                 label: "Buy me a cup of tea!",
                 url: "https://ko-fi.com/lukez",
+								emoji: {
+									name: "🍵"
+								}
               })
             )
       )
