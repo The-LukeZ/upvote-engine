@@ -6,17 +6,27 @@ import { handleHelp } from "./commands/help";
 export async function handleCommand(c: MyContext) {
   const ctx = c.get("command");
   console.log("Handling command:", ctx.commandName);
+  
+  const blCache = c.env.BLACKLIST.getByName("blacklist");
+  const isBlGuild = ctx.guildId ? await blCache.isBlacklisted(ctx.guildId, "g") : false;
+  if (isBlGuild) {
+    return ctx.reply({ content: "This guild is blacklisted from using this bot." }, true);
+  }
+  const isBlUser = await blCache.isBlacklisted(ctx.user.id, "u");
+  if (isBlUser) {
+    return ctx.reply({ content: "You are blacklisted from using this bot." }, true);
+  }
 
   try {
     switch (ctx.commandName) {
-	  case "help":
-	    return handleHelp(c, ctx);
+      case "help":
+        return handleHelp(c, ctx);
       case "ping":
         return ctx.reply({ content: "Pong!" }, true);
       case "app":
         return handleApp(c, ctx);
-			case "admin":
-				return handleAdmin(c, ctx);
+      case "admin":
+        return handleAdmin(c, ctx);
       default:
         return ctx.reply({ content: `Unknown command: ${ctx.commandName}` }, true);
     }
