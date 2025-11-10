@@ -1,6 +1,6 @@
 import { bold, codeBlock, ContainerBuilder, heading, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
-import { APIEmbed, MessageFlags } from "discord-api-types/v10";
+import { APIEmbed, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
 import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg } from "../../../db/schema";
@@ -19,6 +19,10 @@ import { ForwardingPayload } from "../../../../types/webhooks";
 
 const MAX_APPS_PER_GUILD = 25;
 
+async function validateBot(bot: object & { bot?: boolean; id: string }, ownApplicationId: string): Promise<boolean> {
+  return !!(bot.bot && bot.id !== ownApplicationId);
+}
+
 export async function handleApp(c: MyContext, ctx: ChatInputCommandInteraction) {
   const subgroup = ctx.options.getSubcommandGroup() as "forwarding" | null;
   const db = makeDB(c.env);
@@ -28,7 +32,16 @@ export async function handleApp(c: MyContext, ctx: ChatInputCommandInteraction) 
   }
 
   const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "edit" | "remove";
-  console.log("Handling app subcommand:", subcommand);
+
+  const blCache = c.env.BLACKLIST.getByName("blacklist");
+  const botOption = ctx.options.get("bot", ApplicationCommandOptionType.User, false);
+  if (botOption?.value) {
+    const isBlBot = await blCache.isBlacklisted(botOption?.value, "b");
+    if (isBlBot) {
+      return ctx.reply({ content: "The selected bot cannot be configured, because it is blacklisted." }, true);
+    }
+  }
+
   if (subcommand === "add") {
     return handleAddApp(ctx, db);
   }
@@ -145,11 +158,9 @@ async function handleListApps(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   await ctx.deferReply(true);
 
-  console.log("Adding app to guild configuration");
-
   try {
     const bot = ctx.options.getUser("bot", true);
-    if (!validateBot(bot, ctx.applicationId)) {
+    if (!(await validateBot(bot, ctx.applicationId))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
@@ -232,7 +243,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   console.log("Editing app configuration for guild");
 
   const bot = ctx.options.getUser("bot", true);
-  if (!validateBot(bot, ctx.applicationId)) {
+  if (!(await validateBot(bot, ctx.applicationId))) {
     return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
@@ -280,8 +291,29 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   console.log("Guild configuration updated in database");
 }
 
-function validateBot(bot: object & { bot?: boolean; id: string }, ownApplicationId: string): boolean {
-  return !!(bot.bot && bot.id !== ownApplicationId);
+async function handleRemoveApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+  await ctx.deferReply(true);
+
+  console.log("Removing app configuration for guild");
+
+  const bot = ctx.options.getUser("bot", true);
+  if (!(await validateBot(bot, ctx.applicationId))) {
+    return ctx.editReply({ content: "The selected user is not a bot." });
+  }
+
+  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+  const guildId = ctx.guildId!;
+
+  const result = await db
+    .delete(applications)
+    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id), eq(applications.source, source)));
+
+  if (result.meta.changes === 0) {
+    return ctx.editReply({ content: "No existing configuration found for this bot in this guild for this source." });
+  }
+
+  console.log("Guild configuration removed from database");
+  return ctx.editReply({ content: `Successfully removed app configuration for <@${bot.id}> (${GetSupportedPlatform(source)}).` });
 }
 
 function buildAppInfo(
@@ -393,7 +425,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
   try {
     const bot = ctx.options.getUser("bot", true);
-    if (!validateBot(bot, ctx.applicationId)) {
+    if (!(await validateBot(bot, ctx.applicationId))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
@@ -528,7 +560,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 
   try {
     const bot = ctx.options.getUser("bot", true);
-    if (!validateBot(bot, ctx.applicationId)) {
+    if (!(await validateBot(bot, ctx.applicationId))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
@@ -643,7 +675,7 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
     const guildId = ctx.guildId!;
 
     // If bot is specified, show specific forwarding
-    if (!validateBot(bot, ctx.applicationId)) {
+    if (!(await validateBot(bot, ctx.applicationId))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 

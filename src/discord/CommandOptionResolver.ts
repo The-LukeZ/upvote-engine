@@ -65,6 +65,7 @@ class CommandInteractionOptionResolver {
    * Gets an option by its name.
    *
    * @param name The name of the option.
+   * @param type The expected type of the option.
    * @param required Whether to throw an error if the option is not found.
    * @returns The option, if found.
    */
