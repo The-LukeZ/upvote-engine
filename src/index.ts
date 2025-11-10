@@ -168,9 +168,9 @@ export default {
 } satisfies ExportedHandler<Env, any>;
 
 export class BlacklistCacheDO extends DurableObject {
-  readonly blacklistedGuilds: Set<string> = new Set<string>();
-  readonly blacklistedUsers: Set<string> = new Set<string>();
-  readonly blacklistedBots: Set<string> = new Set<string>();
+  private readonly blacklistedGuilds: Set<string> = new Set<string>();
+  private readonly blacklistedUsers: Set<string> = new Set<string>();
+  private readonly blacklistedBots: Set<string> = new Set<string>();
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
@@ -202,5 +202,17 @@ export class BlacklistCacheDO extends DurableObject {
       default:
         return false;
     }
+  }
+
+  get blacklistedGuildsList(): string[] {
+    return Array.from(this.blacklistedGuilds);
+  }
+
+  get blacklistedUsersList(): string[] {
+    return Array.from(this.blacklistedUsers);
+  }
+
+  get blacklistedBotsList(): string[] {
+    return Array.from(this.blacklistedBots);
   }
 }
