@@ -1,6 +1,6 @@
 import { MyContext } from "../../../../types";
 import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
-import { ContainerBuilder, ButtonBuilder, type ActionRowBuilder } from "@discord.js/builders";
+import { ContainerBuilder, ButtonBuilder, type ActionRowBuilder } from "@discordjs/builders";
 import { Colors } from "../../../discord/Colors";
 import { MessageFlags } from "discord-api-types/v10";
 
