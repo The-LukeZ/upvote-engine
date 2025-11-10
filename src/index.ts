@@ -3,7 +3,7 @@ import { ApplicationIntegrationType, Routes } from "discord-api-types/v10";
 import { REST } from "@discordjs/rest";
 import { Hono } from "hono";
 import { poweredBy } from "hono/powered-by";
-import { and, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
+import { and, count, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import dayjs from "dayjs";
 
@@ -130,6 +130,27 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
   }
 }
 
+async function updateGuildCount(env: Env, db: DrizzleDB) {
+  const guildCount = await db.select({ count: count() }).from(applications).get();
+  try {
+    const res = await fetch(`https://top.gg/api/bots/${env.DISCORD_APP_ID}/stats`, {
+      method: "POST",
+      headers: {
+        authorization: env.TOP_GG_TOKEN,
+      },
+      body: JSON.stringify({ server_count: guildCount?.count || 2 }),
+    });
+
+    if (!res.ok) {
+      console.error("Failed to update guild count on top.gg:", { error: await res.text() });
+    } else {
+      console.log("Successfully updated guild count on top.gg");
+    }
+  } catch (error) {
+    console.error("Error updating guild count on top.gg:", { error });
+  }
+}
+
 export default {
   fetch: app.fetch,
 
@@ -145,7 +166,13 @@ export default {
 
       case "0 3 * * 1": // every sunday at 3 AM (CF uses 1 = Sunday)
         console.log("Running guild cleanup");
-        ctx.waitUntil(cleanupInvalidGuilds(db, env));
+        ctx.waitUntil(
+          new Promise(async (resolve) => {
+            await cleanupInvalidGuilds(db, env);
+            await updateGuildCount(env, db);
+            return resolve(undefined);
+          }),
+        );
         break;
 
       default:
