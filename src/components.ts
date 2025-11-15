@@ -1,7 +1,6 @@
-import { and, eq } from "drizzle-orm";
 import { MyContext } from "../types";
 import { makeDB } from "./db/util";
-import { applications, deleteApplicationCascade, forwardings } from "./db/schema";
+import { deleteApplicationCascade } from "./db/schema";
 
 export async function handleComponentInteraction(c: MyContext) {
   const modal = c.get("modal");
@@ -30,7 +29,7 @@ export async function handleComponentInteraction(c: MyContext) {
         return modal.editReply({ content: "Failed to remove application configuration due to a database error." });
       }
 
-      return modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
+      await modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
     }
   } catch (error) {
     console.error("Error handling component interaction:", error);
