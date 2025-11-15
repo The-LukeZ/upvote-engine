@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { MyContext } from "../types";
 import { applications } from "./db/schema";
 import { makeDB } from "./db/util";
@@ -23,11 +23,9 @@ export async function handleComponentInteraction(c: MyContext) {
       }
 
       console.log(`Removing application configuration for bot ${botUser.id} and source ${source}`);
-      await db
-        .delete(applications)
-        .where(
-          and(eq(applications.applicationId, botUser.id), eq(applications.source, source as any), eq(applications.guildId, modal.guildId!)),
-        ); // Cascade deletes votes
+      await db.run(
+        sql`DELETE FROM applications WHERE application_id = ${botUser.id} AND source = ${source} AND guild_id = ${modal.guildId!}`,
+      );
 
       return modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
     }
