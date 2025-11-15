@@ -7,17 +7,15 @@ export const applications = sqliteTable(
     source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
     secret: text("secret").notNull().unique(),
     guildId: text("guild_id").notNull(),
-    voteRoleId: text("vote_role_id").notNull(), // Added per-bot per-source
-    roleDurationSeconds: integer("role_duration_seconds"), // Added per-bot per-source
+    voteRoleId: text("vote_role_id").notNull(),
+    roleDurationSeconds: integer("role_duration_seconds"),
     createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
   },
-  (table) => [primaryKey({ columns: [table.applicationId, table.source, table.guildId] })], // Updated: Include guildId in primary key
+  (table) => [primaryKey({ columns: [table.applicationId, table.source, table.guildId] })],
 );
 
 export const forwardings = sqliteTable("forwardings", {
-  applicationId: text("application_id")
-    .references(() => applications.applicationId, { onDelete: "cascade" })
-    .primaryKey(),
+  applicationId: text("application_id").notNull(), // Removed .references() to avoid FK mismatch
   targetUrl: text("target_url").notNull(),
   secret: text("secret").notNull(),
 });
