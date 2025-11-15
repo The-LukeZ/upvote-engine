@@ -22,6 +22,7 @@ export async function handleComponentInteraction(c: MyContext) {
         return modal.editReply({ content: "Selected user is not a bot." });
       }
 
+      console.log(`Removing application configuration for bot ${botUser.id} and source ${source}`);
       await db.delete(applications).where(and(eq(applications.applicationId, botUser.id), eq(applications.source, source as any))); // Cascade deletes votes
 
       return modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
