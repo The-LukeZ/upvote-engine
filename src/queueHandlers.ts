@@ -86,7 +86,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
 
   // For each unique combination, check if there are active votes and remove role if not
-  const removals = { success: new Set<string>(), retry: new Set<string>() };
+  const removals = { success: new Set<string>(), retry: new Set<string>(), ack: new Set<string>() };
   for (const combo of combinations.values()) {
     const activeVotes = await db
       .select()
@@ -108,8 +108,13 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
         await rest.delete(Routes.guildMemberRole(combo.guildId, combo.userId, combo.roleId));
         removals.success.add(combo.messageid);
       } catch (error) {
-        console.error(`Failed to remove role for user ${combo.userId} in guild ${combo.guildId}:`, error);
-        removals.retry.add(combo.messageid);
+        if (error instanceof DiscordAPIError && (error.code === RESTJSONErrorCodes.UnknownGuild || error.code === RESTJSONErrorCodes.UnknownMember)) {
+          console.warn(`Guild or member not found for user ${combo.userId} in guild ${combo.guildId}, acknowledging message.`);
+          removals.ack.add(combo.messageid);
+        } else {
+          console.error(`Failed to remove role for user ${combo.userId} in guild ${combo.guildId}:`, error);
+          removals.retry.add(combo.messageid);
+        }
       }
     } else {
       console.log(`Skipping role removal for user ${combo.userId} in guild ${combo.guildId} (${activeVotes.length} active votes remain)`);
@@ -125,6 +130,9 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   }
 
   for (const msgid of removals.success) {
+    batch.messages.find((msg) => msg.id === msgid)?.ack();
+  }
+  for (const msgid of removals.ack) {
     batch.messages.find((msg) => msg.id === msgid)?.ack();
   }
   for (const msgid of removals.retry) {
