@@ -1,7 +1,7 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { MyContext } from "../types";
-import { applications } from "./db/schema";
 import { makeDB } from "./db/util";
+import { applications, forwardings } from "./db/schema";
 
 export async function handleComponentInteraction(c: MyContext) {
   const modal = c.get("modal");
@@ -24,9 +24,19 @@ export async function handleComponentInteraction(c: MyContext) {
 
       console.log(`Removing application configuration for bot ${botUser.id} and source ${source}`);
       try {
-        await db.run(
-          sql`DELETE FROM applications WHERE application_id = ${botUser.id} AND source = ${source} AND guild_id = ${modal.guildId!}`,
-        );
+        // Manually delete related forwardings first (no cascade)
+        await db.delete(forwardings).where(eq(forwardings.applicationId, botUser.id));
+
+        // Then delete the application
+        await db
+          .delete(applications)
+          .where(
+            and(
+              eq(applications.applicationId, botUser.id),
+              eq(applications.source, source as any),
+              eq(applications.guildId, modal.guildId!),
+            ),
+          );
       } catch (error) {
         console.error("Database error while removing application configuration:", { error });
         return modal.editReply({ content: "Failed to remove application configuration due to a database error." });
