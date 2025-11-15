@@ -1,4 +1,6 @@
 import { sqliteTable, text, integer, blob, primaryKey, foreignKey } from "drizzle-orm/sqlite-core";
+import { DrizzleDB } from "../../types";
+import { and, eq } from "drizzle-orm";
 
 export const applications = sqliteTable(
   "applications",
@@ -69,3 +71,16 @@ export type NewUser = typeof users.$inferInsert;
 
 export type BlacklistEntry = typeof blacklist.$inferSelect;
 export type NewBlacklistEntry = typeof blacklist.$inferInsert;
+
+export async function deleteApplicationCascade(db: DrizzleDB, applicationId: string, source: string, guildId: string) {
+  // Delete related forwardings
+  await db.delete(forwardings).where(eq(forwardings.applicationId, applicationId));
+
+  // Delete related votes
+  await db.delete(votes).where(and(eq(votes.applicationId, applicationId), eq(votes.source, source as any), eq(votes.guildId, guildId)));
+
+  // Delete the application
+  await db
+    .delete(applications)
+    .where(and(eq(applications.applicationId, applicationId), eq(applications.source, source as any), eq(applications.guildId, guildId)));
+}
