@@ -23,9 +23,14 @@ export async function handleComponentInteraction(c: MyContext) {
       }
 
       console.log(`Removing application configuration for bot ${botUser.id} and source ${source}`);
-      await db.run(
-        sql`DELETE FROM applications WHERE application_id = ${botUser.id} AND source = ${source} AND guild_id = ${modal.guildId!}`,
-      );
+      try {
+        await db.run(
+          sql`DELETE FROM applications WHERE application_id = ${botUser.id} AND source = ${source} AND guild_id = ${modal.guildId!}`,
+        );
+      } catch (error) {
+        console.error("Database error while removing application configuration:", { error });
+        return modal.editReply({ content: "Failed to remove application configuration due to a database error." });
+      }
 
       return modal.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
     }
