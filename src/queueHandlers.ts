@@ -86,7 +86,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
 
   // For each unique combination, check if there are active votes and remove role if not
-  const removals = { success: new Set<string>(), retry: new Set<string>(), ack: new Set<string>() };
+  const removals = { success: new Set<string>(), retry: new Map<string, number>(), ack: new Set<string>() };
   for (const combo of combinations.values()) {
     const activeVotes = await db
       .select()
@@ -108,12 +108,25 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
         await rest.delete(Routes.guildMemberRole(combo.guildId, combo.userId, combo.roleId));
         removals.success.add(combo.messageid);
       } catch (error) {
-        if (error instanceof DiscordAPIError && (error.code === RESTJSONErrorCodes.UnknownGuild || error.code === RESTJSONErrorCodes.UnknownMember)) {
+        if (
+          error instanceof DiscordAPIError &&
+          (error.code === RESTJSONErrorCodes.UnknownGuild || error.code === RESTJSONErrorCodes.UnknownMember)
+        ) {
           console.warn(`Guild or member not found for user ${combo.userId} in guild ${combo.guildId}, acknowledging message.`);
           removals.ack.add(combo.messageid);
         } else {
           console.error(`Failed to remove role for user ${combo.userId} in guild ${combo.guildId}:`, error);
-          removals.retry.add(combo.messageid);
+          const message = batch.messages.find((msg) => msg.id === combo.messageid);
+          if (!message) continue;
+          const delay = delaySeconds[message.attempts]; // Exponential backoff
+          if (delay === undefined) {
+            console.warn(
+              `Max retry attempts exceeded for role removal of user ${combo.userId} in guild ${combo.guildId}, acknowledging message.`,
+            );
+            removals.ack.add(combo.messageid);
+          } else {
+            removals.retry.set(combo.messageid, delay); // Store delay for retry
+          }
         }
       }
     } else {
@@ -135,8 +148,9 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   for (const msgid of removals.ack) {
     batch.messages.find((msg) => msg.id === msgid)?.ack();
   }
-  for (const msgid of removals.retry) {
-    batch.messages.find((msg) => msg.id === msgid)?.retry({ delaySeconds: 60 });
+  for (const [msgid, delay] of removals.retry) {
+    // Updated: Use stored delay
+    batch.messages.find((msg) => msg.id === msgid)?.retry({ delaySeconds: delay });
   }
 }
 
