@@ -39,7 +39,7 @@ app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/d
 app.route("/webhook", webhookApp);
 app.route("/discord", interactionsApp);
 
-app.all("*", (c) => c.text("Not Found.", 404));
+app.all("*", (c) => c.text("Not Found you troglodyte", 404));
 
 async function handleExpiredVotes(env: Env, db: DrizzleDB) {
   const currentTs = dayjs().toISOString();
@@ -51,6 +51,7 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
       .from(v)
       .where(
         and(
+          eq(v.hasRole, true), // Added: Only process votes that still have the role assigned
           isNotNull(v.expiresAt),
           lte(v.expiresAt, currentTs),
           notExists(
@@ -58,7 +59,13 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
               .select()
               .from(votes)
               .where(
-                and(eq(votes.userId, v.userId), eq(votes.guildId, v.guildId), isNotNull(votes.expiresAt), gt(votes.expiresAt, currentTs)),
+                and(
+                  eq(votes.userId, v.userId),
+                  eq(votes.guildId, v.guildId),
+                  eq(votes.hasRole, true), // Ensure active votes are checked properly
+                  isNotNull(votes.expiresAt),
+                  gt(votes.expiresAt, currentTs),
+                ),
               ),
           ),
         ),
