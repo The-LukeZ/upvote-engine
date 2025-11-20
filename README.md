@@ -35,7 +35,7 @@ PolyForm Internal Use License 1.0.0
 
 In plain terms, you can use and modify the software for you or your organization's internal projects,
 but you cannot ship your own product or service that competes with the original software,
-nor can you use it in a production environment.
+nor can you use it in a public production environment (and especially not commercial).
 
 ---
 
