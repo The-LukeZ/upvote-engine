@@ -7,12 +7,13 @@ import {
 import { API } from "@discordjs/core/http-only";
 import { BaseInteraction } from "./BaseInteraction";
 import { ModalBuilder } from "@discordjs/builders";
+import { MyContext } from "../../types";
 
 class MessageComponentInteraction extends BaseInteraction<InteractionType.MessageComponent> {
   public readonly message?: APIMessage;
   public readonly custom_id: string;
-  constructor(api: API, interaction: APIMessageComponentInteraction) {
-    super(api, interaction);
+  constructor(api: API, interaction: APIMessageComponentInteraction, c: MyContext) {
+    super(api, interaction, c);
     this.custom_id = interaction.data.custom_id;
 
     if ("message" in interaction && interaction.message) {

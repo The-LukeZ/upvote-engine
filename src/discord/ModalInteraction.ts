@@ -8,14 +8,15 @@ import {
 import { API } from "@discordjs/core/http-only";
 import { ModalComponentResolver } from "./ModalComponentResolver";
 import { BaseInteraction } from "./BaseInteraction";
+import { MyContext } from "../../types";
 
 class ModalInteraction extends BaseInteraction<InteractionType.ModalSubmit> {
   public readonly fields: ModalComponentResolver;
   public readonly message?: APIMessage;
   public readonly custom_id: string;
 
-  constructor(api: API, interaction: APIModalSubmitInteraction) {
-    super(api, interaction);
+  constructor(api: API, interaction: APIModalSubmitInteraction, c: MyContext) {
+    super(api, interaction, c);
     this.custom_id = interaction.data.custom_id;
     this.fields = new ModalComponentResolver(
       interaction.data.components as (ModalSubmitLabelComponent | ModalSubmitTextDisplayComponent)[],
