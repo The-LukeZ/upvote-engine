@@ -20,24 +20,24 @@
 		"astro": "astro --config docs/config.mjs"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20251107.0",
-		"@types/node": "^24.10.0",
-		"drizzle-kit": "^0.31.6",
-		"tsx": "^4.20.6",
+		"@cloudflare/workers-types": "^4.20251213.0",
+		"@types/node": "^24.10.4",
+		"drizzle-kit": "^0.31.8",
+		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
-		"wrangler": "^4.46.0"
+		"wrangler": "^4.54.0"
 	},
 	"dependencies": {
-		"@discordjs/builders": "^1.13.0",
+		"@discordjs/builders": "^1.13.1",
 		"@discordjs/collection": "^2.1.1",
-		"@discordjs/core": "^2.3.0",
+		"@discordjs/core": "^2.4.0",
 		"@discordjs/rest": "^2.6.0",
 		"@sapphire/snowflake": "^3.5.5",
 		"dayjs": "^1.11.19",
-		"discord-api-types": "^0.38.32",
+		"discord-api-types": "^0.38.37",
 		"discord-interactions": "^4.4.0",
 		"drizzle-orm": "^0.44.7",
-		"hono": "^4.10.4"
+		"hono": "^4.11.1"
 	},
 	"license": "PolyForm Internal Use License 1.0.0"
 }
