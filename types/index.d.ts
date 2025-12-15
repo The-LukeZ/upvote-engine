@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import type { BlankInput } from "hono/types";
 import type { Collection } from "@discordjs/collection";
 import type {
+  APIApplication,
   APIAttachment,
   APIInteractionDataResolvedChannel,
   APIInteractionDataResolvedGuildMember,
@@ -15,6 +16,7 @@ import { DrizzleD1Database } from "drizzle-orm/d1";
 import { makeDB } from "../src/db/util";
 import { WebhookPayload } from "./webhooks";
 import { NewVote, ApplicationCfg, APIVote } from "../src/db/schema";
+import { MessageComponentInteraction } from "../src/discord/MessageComponentInteraction";
 
 export * from "./db";
 export * from "./topgg";
@@ -28,10 +30,17 @@ export type MyInteraction = ChatInputCommandInteraction | ModalInteraction;
 
 export type HonoBindings = Env;
 export type HonoVariables = {
-  command: ChatInputCommandInteraction;
-  modal: ModalInteraction;
+  // client: APIApplication;
+  command?: ChatInputCommandInteraction;
   vote?: WebhookPayload;
-};
+  modal?: ModalInteraction;
+  component?: MessageComponentInteraction;
+} & (
+  | { modal: ModalInteraction }
+  | {
+      component?: MessageComponentInteraction;
+    }
+);
 
 /**
  * Hono context environment interface

@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/d1";
 import { applications, blacklist, forwardings, users, votes } from "./schema";
+import { drizzle } from 'drizzle-orm/d1';
 
 /**
  * A function to create and return a Drizzle D1 database instance.
