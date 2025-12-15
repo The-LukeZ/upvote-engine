@@ -45,7 +45,7 @@ app.post("/interactions", async (c) => {
       c.executionCtx.waitUntil(
         new Promise(async function (resolve) {
           if (isModalInteraction(interaction)) {
-            c.set("modal", new ModalInteraction(api, interaction));
+            c.set("modal", new ModalInteraction(api, interaction, c));
             await handleComponentInteraction(c);
           }
           return resolve(undefined);
@@ -58,7 +58,7 @@ app.post("/interactions", async (c) => {
         new Promise(async function (resolve) {
           if (isChatInputCommandInteraction(interaction)) {
             console.log("Received Chat Input Command Interaction:", interaction.data.name);
-            c.set("command", new ChatInputCommandInteraction(api, interaction));
+            c.set("command", new ChatInputCommandInteraction(api, interaction, c));
             await handleCommand(c); // Wants APIChatInputApplicationCommandInteraction
           }
           return resolve(undefined);
@@ -70,7 +70,7 @@ app.post("/interactions", async (c) => {
     case InteractionType.MessageComponent: {
       c.executionCtx.waitUntil(
         new Promise(async function (resolve) {
-          c.set("component", new MessageComponentInteraction(api, interaction));
+          c.set("component", new MessageComponentInteraction(api, interaction, c));
           await handleComponentInteraction(c);
           return resolve(undefined);
         }),
