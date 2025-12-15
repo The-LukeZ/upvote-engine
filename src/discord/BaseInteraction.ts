@@ -12,6 +12,7 @@ import { API } from "@discordjs/core/http-only";
 import { REST } from "@discordjs/rest";
 import { ChatInputCommandInteraction } from "./ChatInputInteraction";
 import { ModalInteraction } from "./ModalInteraction";
+import { MyContext } from "../../types";
 
 abstract class BaseInteraction<Type extends InteractionType> {
   public readonly type: Type;
@@ -23,11 +24,13 @@ abstract class BaseInteraction<Type extends InteractionType> {
   private _ephemeral: boolean | null = null;
   private replied: boolean = false;
   private deferred: boolean = false;
+  public readonly context: MyContext;
 
-  constructor(protected api: API, data: typeof this.data) {
+  constructor(protected api: API, data: typeof this.data, context: MyContext) {
     this.type = data.type as Type;
     this.data = data;
     this.rest = api.rest;
+    this.context = context;
   }
 
   get applicationId() {
