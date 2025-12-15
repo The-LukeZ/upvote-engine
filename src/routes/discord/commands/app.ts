@@ -7,10 +7,9 @@ import {
   heading,
   ModalBuilder,
   StringSelectMenuOptionBuilder,
-  subtext,
 } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
-import { APIEmbed, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
+import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
 import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications } from "../../../db/schema";
@@ -19,7 +18,6 @@ import dayjs from "dayjs";
 import { Colors } from "../../../discord/Colors";
 import { makeDB } from "../../../db/util";
 import {
-  BASE_URL,
   GetSupportedPlatform,
   getTestNoticeForPlatform,
   hostnamePattern,
@@ -30,11 +28,8 @@ import { ForwardingPayload } from "../../../../types/webhooks";
 
 const MAX_APPS_PER_GUILD = 25;
 
-async function validateBot(bot: object & { bot?: boolean; id: string }, ownApplicationId: string, guildId: string): Promise<boolean> {
-  if (guildId !== process.env.ADMIN_GUILD_ID) {
-    return !!(bot.bot && bot.id !== ownApplicationId);
-  }
-  return !!bot.bot;
+async function validateBot(bot: APIUser, ownApplicationId: string, guildId: string, byOwner: boolean): Promise<boolean> {
+  return !!bot.bot && (byOwner || bot.id !== ownApplicationId);
 }
 
 export async function handleApp(c: MyContext, ctx: ChatInputCommandInteraction) {
@@ -178,7 +173,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
   try {
     const bot = ctx.options.getUser("bot", true);
-    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!))) {
+    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
@@ -261,7 +256,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   console.log("Editing app configuration for guild");
 
   const bot = ctx.options.getUser("bot", true);
-  if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!))) {
+  if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
     return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
@@ -315,7 +310,7 @@ async function handleRemoveApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) 
   console.log("Removing app configuration for guild");
 
   const bot = ctx.options.getUser("bot", true);
-  if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!))) {
+  if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
     return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
@@ -443,7 +438,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
   try {
     const bot = ctx.options.getUser("bot", true);
-    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!))) {
+    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
@@ -578,7 +573,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 
   try {
     const bot = ctx.options.getUser("bot", true);
-    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!))) {
+    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
@@ -693,7 +688,7 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
     const guildId = ctx.guildId!;
 
     // If bot is specified, show specific forwarding
-    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!))) {
+    if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
