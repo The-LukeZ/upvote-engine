@@ -240,6 +240,34 @@ export class BlacklistCacheDO extends DurableObject {
     }
   }
 
+  async add(id: string, type: "g" | "u" | "b"): Promise<void> {
+    switch (type) {
+      case "g":
+        this.blacklistedGuilds.add(id);
+        break;
+      case "u":
+        this.blacklistedUsers.add(id);
+        break;
+      case "b":
+        this.blacklistedBots.add(id);
+        break;
+    }
+  }
+
+  async remove(id: string, type: "g" | "u" | "b"): Promise<void> {
+    switch (type) {
+      case "g":
+        this.blacklistedGuilds.delete(id);
+        break;
+      case "u":
+        this.blacklistedUsers.delete(id);
+        break;
+      case "b":
+        this.blacklistedBots.delete(id);
+        break;
+    }
+  }
+
   get blacklistedGuildsList(): string[] {
     return Array.from(this.blacklistedGuilds);
   }

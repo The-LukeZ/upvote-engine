@@ -38,6 +38,13 @@ async function handleAdd(c: MyContext, ctx: ChatInputCommandInteraction, db: Dri
       insert.applicationId = id;
     }
     await db.insert(blacklist).values(insert).returning().get();
+
+    // Update the blacklist cache
+    const cacheKey = c.env.BLACKLIST.idFromName("blacklist");
+    const cache = c.env.BLACKLIST.get(cacheKey);
+    const typeMap: Record<string, "g" | "u" | "b"> = { guild: "g", user: "u", bot: "b" };
+    await cache.add(id, typeMap[type]);
+
     return ctx.editReply(`Successfully added ${type} \`${id}\` to the blacklist.`);
   } catch (err) {
     console.error(err);
@@ -57,6 +64,12 @@ async function handleRemove(c: MyContext, ctx: ChatInputCommandInteraction, db: 
     }
     const result = await db.delete(blacklist).where(equals);
     if (result.meta.changes > 0) {
+      // Update the blacklist cache
+      const cacheKey = c.env.BLACKLIST.idFromName("blacklist");
+      const cache = c.env.BLACKLIST.get(cacheKey);
+      const typeMap: Record<string, "g" | "u" | "b"> = { guild: "g", user: "u", bot: "b" };
+      await cache.remove(id, typeMap[type]);
+
       return ctx.editReply(`Successfully removed ${type} \`${id}\` from the blacklist.`);
     } else {
       return ctx.editReply(`${type.charAt(0).toUpperCase() + type.slice(1)} \`${id}\` is not in the blacklist.`);
