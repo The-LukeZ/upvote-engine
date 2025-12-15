@@ -7,10 +7,10 @@
   "name": "vote-handler",
   "main": "src/index.ts",
   "minify": true,
-  "compatibility_date": "2025-11-05",
+  "compatibility_date": "2025-12-15",
   "compatibility_flags": ["nodejs_compat"],
   "limits": {
-    "cpu_ms": 15000
+    "cpu_ms": 20000
   },
   "account_id": "92d72ac72fb811275ce6e8d5263a9816",
   "observability": {
