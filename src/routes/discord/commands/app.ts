@@ -12,7 +12,7 @@ import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
 import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications } from "../../../db/schema";
+import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications, isUserVerifiedForApplication } from "../../../db/schema";
 import { randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
 import { Colors } from "../../../discord/Colors";
@@ -177,6 +177,18 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
+    // Check if user has verified ownership (skip for owner)
+    const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    if (!isOwner) {
+      const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
+      if (!isVerified) {
+        return ctx.editReply(
+          "You must verify ownership of this application before configuring it.\n" +
+            `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
+        );
+      }
+    }
+
     // check if already 25 apps are configured for this guild
     const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, ctx.guildId!)).get();
     if (guildAppCount && guildAppCount.count >= MAX_APPS_PER_GUILD) {
@@ -260,6 +272,18 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
+  // Check if user has verified ownership (skip for owner)
+  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+  if (!isOwner) {
+    const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
+    if (!isVerified) {
+      return ctx.editReply(
+        "You must verify ownership of this application before configuring it.\n" +
+          `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
+      );
+    }
+  }
+
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
   const role = ctx.options.getRole("role");
   const roleId = role?.id;
@@ -312,6 +336,18 @@ async function handleRemoveApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) 
   const bot = ctx.options.getUser("bot", true);
   if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
     return ctx.editReply({ content: "The selected user is not a bot." });
+  }
+
+  // Check if user has verified ownership (skip for owner)
+  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+  if (!isOwner) {
+    const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
+    if (!isVerified) {
+      return ctx.editReply(
+        "You must verify ownership of this application before configuring it.\n" +
+          `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
+      );
+    }
   }
 
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
@@ -440,6 +476,18 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
     const bot = ctx.options.getUser("bot", true);
     if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
+    }
+
+    // Check if user has verified ownership (skip for owner)
+    const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    if (!isOwner) {
+      const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
+      if (!isVerified) {
+        return ctx.editReply(
+          "You must verify ownership of this application before configuring it.\n" +
+            `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
+        );
+      }
     }
 
     const targetUrl = ctx.options.getString("url", true);
@@ -575,6 +623,18 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
     const bot = ctx.options.getUser("bot", true);
     if (!(await validateBot(bot, ctx.applicationId, ctx.guildId!, ctx.context.env.OWNER_ID === ctx.user.id))) {
       return ctx.editReply({ content: "The selected user is not a bot." });
+    }
+
+    // Check if user has verified ownership (skip for owner)
+    const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    if (!isOwner) {
+      const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
+      if (!isVerified) {
+        return ctx.editReply(
+          "You must verify ownership of this application before configuring it.\n" +
+            `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
+        );
+      }
     }
 
     const targetUrl = ctx.options.getString("url");
