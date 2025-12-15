@@ -97,3 +97,26 @@ export async function deleteApplicationCascade(db: DrizzleDB, applicationId: str
     .delete(applications)
     .where(and(eq(applications.applicationId, applicationId), eq(applications.source, source as any), eq(applications.guildId, guildId)));
 }
+
+export async function isUserVerifiedForApplication(
+  db: DrizzleDB,
+  applicationId: string,
+  guildId: string,
+  userId: string,
+): Promise<boolean> {
+  const verification = await db
+    .select()
+    .from(verifications)
+    .where(
+      and(
+        eq(verifications.applicationId, applicationId),
+        eq(verifications.guildId, guildId),
+        eq(verifications.userId, userId),
+        eq(verifications.verified, true),
+      ),
+    )
+    .limit(1)
+    .get();
+
+  return !!verification;
+}
