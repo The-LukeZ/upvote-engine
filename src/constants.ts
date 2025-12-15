@@ -17,6 +17,8 @@ export const addBotUrl = (botId: string, integrationType: ApplicationIntegration
 export const PlatformWebhookUrl = (platform: SupportedPlatforms, appId: string) =>
   `https://vote-handler.lukez.workers.dev/webhook/${platform}/${appId}` as const;
 
+export const BASE_URL = "https://vote-handler.lukez.workers.dev";
+
 export const supportedPlatforms = {
   topgg: "Top.gg",
   dbl: "Discord Bot List",

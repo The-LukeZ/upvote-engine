@@ -56,6 +56,16 @@ export const blacklist = sqliteTable("blacklist", {
   reason: text("reason"),
 });
 
+export const verifications = sqliteTable("verifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  applicationId: text("application_id").notNull(),
+  guildId: text("guild_id").notNull(),
+  userId: text("user_id").notNull(), // The requesting user id (user trying to verify ownership)
+  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+  emojiId: text("emoji_id"), // The emoji being verified (ID or markdown)
+  verified: integer("verified", { mode: "boolean" }).notNull().default(false),
+});
+
 export type ApplicationCfg = typeof applications.$inferSelect;
 export type NewApplicationCfg = typeof applications.$inferInsert;
 
@@ -71,6 +81,9 @@ export type NewUser = typeof users.$inferInsert;
 
 export type BlacklistEntry = typeof blacklist.$inferSelect;
 export type NewBlacklistEntry = typeof blacklist.$inferInsert;
+
+export type VerificationEntry = typeof verifications.$inferSelect;
+export type NewVerificationEntry = typeof verifications.$inferInsert;
 
 export async function deleteApplicationCascade(db: DrizzleDB, applicationId: string, source: string, guildId: string) {
   // Delete related forwardings

@@ -127,6 +127,12 @@ const commands: SlashCommandSubcommandsOnlyBuilder[] = [
             .setDescription("View the forwarding configuration")
             .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
         ),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("ownership-verify")
+        .setDescription("Verify ownership of a bot")
+        .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to verify").setRequired(true)),
     ),
 ];
 

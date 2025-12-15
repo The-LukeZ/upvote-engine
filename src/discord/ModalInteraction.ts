@@ -1,5 +1,4 @@
 import {
-  type APIModalInteractionResponseCallbackData,
   APIMessage,
   APIModalSubmitInteraction,
   InteractionType,
@@ -11,14 +10,14 @@ import { ModalComponentResolver } from "./ModalComponentResolver";
 import { BaseInteraction } from "./BaseInteraction";
 
 class ModalInteraction extends BaseInteraction<InteractionType.ModalSubmit> {
-  public readonly components: ModalComponentResolver;
+  public readonly fields: ModalComponentResolver;
   public readonly message?: APIMessage;
   public readonly custom_id: string;
 
   constructor(api: API, interaction: APIModalSubmitInteraction) {
     super(api, interaction);
     this.custom_id = interaction.data.custom_id;
-    this.components = new ModalComponentResolver(
+    this.fields = new ModalComponentResolver(
       interaction.data.components as (ModalSubmitLabelComponent | ModalSubmitTextDisplayComponent)[],
       interaction.data.resolved,
     );

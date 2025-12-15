@@ -6,9 +6,10 @@ import { API } from "@discordjs/core/http-only";
 import { InteractionResponseType, InteractionType } from "discord-api-types/v10";
 import { isChatInputCommandInteraction, isModalInteraction } from "../../utils";
 import { ModalInteraction } from "../../discord/ModalInteraction";
-import { handleComponentInteraction } from "../../components";
+import { handleComponentInteraction } from "./components";
 import { ChatInputCommandInteraction } from "../../discord/ChatInputInteraction";
 import { handleCommand } from "./commands";
+import { MessageComponentInteraction } from "../../discord/MessageComponentInteraction";
 
 const app = new Hono<HonoContextEnv, {}, "/discord">();
 
@@ -65,6 +66,18 @@ app.post("/interactions", async (c) => {
       );
 
       return c.json({}, 202); // Accepted for processing
+
+    case InteractionType.MessageComponent: {
+      c.executionCtx.waitUntil(
+        new Promise(async function (resolve) {
+          c.set("component", new MessageComponentInteraction(api, interaction));
+          await handleComponentInteraction(c);
+          return resolve(undefined);
+        }),
+      );
+
+      return c.json({}, 202); // Accepted for processing
+    }
   }
 });
 

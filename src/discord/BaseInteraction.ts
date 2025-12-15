@@ -2,10 +2,11 @@ import {
   type APIInteractionResponseCallbackData,
   type Snowflake,
   APIChatInputApplicationCommandInteraction,
+  APIMessageComponentInteraction,
   APIModalSubmitInteraction,
   APIUser,
+  ComponentType,
   InteractionType,
-  Routes,
 } from "discord-api-types/v10";
 import { API } from "@discordjs/core/http-only";
 import { REST } from "@discordjs/rest";
@@ -14,7 +15,10 @@ import { ModalInteraction } from "./ModalInteraction";
 
 abstract class BaseInteraction<Type extends InteractionType> {
   public readonly type: Type;
-  protected readonly data: Extract<APIChatInputApplicationCommandInteraction | APIModalSubmitInteraction, { type: Type }>;
+  protected readonly data: Extract<
+    APIChatInputApplicationCommandInteraction | APIModalSubmitInteraction | APIMessageComponentInteraction,
+    { type: Type }
+  >;
   public readonly rest: REST;
   private _ephemeral: boolean | null = null;
   private replied: boolean = false;
@@ -135,6 +139,15 @@ abstract class BaseInteraction<Type extends InteractionType> {
     return this.api.interactions.deleteReply(this.applicationId, this.token, messageId);
   }
 
+  async update(options: APIInteractionResponseCallbackData | string) {
+    const updateOptions = typeof options === "string" ? { content: options } : options;
+    const response = await this.api.interactions.updateMessage(this.id, this.token, updateOptions, {
+      signal: AbortSignal.timeout(5000),
+    });
+    this.replied = true;
+    return response;
+  }
+
   // Typeguards
   isChatInputCommand(): this is ChatInputCommandInteraction {
     return this.type === InteractionType.ApplicationCommand;
@@ -142,6 +155,20 @@ abstract class BaseInteraction<Type extends InteractionType> {
 
   isModal(): this is ModalInteraction {
     return this.type === InteractionType.ModalSubmit;
+  }
+
+  isMessageComponent(): this is APIMessageComponentInteraction {
+    return this.type === InteractionType.MessageComponent;
+  }
+
+  isButton(): this is APIMessageComponentInteraction & { data: { component_type: ComponentType.Button } } {
+    return this.isMessageComponent() && this.data.component_type === ComponentType.Button;
+  }
+
+  isStringSelect(): this is APIMessageComponentInteraction & {
+    data: { component_type: Exclude<ComponentType, ComponentType.StringSelect> };
+  } {
+    return this.isMessageComponent() && this.data.component_type === ComponentType.StringSelect;
   }
 }
 

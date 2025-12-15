@@ -1,14 +1,25 @@
-import { bold, codeBlock, ContainerBuilder, heading, ModalBuilder, StringSelectMenuOptionBuilder } from "@discordjs/builders";
+import {
+  ActionRowBuilder,
+  bold,
+  ButtonBuilder,
+  codeBlock,
+  ContainerBuilder,
+  heading,
+  ModalBuilder,
+  StringSelectMenuOptionBuilder,
+  subtext,
+} from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
 import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg } from "../../../db/schema";
+import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications } from "../../../db/schema";
 import { randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
 import { Colors } from "../../../discord/Colors";
 import { makeDB } from "../../../db/util";
 import {
+  BASE_URL,
   GetSupportedPlatform,
   getTestNoticeForPlatform,
   hostnamePattern,
@@ -34,7 +45,7 @@ export async function handleApp(c: MyContext, ctx: ChatInputCommandInteraction) 
     return handleForwarding(c, ctx, db);
   }
 
-  const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "edit" | "remove";
+  const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "edit" | "remove" | "ownership-verify";
 
   const blCache = c.env.BLACKLIST.getByName("blacklist");
   const botOption = ctx.options.get("bot", ApplicationCommandOptionType.User, false);
@@ -54,6 +65,10 @@ export async function handleApp(c: MyContext, ctx: ChatInputCommandInteraction) 
 
   if (subcommand === "list") {
     return handleListApps(ctx, db);
+  }
+
+  if (subcommand === "ownership-verify") {
+    return verifyOwnershipHandler(ctx, db);
   }
 
   if (subcommand === "remove") {
@@ -732,4 +747,61 @@ function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
     return false;
   }
   return true;
+}
+
+async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+  const bot = ctx.options.getUser("bot", true);
+  const existingVerification = await db
+    .select()
+    .from(verifications)
+    .where(and(eq(verifications.applicationId, bot.id), eq(verifications.guildId, ctx.guildId!), eq(verifications.userId, ctx.user.id)))
+    .limit(1)
+    .get();
+
+  if (existingVerification) {
+    return ctx.reply(
+      `You have already requested ownership verification for <@${bot.id}> in this server. Please wait for an admin to review your request.`,
+      true,
+    );
+  }
+
+  await db.insert(verifications).values({
+    applicationId: bot.id,
+    guildId: ctx.guildId!,
+    userId: ctx.user.id,
+  });
+
+  return ctx.reply({
+    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+    components: [
+      new ContainerBuilder()
+        .setAccentColor(Colors.Blurple)
+        .addTextDisplayComponents((t) =>
+          t.setContent(
+            `## Ownership Verification Requested for <@${bot.id}>\nPlease follow the steps below to complete the verification process.`,
+          ),
+        )
+        .addSeparatorComponents((s) => s.setSpacing(2))
+        .addTextDisplayComponents((t) =>
+          t.setContent(
+            "Ownership verification works by using application owned emojis. You can either add a new emoji to your app via the developer portal **or** by using an already existing emoji. Select below.",
+          ),
+        )
+        .addActionRowComponents((ar: ActionRowBuilder<ButtonBuilder>) =>
+          ar.setComponents(
+            new ButtonBuilder()
+              .setLabel("Use Existing Emoji")
+              .setStyle(2)
+              .setCustomId(`verify_ownership_use_existing_${bot.id}`)
+              .setEmoji({ name: "✅" }),
+            new ButtonBuilder()
+              .setLabel("Upload New Emoji")
+              .setStyle(1)
+              .setCustomId(`verify_ownership_upload_new_${bot.id}`)
+              .setEmoji({ name: "⬆️" }),
+          ),
+        )
+        .toJSON(),
+    ],
+  });
 }
