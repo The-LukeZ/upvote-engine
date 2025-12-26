@@ -7,6 +7,8 @@ export const addBotUrl = (botId: string, integrationType: ApplicationIntegration
     integrationType === 0 ? "+bot" : ""
   }` as const;
 
+export const BASE_URL = "https://upvote-engine.thelukez.com";
+
 /**
  * Generates the Platform webhook URL for a given application ID.
  *
@@ -15,9 +17,7 @@ export const addBotUrl = (botId: string, integrationType: ApplicationIntegration
  * @returns The complete Platform webhook URL.
  */
 export const PlatformWebhookUrl = (platform: SupportedPlatforms, appId: string) =>
-  `https://vote-handler.lukez.workers.dev/webhook/${platform}/${appId}` as const;
-
-export const BASE_URL = "https://vote-handler.lukez.workers.dev";
+  `${BASE_URL}/webhook/${platform}/${appId}` as const;
 
 export const supportedPlatforms = {
   topgg: "Top.gg",

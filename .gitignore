@@ -170,3 +170,5 @@ dist
 drizzle/migrations/meta
 drizzle/.env
 drizzle/snapshot.json
+
+.DS_Store
