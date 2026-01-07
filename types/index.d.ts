@@ -17,6 +17,7 @@ import { makeDB } from "../src/db/util";
 import { WebhookPayload } from "./webhooks";
 import { NewVote, ApplicationCfg, APIVote } from "../src/db/schema";
 import { MessageComponentInteraction } from "../src/discord/MessageComponentInteraction";
+import { BaseHonocordEnv, BaseInteractionContext } from "honocord";
 
 export * from "./db";
 export * from "./topgg";
@@ -26,41 +27,14 @@ export interface ResponseLike
   body: Readable | ReadableStream | null;
 }
 
-export type MyInteraction = ChatInputCommandInteraction | ModalInteraction;
-
-export type HonoBindings = Env;
-export type HonoVariables = {
-  // client: APIApplication;
-  command?: ChatInputCommandInteraction;
-  vote?: WebhookPayload;
-  modal?: ModalInteraction;
-  component?: MessageComponentInteraction;
-} & (
-  | { modal: ModalInteraction }
-  | {
-      component?: MessageComponentInteraction;
-    }
-);
-
-/**
- * Hono context environment interface
- */
-export interface HonoContextEnv {
-  Bindings: HonoBindings;
-  Variables: HonoVariables;
-}
-
-export type MyContext<TExtraBindings extends object = {}> = Context<HonoContextEnv & { Bindings: TExtraBindings }, "/", BlankInput>;
-
-export interface APIInteractionDataResolvedCollections {
-  users?: Collection<Snowflake, APIUser>;
-  roles?: Collection<Snowflake, APIRole>;
-  members?: Collection<Snowflake, APIInteractionDataResolvedGuildMember>;
-  channels?: Collection<Snowflake, APIInteractionDataResolvedChannel>;
-  attachments?: Collection<Snowflake, APIAttachment>;
-}
-
 export type DrizzleDB = ReturnType<typeof makeDB>;
+
+export type HonoVariables = { vote?: WebhookPayload; db: DrizzleDB };
+export type HonoEnv = BaseHonocordEnv<Env, HonoVariables>;
+export type MyContext = Context<{
+  Bindings: Env;
+  Variables: HonoVariables;
+}>;
 
 export interface QueueMessageBody extends APIVote {
   timestamp: string;

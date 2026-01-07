@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import { HonoContextEnv } from "../../../types";
+import { HonoEnv } from "../../../types";
 import topggApp from "./topgg/handler";
 import dblApp from "./dbl/handler";
 
-const webhookApp = new Hono<HonoContextEnv, {}, "/webhook">();
+const webhookApp = new Hono<HonoEnv, {}, "/webhook">();
 
 webhookApp.route("/topgg", topggApp);
 webhookApp.route("/dbl", dblApp);

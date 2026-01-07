@@ -1,7 +1,6 @@
+import { Colors, SlashCommandHandler } from "honocord";
 import { MyContext } from "../../../../types";
-import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
 import { ContainerBuilder, ButtonBuilder, type ActionRowBuilder } from "@discordjs/builders";
-import { Colors } from "../../../discord/Colors";
 import { MessageFlags } from "discord-api-types/v10";
 
 const helpMsg = (urlBase: string) => ({
@@ -71,8 +70,8 @@ const helpMsg = (urlBase: string) => ({
   ],
 });
 
-export async function handleHelp(c: MyContext, ctx: ChatInputCommandInteraction) {
-  const currentUrl = new URL(c.req.url);
+export const helpCommand = new SlashCommandHandler<MyContext>().addHandler((ctx) => {
+  const currentUrl = new URL(ctx.context.req.url);
   currentUrl.pathname = "";
   return ctx.reply(helpMsg(currentUrl.toString().replace(/\/$/, "")));
-}
+});

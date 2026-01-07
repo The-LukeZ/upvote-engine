@@ -1,33 +1,93 @@
-import { ModalBuilder } from "@discordjs/builders";
 import { DrizzleDB, MyContext } from "../../../../types";
-import { ChatInputCommandInteraction } from "../../../discord/ChatInputInteraction";
 import { makeDB } from "../../../db/util";
 import { blacklist, BlacklistEntry, NewBlacklistEntry } from "../../../db/schema";
 import { eq, isNotNull } from "drizzle-orm";
+import { ChatInputCommandInteraction, SlashCommandHandler } from "honocord";
+import { ApplicationIntegrationType } from "discord-api-types/v10";
 
 type BlacklistSubcommand = "add" | "remove" | "list";
 
-export async function handleAdmin(c: MyContext, ctx: ChatInputCommandInteraction) {
-  const subgroup = ctx.options.getSubcommandGroup(true);
-  const blType = subgroup.split("-")[0] as "guild" | "user" | "bot";
-  const subcommand = ctx.options.getSubcommand(true) as BlacklistSubcommand;
-  const id = subcommand !== "list" ? ctx.options.getString(`${blType}-id`, true) : null;
+export const adminCommand = new SlashCommandHandler<MyContext>()
+  .setGuildIds(process.env.ADMIN_GUILD_ID ? [process.env.ADMIN_GUILD_ID] : [])
+  .setName("admin")
+  .setDescription("Administrative commands")
+  .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
+  .setDefaultMemberPermissions(8)
+  .addSubcommandGroup((group) =>
+    group
+      .setName("guild-blacklist")
+      .setDescription("Manage blacklisted guilds")
+      .addSubcommand((sub) =>
+        sub
+          .setName("add")
+          .setDescription("Add a guild to the blacklist")
+          .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to blacklist").setRequired(true)),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("remove")
+          .setDescription("Remove a guild from the blacklist")
+          .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true)),
+      )
+      .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted guilds")),
+  )
+  .addSubcommandGroup((group) =>
+    group
+      .setName("user-blacklist")
+      .setDescription("Manage blacklisted users")
+      .addSubcommand((sub) =>
+        sub
+          .setName("add")
+          .setDescription("Add a user to the blacklist")
+          .addStringOption((opt) => opt.setName("user-id").setDescription("The user to blacklist").setRequired(true)),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("remove")
+          .setDescription("Remove a user from the blacklist")
+          .addStringOption((opt) => opt.setName("user-id").setDescription("The user to remove").setRequired(true)),
+      )
+      .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted users")),
+  )
+  .addSubcommandGroup((group) =>
+    group
+      .setName("bot-blacklist")
+      .setDescription("Manage blacklisted applications")
+      .addSubcommand((sub) =>
+        sub
+          .setName("add")
+          .setDescription("Add an application to the blacklist")
+          .addStringOption((opt) => opt.setName("bot-id").setDescription("The bot to blacklist").setRequired(true)),
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("remove")
+          .setDescription("Remove an application from the blacklist")
+          .addStringOption((opt) => opt.setName("bot-id").setDescription("The bot to remove").setRequired(true)),
+      )
+      .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted applications")),
+  )
+  .addHandler(async (ctx) => {
+    const subgroup = ctx.options.getSubcommandGroup(true);
+    const blType = subgroup.split("-")[0] as "guild" | "user" | "bot";
+    const subcommand = ctx.options.getSubcommand(true) as BlacklistSubcommand;
+    const id = subcommand !== "list" ? ctx.options.getString(`${blType}-id`, true) : null;
 
-  await ctx.deferReply(true);
+    await ctx.deferReply(true);
 
-  const db = makeDB(c.env);
+    const db = makeDB(ctx.context.env.vote_handler);
 
-  switch (subcommand) {
-    case "add":
-      return handleAdd(c, ctx, db, blType, id!);
-    case "remove":
-      return handleRemove(c, ctx, db, blType, id!);
-    case "list":
-      return handleList(c, ctx, db, blType);
-  }
-}
+    switch (subcommand) {
+      case "add":
+        return handleAdd(ctx, db, blType, id!);
+      case "remove":
+        return handleRemove(ctx, db, blType, id!);
+      case "list":
+        return handleList(ctx, db, blType);
+    }
+  });
 
-async function handleAdd(c: MyContext, ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot", id: string) {
+async function handleAdd(ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot", id: string) {
   try {
     let insert: NewBlacklistEntry = {};
     if (type === "guild") {
@@ -40,8 +100,8 @@ async function handleAdd(c: MyContext, ctx: ChatInputCommandInteraction, db: Dri
     await db.insert(blacklist).values(insert).returning().get();
 
     // Update the blacklist cache
-    const cacheKey = c.env.BLACKLIST.idFromName("blacklist");
-    const cache = c.env.BLACKLIST.get(cacheKey);
+    const cacheKey = ctx.context.env.BLACKLIST.idFromName("blacklist");
+    const cache = ctx.context.env.BLACKLIST.get(cacheKey);
     const typeMap: Record<string, "g" | "u" | "b"> = { guild: "g", user: "u", bot: "b" };
     await cache.add(id, typeMap[type]);
 
@@ -52,7 +112,7 @@ async function handleAdd(c: MyContext, ctx: ChatInputCommandInteraction, db: Dri
   }
 }
 
-async function handleRemove(c: MyContext, ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot", id: string) {
+async function handleRemove(ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot", id: string) {
   try {
     let equals;
     if (type === "guild") {
@@ -65,8 +125,8 @@ async function handleRemove(c: MyContext, ctx: ChatInputCommandInteraction, db: 
     const result = await db.delete(blacklist).where(equals);
     if (result.meta.changes > 0) {
       // Update the blacklist cache
-      const cacheKey = c.env.BLACKLIST.idFromName("blacklist");
-      const cache = c.env.BLACKLIST.get(cacheKey);
+      const cacheKey = ctx.context.env.BLACKLIST.idFromName("blacklist");
+      const cache = ctx.context.env.BLACKLIST.get(cacheKey);
       const typeMap: Record<string, "g" | "u" | "b"> = { guild: "g", user: "u", bot: "b" };
       await cache.remove(id, typeMap[type]);
 
@@ -80,7 +140,7 @@ async function handleRemove(c: MyContext, ctx: ChatInputCommandInteraction, db: 
   }
 }
 
-async function handleList(c: MyContext, ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot") {
+async function handleList(ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot") {
   try {
     let entries: BlacklistEntry[] = [];
     if (type === "guild") {
