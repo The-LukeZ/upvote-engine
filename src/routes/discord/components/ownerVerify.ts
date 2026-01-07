@@ -1,14 +1,12 @@
-import { APIEmoji, MessageFlags, RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
-import { DrizzleDB, HonoBindings } from "../../../../types";
+import { APIEmoji, ComponentType, MessageFlags, RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
+import { MyContext } from "../../../../types";
 import { makeDB } from "../../../db/util";
-import { MessageComponentInteraction } from "../../../discord/MessageComponentInteraction";
 import { ActionRowBuilder, bold, ButtonBuilder, ContainerBuilder, subtext, ModalBuilder } from "@discordjs/builders";
-import { Colors } from "../../../discord/Colors";
 import { BASE_URL } from "../../../constants";
 import { verifications } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
-import { ModalInteraction } from "../../../discord/ModalInteraction";
 import { DiscordAPIError } from "@discordjs/rest";
+import { Colors, ComponentHandler, MessageComponentInteraction, ModalHandler, ModalInteraction, parseCustomId } from "honocord";
 
 /*
 Components in here:
@@ -22,20 +20,27 @@ Structure:
   - verifyOwnership
 */
 
-export function handleOwnerVerify(ctx: MessageComponentInteraction, env: HonoBindings) {
-  const db = makeDB(env);
+export const ownerVerifyComponent = new ComponentHandler<ComponentType.Button, MyContext>("owner_verify").addHandler(
+  function handleOwnerVerify(ctx) {
+    const db = makeDB(ctx.context.env.vote_handler);
+    ctx.context.set("db", db);
 
-  if (ctx.custom_id.startsWith("owner_verify_start_")) {
-    return startOwnerVerify(ctx, db);
-  } else if (ctx.custom_id.startsWith("owner_verify_")) {
-    return verifyOwnership(ctx, db);
-  } else {
-    return ctx.reply("Unknown owner verify action.", true);
-  }
-}
+    const { component, firstParam: botId } = parseCustomId(ctx.customId) as {
+      component: "start" | "verify";
+      firstParam: string;
+    };
 
-function startOwnerVerify(ctx: MessageComponentInteraction, db: DrizzleDB) {
-  const botId = ctx.custom_id.replace("owner_verify_start_", "");
+    if (component === "start") {
+      return startOwnerVerify(ctx, botId);
+    } else if (component === "verify") {
+      return verifyOwnership(ctx, botId);
+    } else {
+      return ctx.reply("Unknown owner verify action.", true);
+    }
+  },
+);
+
+function startOwnerVerify(ctx: MessageComponentInteraction<ComponentType.Button, MyContext>, botId: string) {
   return ctx.update({
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
     components: [
@@ -83,8 +88,8 @@ function startOwnerVerify(ctx: MessageComponentInteraction, db: DrizzleDB) {
   });
 }
 
-async function verifyOwnership(ctx: MessageComponentInteraction, db: DrizzleDB) {
-  const botId = ctx.custom_id.replace("owner_verify_", "");
+async function verifyOwnership(ctx: MessageComponentInteraction<ComponentType.Button, MyContext>, botId: string) {
+  const db = ctx.context.get("db");
   const entry = await db
     .select()
     .from(verifications)
@@ -102,7 +107,7 @@ async function verifyOwnership(ctx: MessageComponentInteraction, db: DrizzleDB) 
   return ctx.showModal(
     new ModalBuilder({
       title: "Verify Ownership",
-      custom_id: `verify_ownership_submit_${botId}`,
+      custom_id: `verify_ownership?${botId}`,
     })
       .addLabelComponents((l) =>
         l
@@ -125,9 +130,9 @@ async function verifyOwnership(ctx: MessageComponentInteraction, db: DrizzleDB) 
   );
 }
 
-export async function verifyOwnershipModal(ctx: ModalInteraction, env: HonoBindings) {
-  const db = makeDB(env);
-  const botId = ctx.custom_id.replace("verify_ownership_submit_", "");
+async function verifyOwnershipModal(ctx: ModalInteraction<MyContext>) {
+  const db = ctx.context.get("db");
+  const botId = ctx.customId.split("?")[1];
   const emojiInput = ctx.fields.getString("emoji_input") || "";
 
   // Validate the entry exists and user owns it
@@ -192,3 +197,5 @@ export async function verifyOwnershipModal(ctx: ModalInteraction, env: HonoBindi
 
   return ctx.editReply("### Ownership verified successfully!\nYou may now assign roles based on votes.");
 }
+
+export const ownerVerifyModal = new ModalHandler<MyContext>("verify_ownership").addHandler(verifyOwnershipModal);

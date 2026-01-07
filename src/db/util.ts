@@ -9,6 +9,6 @@ import { drizzle } from 'drizzle-orm/d1';
  * @param env The environment bindings containing the D1 database.
  * @returns A Drizzle D1 database instance.
  */
-export function makeDB(env: Env) {
-  return drizzle(env.vote_handler, { schema: { applications, votes, users, blacklist, forwardings } });
+export function makeDB(db: D1Database) {
+  return drizzle(db, { schema: { applications, votes, users, blacklist, forwardings } });
 }

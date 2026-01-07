@@ -10,7 +10,7 @@ import { delaySeconds } from "./utils";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
   console.log(`Processing vote apply batch with ${batch.messages.length} messages`);
-  const db = makeDB(env);
+  const db = makeDB(env.vote_handler);
   for (const message of batch.messages) {
     const body = message.body;
     console.log(`Applying vote for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
@@ -66,7 +66,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
 
 export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
   console.log(`Processing vote remove batch with ${batch.messages.length} messages`);
-  const db = makeDB(env);
+  const db = makeDB(env.vote_handler);
   const currentTs = dayjs().toISOString();
 
   // Collect unique user/guild/role combinations from the batch

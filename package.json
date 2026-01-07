@@ -10,6 +10,7 @@
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"cf-typegen": "wrangler types",
+		"typecheck": "tsc --noEmit",
 		"register": "tsx --env-file=.env src/registerCommands.ts",
 		"migrate": "wrangler d1 migrations apply vote_handler --remote",
 		"drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
@@ -37,7 +38,8 @@
 		"discord-api-types": "^0.38.37",
 		"discord-interactions": "^4.4.0",
 		"drizzle-orm": "^0.44.7",
-		"hono": "^4.11.1"
+		"hono": "^4.11.1",
+		"honocord": "^1.2.5"
 	},
 	"license": "PolyForm Internal Use License 1.0.0"
 }

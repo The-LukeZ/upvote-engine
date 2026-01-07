@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { HonoContextEnv, QueueMessageBody } from "../../../../types";
+import { HonoEnv, QueueMessageBody } from "../../../../types";
 import { makeDB } from "../../../db/util";
 import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
@@ -8,13 +8,13 @@ import dayjs from "dayjs";
 import { WebhookHandler } from "../webhook";
 import { DBLPayload } from "../../../../types/webhooks";
 
-const dblApp = new Hono<HonoContextEnv, {}, "/dbl">();
+const dblApp = new Hono<HonoEnv, {}, "/dbl">();
 
 // Path: /webhook/topgg/:applicationId
 dblApp.post("/:applicationId", async (c) => {
   const appId = c.req.param("applicationId");
   console.log(`Received Top.gg webhook for application ID: ${appId}`);
-  const db = makeDB(c.env);
+  const db = makeDB(c.env.vote_handler);
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
 
   if (!appCfg) {

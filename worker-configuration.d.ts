@@ -8,7 +8,9 @@ declare namespace Cloudflare {
 	}
 	interface Env {
 		DISCORD_APP_ID: string;
+		DISCORD_APPLICATION_ID: string;
 		DISCORD_PUB_KEY: string;
+        DISCORD_PUBLIC_KEY: string;
 		DISCORD_TOKEN: string;
 		DISCORD_APP_SECRET: string;
 		JWT_SECRET: string;

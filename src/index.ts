@@ -7,7 +7,7 @@ import { and, count, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-
 import { alias } from "drizzle-orm/sqlite-core";
 import dayjs from "dayjs";
 
-import type { DrizzleDB, HonoContextEnv, QueueMessageBody } from "../types";
+import type { DrizzleDB, HonoEnv, QueueMessageBody } from "../types";
 import { makeDB } from "./db/util";
 import { applications, blacklist, Vote, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
@@ -16,14 +16,14 @@ import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queue
 import { interactionsApp } from "./routes/discord";
 import webhookApp from "./routes/webhooks";
 
-const app = new Hono<HonoContextEnv>();
+const app = new Hono<HonoEnv>();
 
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
 app.get("/", (c) => c.env.ASSETS.fetch("/index.html"));
 app.post("/health", (c) => c.text("OK"));
 
-const inviteRouter = new Hono<HonoContextEnv>();
+const inviteRouter = new Hono<HonoEnv>();
 inviteRouter.get("/user", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.UserInstall)));
 inviteRouter.all("*", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.GuildInstall)));
 app.route("/invite", inviteRouter);
@@ -37,9 +37,9 @@ app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/is
 app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
 
 app.route("/webhook", webhookApp);
-app.route("/discord", interactionsApp);
+app.post("/discord", interactionsApp.handle);
 
-app.all("*", (c) => c.text("Not Found you troglodyte", 404));
+app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
 async function handleExpiredVotes(env: Env, db: DrizzleDB) {
   const currentTs = dayjs().toISOString();
@@ -164,7 +164,7 @@ export default {
   fetch: app.fetch,
 
   async scheduled(controller, env, ctx) {
-    const db = makeDB(env);
+    const db = makeDB(env.vote_handler);
 
     switch (controller.cron) {
       case "*/5 * * * *": // every 5 mins
@@ -212,7 +212,7 @@ export class BlacklistCacheDO extends DurableObject {
     super(state, env);
 
     state.blockConcurrencyWhile(async () => {
-      const db = makeDB(env);
+      const db = makeDB(env.vote_handler);
       const blacklistEntries = await db.select().from(blacklist).all();
 
       for (const entry of blacklistEntries) {
