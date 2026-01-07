@@ -24,11 +24,11 @@ app.get("/", (c) => c.env.ASSETS.fetch("/index.html"));
 app.post("/health", (c) => c.text("OK"));
 
 const inviteRouter = new Hono<HonoEnv>();
-inviteRouter.get("/user", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.UserInstall)));
-inviteRouter.all("*", (c) => c.redirect(addBotUrl(c.env.DISCORD_APP_ID, ApplicationIntegrationType.GuildInstall)));
+inviteRouter.get("/user", (c) => c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.UserInstall)));
+inviteRouter.all("*", (c) => c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.GuildInstall)));
 app.route("/invite", inviteRouter);
 
-app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APP_ID));
+app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APPLICATION_ID));
 app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
@@ -111,7 +111,7 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
   for (const config of configs) {
     try {
       // Try to fetch guild member (the bot itself)
-      await rest.get(Routes.guildMember(config.guildId, env.DISCORD_APP_ID));
+      await rest.get(Routes.guildMember(config.guildId, env.DISCORD_APPLICATION_ID));
       console.log(`Guild ${config.guildId} is still valid`);
     } catch (error: any) {
       // If we get 403 or 404, the bot is no longer in the guild
@@ -138,11 +138,11 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
 }
 
 async function updateGuildCount(env: Env, db: DrizzleDB) {
-  if (!env.DISCORD_APP_ID || !env.TOP_GG_TOKEN) return;
+  if (!env.DISCORD_APPLICATION_ID || !env.TOP_GG_TOKEN) return;
 
   const guildCount = await db.select({ count: count() }).from(applications).get();
   try {
-    const res = await fetch(`https://top.gg/api/bots/${env.DISCORD_APP_ID}/stats`, {
+    const res = await fetch(`https://top.gg/api/bots/${env.DISCORD_APPLICATION_ID}/stats`, {
       method: "POST",
       headers: {
         authorization: env.TOP_GG_TOKEN,
