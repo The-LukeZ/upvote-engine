@@ -15,12 +15,21 @@ import { generateSnowflake } from "./snowflake";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { interactionsApp } from "./routes/discord";
 import webhookApp from "./routes/webhooks";
+import { cache } from "hono/cache";
 
 const app = new Hono<HonoEnv>();
 
 // Mount Builtin Middleware
 app.use("*", poweredBy({ serverName: "Venocix" }));
-app.get("/", (c) => c.env.ASSETS.fetch("/index.html"));
+app.get(
+  "/",
+  cache({
+    cacheName: "upvote-engine-static",
+    cacheControl: "public, max-age=86400", // 1 day
+    cacheableStatusCodes: [200],
+  }),
+  (c) => c.env.ASSETS.fetch("/index.html"),
+);
 app.post("/health", (c) => c.text("OK"));
 
 const inviteRouter = new Hono<HonoEnv>();
