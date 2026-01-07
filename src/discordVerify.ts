@@ -107,7 +107,7 @@ export async function verifyDiscordRequest<T extends APIInteraction | APIWebhook
   const signature = req.header("x-signature-ed25519");
   const timestamp = req.header("x-signature-timestamp");
   const body = await (await cloneRawRequest(req)).text();
-  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY));
+  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY));
   if (!isValidRequest) {
     return { isValid: false };
   }

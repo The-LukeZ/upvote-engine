@@ -7,9 +7,9 @@ declare namespace Cloudflare {
 		durableNamespaces: "BlacklistCacheDO";
 	}
 	interface Env {
-		DISCORD_APP_ID: string;
 		DISCORD_APPLICATION_ID: string;
-		DISCORD_PUB_KEY: string;
+		DISCORD_APPLICATION_ID: string;
+		DISCORD_PUBLIC_KEY: string;
         DISCORD_PUBLIC_KEY: string;
 		DISCORD_TOKEN: string;
 		DISCORD_APP_SECRET: string;
@@ -33,7 +33,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "DISCORD_APP_ID" | "DISCORD_PUB_KEY" | "DISCORD_TOKEN" | "DISCORD_APP_SECRET" | "JWT_SECRET" | "CLOUDFLARE_ACCOUNT_ID" | "CLOUDFLARE_DATABASE_ID" | "CLOUDFLARE_D1_TOKEN" | "OWNER_ID" | "ADMIN_GUILD_ID" | "TOP_GG_TOKEN">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "DISCORD_APPLICATION_ID" | "DISCORD_PUBLIC_KEY" | "DISCORD_TOKEN" | "DISCORD_APP_SECRET" | "JWT_SECRET" | "CLOUDFLARE_ACCOUNT_ID" | "CLOUDFLARE_DATABASE_ID" | "CLOUDFLARE_D1_TOKEN" | "OWNER_ID" | "ADMIN_GUILD_ID" | "TOP_GG_TOKEN">> {}
 }
 
 // Begin runtime types
