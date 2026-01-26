@@ -8,4 +8,4 @@ const handlers = [...Object.values(commands), ...Object.values(components)];
 
 bot.loadHandlers(handlers);
 
-export { bot as interactionsApp };
+export { bot };
