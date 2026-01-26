@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { HonoEnv, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../webhook";
-import { makeDB } from "../../../db/util";
 import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
@@ -15,7 +14,7 @@ const topggApp = new Hono<HonoEnv, {}, "/topgg">();
 topggApp.post("/:applicationId", async (c) => {
   const appId = c.req.param("applicationId");
   console.log(`Received Top.gg webhook for application ID: ${appId}`, { daAuthHeader: c.req.header("authorization") });
-  const db = makeDB(c.env.vote_handler);
+  const db = c.get("db");
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
 
   if (!appCfg) {
