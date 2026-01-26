@@ -1,6 +1,5 @@
 import { APIEmoji, ComponentType, MessageFlags, RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
 import { MyContext } from "../../../../types";
-import { makeDB } from "../../../db/util";
 import { ActionRowBuilder, bold, ButtonBuilder, ContainerBuilder, subtext, ModalBuilder } from "@discordjs/builders";
 import { BASE_URL } from "../../../constants";
 import { verifications } from "../../../db/schema";
@@ -22,9 +21,6 @@ Structure:
 
 export const ownerVerifyComponent = new ComponentHandler<ComponentType.Button, MyContext>("owner_verify").addHandler(
   function handleOwnerVerify(ctx) {
-    const db = makeDB(ctx.context.env.vote_handler);
-    ctx.context.set("db", db);
-
     const { component, firstParam: botId } = parseCustomId(ctx.customId) as {
       component: "start" | "verify";
       firstParam: string;
@@ -68,7 +64,7 @@ function startOwnerVerify(ctx: MessageComponentInteraction<ComponentType.Button,
                     `2. Go to the [Developer portal](<https://discord.com/developers/applications/${botId}/emojis>) and upload the image as an emoji`,
                   ),
                   subtext("You only need to upload it once, it can be removed after verification."),
-                  `-# Can't download the iamge? Click [here](${BASE_URL}/upvote-engine.webp) to download it.`,
+                  `-# Can't download the image? Click [here](${BASE_URL}/upvote-engine.webp) to download it.`,
                   "",
                   bold("3. Once uploaded, return here and click the button below to verify ownership"),
                 ].join("\n"),
