@@ -9,12 +9,11 @@ import {
   StringSelectMenuOptionBuilder,
 } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
-import { APIEmbed, APIUser, ApplicationCommandOptionType, ApplicationIntegrationType, MessageFlags } from "discord-api-types/v10";
+import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications, isUserVerifiedForApplication } from "../../../db/schema";
 import { randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
-import { makeDB } from "../../../db/util";
 import {
   GetSupportedPlatform,
   getTestNoticeForPlatform,
@@ -34,7 +33,7 @@ async function validateBot(bot: APIUser, ownApplicationId: string, byOwner: bool
 
 export const appCommand = appCommandData.addHandler(async function handleApp(ctx: ChatInputCommandInteraction<MyContext>) {
   const subgroup = ctx.options.getSubcommandGroup() as "forwarding" | null;
-  const db = makeDB(ctx.context.env.vote_handler);
+  const db = ctx.context.get("db");
 
   if (subgroup === "forwarding") {
     return handleForwarding(ctx.context, ctx, db);

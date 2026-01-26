@@ -1,5 +1,4 @@
 import { DrizzleDB, MyContext } from "../../../../types";
-import { makeDB } from "../../../db/util";
 import { blacklist, BlacklistEntry, NewBlacklistEntry } from "../../../db/schema";
 import { eq, isNotNull } from "drizzle-orm";
 import { ChatInputCommandInteraction, SlashCommandHandler } from "honocord";
@@ -75,7 +74,7 @@ export const adminCommand = new SlashCommandHandler<MyContext>()
 
     await ctx.deferReply(true);
 
-    const db = makeDB(ctx.context.env.vote_handler);
+    const db = ctx.context.get("db");
 
     switch (subcommand) {
       case "add":

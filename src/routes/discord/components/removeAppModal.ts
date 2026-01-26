@@ -1,7 +1,6 @@
 import { ModalHandler, ModalInteraction } from "honocord";
 import { MyContext } from "../../../../types";
 import { deleteApplicationCascade } from "../../../db/schema";
-import { makeDB } from "../../../db/util";
 
 async function handleRemoveAppModal(ctx: ModalInteraction<MyContext>) {
   await ctx.deferReply(true);
@@ -11,7 +10,7 @@ async function handleRemoveAppModal(ctx: ModalInteraction<MyContext>) {
     return ctx.editReply({ content: "Operation cancelled." });
   }
 
-  const db = makeDB(ctx.context.env.vote_handler);
+  const db = ctx.context.get("db");
   const [botUser] = ctx.fields.getSelectedUsers("bot", true);
   const [source] = ctx.fields.getSelectedValues("source", true);
   if (!botUser.bot) {
