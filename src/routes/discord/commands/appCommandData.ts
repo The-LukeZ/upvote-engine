@@ -4,6 +4,7 @@ import { ApplicationIntegrationType } from "discord-api-types/v10";
 import { supportedPlatforms } from "../../../constants";
 
 export const appCommand = new SlashCommandHandler<MyContext>()
+  .setName("app")
   .setDescription("Configure the application connections for this server")
   .setContexts(0)
   .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
