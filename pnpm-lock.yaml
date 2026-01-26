@@ -39,8 +39,8 @@ importers:
         specifier: ^4.11.1
         version: 4.11.1
       honocord:
-        specifier: ^1.2.5
-        version: 1.2.5
+        specifier: ^1.2.6
+        version: 1.2.6
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20251213.0
@@ -1117,8 +1117,8 @@ packages:
     resolution: {integrity: sha512-PmQi306+M/ct/m5s66Hrg+adPnkD5jiO6IjA7WhWw0gSBSo1EcRegwuI1deZ+wd5pzCGynCcn2DprnE4/yEV4w==}
     engines: {node: '>=16.9.0'}
 
-  honocord@1.2.5:
-    resolution: {integrity: sha512-fV6tlkVc3YbGklqd5wNskOtfKSGE1ho2I0BvWVM50qCN7IBmbXaZWgzQVy2771IlUTRoAxb4utvhO4RRDlFkgQ==}
+  honocord@1.2.6:
+    resolution: {integrity: sha512-6VlVRZxx1CBjoM1+lDr3x/IrSFbW0JXROOQfrDZ8D2wgaEOvLeI5ikORE7HKgehANc4F8oOYgXlti+q+jXh/9Q==}
     engines: {node: '>=22.9.0'}
 
   is-arrayish@0.3.4:
@@ -1980,7 +1980,7 @@ snapshots:
 
   hono@4.11.3: {}
 
-  honocord@1.2.5:
+  honocord@1.2.6:
     dependencies:
       '@cloudflare/workers-types': 4.20260103.0
       '@discordjs/builders': 1.13.1

@@ -13,7 +13,7 @@ import { applications, blacklist, Vote, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
 import { generateSnowflake } from "./snowflake";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
-import { interactionsApp } from "./routes/discord";
+import { bot as interactions } from "./routes/discord";
 import webhookApp from "./routes/webhooks";
 import { cache } from "hono/cache";
 
@@ -46,7 +46,7 @@ app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/is
 app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
 
 app.route("/webhook", webhookApp);
-app.post("/discord", interactionsApp.handle);
+app.mount("/discord", interactions.getApp().fetch);
 
 app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
@@ -99,7 +99,7 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
             roleId: vote.roleId,
             expiresAt: vote.expiresAt,
             timestamp: new Date().toISOString(),
-          } as QueueMessageBody),
+          }) as QueueMessageBody,
       )
       .map((message) => ({ contentType: "json", body: message })),
   );
