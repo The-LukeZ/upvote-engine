@@ -74,6 +74,7 @@ export const helpCommand = new SlashCommandHandler<MyContext>()
   .setName("help")
   .setDescription("Provides information and useful links about the Upvote Engine bot")
   .addHandler((ctx) => {
+    console.log(`Database set? ${ctx.context.get("db") ? "yes" : "no"}`);
     const currentUrl = new URL(ctx.context.req.url);
     currentUrl.pathname = "";
     return ctx.reply(helpMsg(currentUrl.toString().replace(/\/$/, "")));
