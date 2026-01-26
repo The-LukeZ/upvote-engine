@@ -1,7 +1,6 @@
-import type { Next } from "hono";
 import { MessageQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../../types/webhooks";
 import { DrizzleDB, MyContext } from "../../../types";
-import { APIVote, forwardings } from "../../db/schema";
+import { forwardings } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import dayjs from "dayjs";
 
@@ -28,7 +27,10 @@ class WebhookHandler<T extends WebhookPayload> {
    *
    * @param authorization Webhook authorization to verify requests
    */
-  constructor(private authorization?: string, options: WebhookOptions = {}) {
+  constructor(
+    private authorization?: string,
+    options: WebhookOptions = {},
+  ) {
     this.options = {
       error: options.error ?? console.error,
     };
