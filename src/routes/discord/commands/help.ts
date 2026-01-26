@@ -70,8 +70,11 @@ const helpMsg = (urlBase: string) => ({
   ],
 });
 
-export const helpCommand = new SlashCommandHandler<MyContext>().addHandler((ctx) => {
-  const currentUrl = new URL(ctx.context.req.url);
-  currentUrl.pathname = "";
-  return ctx.reply(helpMsg(currentUrl.toString().replace(/\/$/, "")));
-});
+export const helpCommand = new SlashCommandHandler<MyContext>()
+  .setName("help")
+  .setDescription("Provides information and useful links about the Upvote Engine bot")
+  .addHandler((ctx) => {
+    const currentUrl = new URL(ctx.context.req.url);
+    currentUrl.pathname = "";
+    return ctx.reply(helpMsg(currentUrl.toString().replace(/\/$/, "")));
+  });
