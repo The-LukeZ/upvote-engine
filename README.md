@@ -1,5 +1,8 @@
 # Upvote Engine
 
+> [!CAUTION]
+> Top.gg webhooks currently only works for Legacy Webhooks since Top.gg revamped their webhooks system.
+
 UpvoteEngine is a performant Discord vote handler built on a FaaS architecture using Cloudflare Workers.
 This serverless approach ensures highly performant role management by automatically assigning and removing
 roles based on top.gg votes with minimal latency and maximum scalability due to the services used.
