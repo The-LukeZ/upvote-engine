@@ -149,5 +149,71 @@
         ],
       },
     },
+    "production": {
+      "account_id": "92d72ac72fb811275ce6e8d5263a9816",
+      "routes": [
+        {
+          "custom_domain": true,
+          "pattern": "upvote-engine.thelukez.com",
+        },
+      ],
+      "preview_urls": false,
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "BLACKLIST",
+            "class_name": "BlacklistCacheDO",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["BlacklistCacheDO"],
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "vote_handler",
+          "database_name": "vote_handler",
+          "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
+          "migrations_dir": "drizzle/migrations",
+          "remote": true,
+        },
+      ],
+      "queues": {
+        "producers": [
+          {
+            "queue": "voteapply",
+            "binding": "VOTE_APPLY",
+          },
+          {
+            "queue": "voteremove",
+            "binding": "VOTE_REMOVE",
+          },
+          {
+            "queue": "forwardwebhook",
+            "binding": "FORWARD_WEBHOOK",
+          },
+        ],
+        "consumers": [
+          {
+            "queue": "voteapply",
+            "type": "worker",
+            "max_retries": 5,
+          },
+          {
+            "queue": "voteremove",
+            "type": "worker",
+            "max_retries": 5,
+          },
+          {
+            "queue": "forwardwebhook",
+            "type": "worker",
+            "max_retries": 10, // We won't hit that because of the logic, but just to be safe
+          },
+        ],
+      },
+    },
   },
 }
