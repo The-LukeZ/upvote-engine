@@ -1,11 +1,16 @@
 # Upvote Engine
 
-> [!CAUTION]
-> Top.gg webhooks currently only works for Legacy Webhooks since Top.gg revamped their webhooks system.
-
 UpvoteEngine is a performant Discord vote handler built on a FaaS architecture using Cloudflare Workers.
 This serverless approach ensures highly performant role management by automatically assigning and removing
 roles based on top.gg votes with minimal latency and maximum scalability due to the services used.
+
+> [!IMPORTANT]
+> If you are using the top.gg webhook, you need to execute `/app edit generate-secret:True` again because Top.gg has changed their API and webhooks.
+> It now requires a different logic to validate the incoming webhook requests, which is implemented in the latest version of UpvoteEngine.
+>
+> The legacy webhook validation logic still available but is not recommended to use due to security reasons. In short, topgg webhooks going to the `/topgg` or `/topgg/v0` endpoint are validated with the legacy logic, while new webhooks going to the `/topgg/v1` endpoint are validated with the new logic.
+>
+> At some point in the future, the legacy logic and structure will be changed again to only support the v1 structure and logic - only `/topgg` and `/topgg/v1` endpoints will be available and are subject to the v1 validation logic. So it's recommended to switch to the new structure and logic as soon as possible.
 
 ## How it's done
 
