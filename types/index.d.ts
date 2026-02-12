@@ -22,19 +22,22 @@ import { BaseHonocordEnv, BaseInteractionContext } from "honocord";
 export * from "./db";
 export * from "./topgg";
 
-export interface ResponseLike
-  extends Pick<Response, "arrayBuffer" | "bodyUsed" | "headers" | "json" | "ok" | "status" | "statusText" | "text"> {
+export interface ResponseLike extends Pick<
+  Response,
+  "arrayBuffer" | "bodyUsed" | "headers" | "json" | "ok" | "status" | "statusText" | "text"
+> {
   body: Readable | ReadableStream | null;
 }
 
 export type DrizzleDB = ReturnType<typeof makeDB>;
 
 export type HonoVariables = { vote?: WebhookPayload; db: DrizzleDB };
-export type HonoEnv = BaseHonocordEnv<Env, HonoVariables>;
-export type MyContext = Context<{
-  Bindings: Env;
+type WorkerEnv = Env;
+export type HonoEnv = {
+  Bindings: WorkerEnv;
   Variables: HonoVariables;
-}>;
+};
+export type MyContext = BaseInteractionContext<WorkerEnv, HonoVariables>;
 
 export interface QueueMessageBody extends APIVote {
   timestamp: string;

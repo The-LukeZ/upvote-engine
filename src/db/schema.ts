@@ -60,10 +60,19 @@ export const verifications = sqliteTable("verifications", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   applicationId: text("application_id").notNull(),
   guildId: text("guild_id").notNull(),
-  userId: text("user_id").notNull(), // The requesting user id (user trying to verify ownership)
+  userId: text("user_id").notNull(),
   createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-  emojiId: text("emoji_id"), // The emoji being verified (ID or markdown)
   verified: integer("verified", { mode: "boolean" }).notNull().default(false),
+});
+
+// Separate table for storing owner access tokens
+export const owners = sqliteTable("owners", {
+  userId: text("user_id").primaryKey(), // Discord User ID
+  accessToken: text("access_token").notNull(),
+  iv: text("iv").notNull(), // Initialization vector for AES encryption
+  expiresAt: text("expires_at").notNull(),
+  scope: text("scope").notNull(), // example: "applications.entitlements identify"
+  updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
 });
 
 export type ApplicationCfg = typeof applications.$inferSelect;
@@ -84,6 +93,9 @@ export type NewBlacklistEntry = typeof blacklist.$inferInsert;
 
 export type VerificationEntry = typeof verifications.$inferSelect;
 export type NewVerificationEntry = typeof verifications.$inferInsert;
+
+export type OwnerToken = typeof owners.$inferSelect;
+export type NewOwnerToken = typeof owners.$inferInsert;
 
 export async function deleteApplicationCascade(db: DrizzleDB, applicationId: string, source: string, guildId: string) {
   // Delete related forwardings
@@ -119,4 +131,60 @@ export async function isUserVerifiedForApplication(
     .get();
 
   return !!verification;
+}
+
+export class Cryptor {
+  private key: CryptoKey | null = null;
+
+  constructor(private readonly secret: string) {}
+
+  /**
+   * Generates a CryptoKey from the provided secret. This is done once and cached.
+   */
+  private async getKey(): Promise<CryptoKey> {
+    if (this.key) return this.key;
+
+    const enc = new TextEncoder();
+    this.key = await crypto.subtle.importKey(
+      "raw",
+      enc.encode(this.secret.padEnd(32, "0").slice(0, 32)), // Ensure 32 bytes for AES-256
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"],
+    );
+    return this.key;
+  }
+
+  /**
+   * Generates a random IV for AES-GCM encryption.
+   */
+  private generateIV(): Uint8Array {
+    return crypto.getRandomValues(new Uint8Array(12)); // AES-GCM standard IV length
+  }
+
+  public async encryptToken(token: string): Promise<{ token: string; iv: string }> {
+    const enc = new TextEncoder();
+    const iv = this.generateIV();
+    const key = await this.getKey();
+
+    const encryptedBuffer = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, enc.encode(token));
+
+    return {
+      token: Buffer.from(encryptedBuffer).toString("base64"),
+      iv: Buffer.from(iv).toString("base64"),
+    };
+  }
+
+  public async decryptToken(encryptedToken: string, iv: string): Promise<string> {
+    const key = await this.getKey();
+    const dec = new TextDecoder();
+
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: Buffer.from(iv, "base64") },
+      key,
+      Buffer.from(encryptedToken, "base64"),
+    );
+
+    return dec.decode(decryptedBuffer);
+  }
 }

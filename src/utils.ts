@@ -179,3 +179,28 @@ export async function dmUserOnTestVote(
     return;
   }
 }
+
+/**
+ * Cleans a URL by removing query parameters and hash fragments, leaving only the base URL.
+ * @param url The URL to clean
+ * @returns The cleaned URL without query parameters or hash fragments
+ */
+export function cleanUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+    parsedUrl.search = "";
+    parsedUrl.hash = "";
+    return parsedUrl.toString();
+  } catch (error) {
+    console.error("Invalid URL provided to cleanUrl:", { url, error });
+    return url; // Return the original URL if parsing fails
+  }
+}
+
+export function getAuthorizeUrlForOwnershipVerify(requestUrl: string, botId: string) {
+  const redirectUri = new URL(requestUrl);
+  redirectUri.pathname = `/discord/ownership-verify`;
+  redirectUri.search = "";
+  redirectUri.hash = "";
+  return `https://discord.com/api/oauth2/authorize?client_id=${botId}&scope=applications.entitlements+identify&redirect_uri=${encodeURIComponent(redirectUri.toString())}&response_type=code`;
+}

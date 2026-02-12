@@ -1,8 +1,8 @@
-import { ModalHandler, ModalInteraction } from "honocord";
+import { ModalHandler } from "honocord";
 import { MyContext } from "../../../../types";
 import { deleteApplicationCascade } from "../../../db/schema";
 
-async function handleRemoveAppModal(ctx: ModalInteraction<MyContext>) {
+export const removeAppModal = new ModalHandler<MyContext>("remove_app").addHandler(async function handleRemoveAppModal(ctx) {
   await ctx.deferReply(true);
 
   const confirmation = ctx.fields.getSelectedValues("confirmation")![0] === "1";
@@ -26,6 +26,4 @@ async function handleRemoveAppModal(ctx: ModalInteraction<MyContext>) {
   }
 
   await ctx.editReply({ content: `Successfully removed application configuration for <@${botUser.id}>.` });
-}
-
-export const removeAppModal = new ModalHandler<MyContext>("remove_app").addHandler(handleRemoveAppModal);
+});
