@@ -1,11 +1,24 @@
-import { APIEmoji, ComponentType, MessageFlags, RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
+import { APIEmoji, MessageFlags, RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
 import { MyContext } from "../../../../types";
-import { ActionRowBuilder, bold, ButtonBuilder, ContainerBuilder, subtext, ModalBuilder } from "@discordjs/builders";
+import { bold, subtext } from "@discordjs/builders";
 import { BASE_URL } from "../../../constants";
 import { verifications } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { DiscordAPIError } from "@discordjs/rest";
-import { Colors, ComponentHandler, MessageComponentInteraction, ModalHandler, ModalInteraction, parseCustomId } from "honocord";
+import {
+  Colors,
+  ComponentHandler,
+  ComponentType,
+  ModalHandler,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ContainerBuilder,
+  ModalBuilder,
+  ModalInteraction,
+  parseCustomId,
+  type ButtonInteraction,
+} from "honocord";
+import { getAuthorizeUrlForOwnershipVerify } from "../../../utils";
 
 /*
 Components in here:
@@ -19,15 +32,52 @@ Structure:
   - verifyOwnership
 */
 
-export const ownerVerifyComponent = new ComponentHandler<ComponentType.Button, MyContext>("owner_verify").addHandler(
-  function handleOwnerVerify(ctx) {
+export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentType.Button>("owner_verify", ComponentType.Button).addHandler(
+  (ctx) => {
     const { component, firstParam: botId } = parseCustomId(ctx.customId) as {
       component: "start" | "verify";
       firstParam: string;
     };
 
     if (component === "start") {
-      return startOwnerVerify(ctx, botId);
+      return ctx.update({
+        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
+        components: [
+          new ContainerBuilder()
+            .setAccentColor(Colors.Blurple)
+            .addTextDisplayComponents((t) =>
+              t.setContent(
+                `## Ownership Verification Requested for <@${botId}>\nPlease follow the steps below to complete the verification process.`,
+              ),
+            )
+            .addSeparatorComponents((s) => s.setSpacing(2))
+            .addTextDisplayComponents(
+              (t) =>
+                t.setContent(
+                  "Ownership verification works by using a workaround that requires you to authorize the bot so it can fetch your app's entitlements.\n" +
+                    "It doesn't matter if your app supports it or not, the owner ship can be verified by the returned status code.",
+                ),
+              (t) =>
+                t.setContent(
+                  "First, click the **Authorize Bot** button below. You will be prompted to authorize the bot with the `applications.entitlements` scope. This allows the bot to check for an entitlement that only the owner of the application would have.",
+                ),
+              (t) =>
+                t.setContent(
+                  "After authorizing, return to this message and click the **Verify Ownership** button. The bot will check for the entitlement and verify your ownership based on that.",
+                ),
+            )
+            .addActionRowComponents((ar: ActionRowBuilder<ButtonBuilder>) =>
+              ar.setComponents(
+                new ButtonBuilder()
+                  .setLabel("Authorize Bot")
+                  .setStyle(5)
+                  .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, botId))
+                  .setEmoji({ name: "🔗" }),
+                new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify/${botId}`).setEmoji({ name: "✅" }),
+              ),
+            ) as any,
+        ],
+      });
     } else if (component === "verify") {
       return verifyOwnership(ctx, botId);
     } else {
@@ -36,55 +86,7 @@ export const ownerVerifyComponent = new ComponentHandler<ComponentType.Button, M
   },
 );
 
-function startOwnerVerify(ctx: MessageComponentInteraction<ComponentType.Button, MyContext>, botId: string) {
-  return ctx.update({
-    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
-    components: [
-      new ContainerBuilder()
-        .setAccentColor(Colors.Blurple)
-        .addTextDisplayComponents((t) =>
-          t.setContent(
-            `## Ownership Verification Requested for <@${botId}>\nPlease follow the steps below to complete the verification process.`,
-          ),
-        )
-        .addSeparatorComponents((s) => s.setSpacing(2))
-        .addTextDisplayComponents((t) =>
-          t.setContent(
-            "Ownership verification works by using application owned emojis. You can either add a new emoji to your app via the developer portal **or** by using an already existing emoji. Select below.",
-          ),
-        )
-        .addSectionComponents((sec) =>
-          sec
-            .setThumbnailAccessory((th) => th.setURL(`${BASE_URL}/upvote-engine.webp`))
-            .addTextDisplayComponents((t) =>
-              t.setContent(
-                [
-                  bold(`1. Find a small image or [download](${BASE_URL}/upvote-engine.webp) the one on the right`),
-                  bold(
-                    `2. Go to the [Developer portal](<https://discord.com/developers/applications/${botId}/emojis>) and upload the image as an emoji`,
-                  ),
-                  subtext("You only need to upload it once, it can be removed after verification."),
-                  `-# Can't download the image? Click [here](${BASE_URL}/upvote-engine.webp) to download it.`,
-                  "",
-                  bold("3. Once uploaded, return here and click the button below to verify ownership"),
-                ].join("\n"),
-              ),
-            )
-            .addTextDisplayComponents((t) =>
-              t.setContent(bold("3. Once uploaded, return here and click the button below to verify ownership")),
-            ),
-        )
-        .addActionRowComponents((ar: ActionRowBuilder<ButtonBuilder>) =>
-          ar.setComponents(
-            new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify_${botId}`).setEmoji({ name: "✅" }),
-          ),
-        )
-        .toJSON(),
-    ],
-  });
-}
-
-async function verifyOwnership(ctx: MessageComponentInteraction<ComponentType.Button, MyContext>, botId: string) {
+async function verifyOwnership(ctx: ButtonInteraction<MyContext>, botId: string) {
   const db = ctx.context.get("db");
   const entry = await db
     .select()
@@ -147,7 +149,7 @@ async function verifyOwnershipModal(ctx: ModalInteraction<MyContext>) {
 
   await ctx.update({
     flags: MessageFlags.IsComponentsV2,
-    components: [new ContainerBuilder().addTextDisplayComponents((t) => t.setContent("Verifying ownership, please wait...")).toJSON()],
+    components: [new ContainerBuilder().addTextDisplayComponents((t) => t.setContent("Verifying ownership, please wait...")) as any],
   });
 
   // Update the verification entry with the emoji being verified

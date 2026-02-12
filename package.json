@@ -41,7 +41,7 @@
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.11.9",
-    "honocord": "^1.5.0"
+    "honocord": "^1.5.1"
   },
   "license": "PolyForm Internal Use License 1.0.0"
 }

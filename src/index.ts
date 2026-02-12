@@ -16,11 +16,12 @@ import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queue
 import { bot as interactions } from "./routes/discord";
 import webhookApp from "./routes/webhooks";
 import { cache } from "hono/cache";
+import { ovHandler } from "./routes/discord/ownershipVerifyCallback";
 
 const app = new Hono<HonoEnv>();
 
 // Mount Builtin Middleware
-app.use("*", poweredBy({ serverName: "Venocix" }));
+app.use("*", poweredBy({ serverName: "Cloudflare Workers" }));
 app.get(
   "/",
   cache({
@@ -46,7 +47,9 @@ app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/is
 app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
 
 app.route("/webhook", webhookApp);
-app.mount("/discord", interactions.getApp().fetch);
+const interactionsApp = interactions.getApp();
+interactionsApp.get("/discord/ownership-verify", ovHandler);
+app.route("/discord", interactionsApp);
 
 app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
