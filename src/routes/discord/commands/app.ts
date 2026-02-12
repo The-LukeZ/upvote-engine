@@ -345,14 +345,9 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 }
 
 async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
-  console.log("Deferring reply for edit subcommand");
-  await ctx.deferReply(true);
-
-  console.log("Editing app configuration for guild");
-
   const bot = ctx.options.getUser("bot", true);
   if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
-    return ctx.editReply({ content: "The selected user is not a bot." });
+    return ctx.reply({ content: "The selected user is not a bot." }, true);
   }
 
   // Check if user has verified ownership (skip for owner)
@@ -360,9 +355,10 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   if (!isOwner) {
     const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
     if (!isVerified) {
-      return ctx.editReply(
+      return ctx.reply(
         "You must verify ownership of this application before configuring it.\n" +
           `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
+        true,
       );
     }
   }
@@ -381,6 +377,8 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       buildAppModal("Edit App - Top.gg Webhooks V1 Setup", bot.id, roleId, true, durationHours !== null ? durationHours : undefined, true),
     );
   }
+
+  await ctx.deferReply(true);
 
   const guildId = ctx.guildId!;
   console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId, generateNewSecret });
