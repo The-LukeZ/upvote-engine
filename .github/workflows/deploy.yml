@@ -2,8 +2,9 @@ name: Deploy to CF Workers
 
 on:
   push:
-    branches:
-      - master
+    # Deploy on any branch push, but only if the commit message contains "deploy"
+    branches: ["*"]
+  # Allow manual deployment from the GitHub Actions UI
   workflow_dispatch:
 
 jobs:
