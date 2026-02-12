@@ -455,7 +455,7 @@ async function handleRemoveApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) 
   return ctx.editReply({ content: `Successfully removed app configuration for <@${bot.id}> (${GetSupportedPlatform(source)}).` });
 }
 
-function buildAppInfo(
+export function buildAppInfo(
   clientId: string,
   cfg: ApplicationCfg,
   action: "edit" | "create",

@@ -7,7 +7,7 @@ export const applications = sqliteTable(
   {
     applicationId: text("application_id").notNull(),
     source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
-    secret: text("secret").notNull().unique(),
+    secret: text("secret").notNull(),
     guildId: text("guild_id").notNull(),
     voteRoleId: text("vote_role_id").notNull(),
     roleDurationSeconds: integer("role_duration_seconds"),
