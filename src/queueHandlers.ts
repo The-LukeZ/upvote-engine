@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { QueueMessageBody } from "../types";
-import { APIVote, votes } from "./db/schema";
+import { APIVote, NewVote, votes } from "./db/schema";
 import { makeDB } from "./db/util";
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
@@ -29,11 +29,19 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
   }
 
   await db.insert(votes).values(
-    validMessages.map((message) => ({
-      ...message.body,
-      id: BigInt(message.body.id),
-      hasRole: false,
-    })),
+    validMessages.map(
+      (message) =>
+        ({
+          hasRole: false,
+          id: BigInt(message.body.id),
+          applicationId: message.body.applicationId,
+          guildId: message.body.guildId,
+          roleId: message.body.roleId,
+          userId: message.body.userId,
+          expiresAt: message.body.expiresAt,
+          source: message.body.source,
+        }) satisfies NewVote,
+    ),
   );
 
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);

@@ -8,13 +8,43 @@ type Snowflake = string;
  * @see {@link https://github.com/top-gg/webhooks-v2-nodejs-example}
  */
 export interface TopGGV1Payload {
-  type: "bot.vote" | "bot.test" | "server.vote" | "server.test" | string;
+  type: "bot.vote" | "webhook.test" | "server.vote" | string;
   data: {
-    user: Snowflake;
-    bot?: Snowflake;
-    guild?: Snowflake;
-    isWeekend?: boolean;
-    query?: Record<string, string> | string;
+    /** Event ID */
+    id: Snowflake;
+    user: {
+      /** Top.gg ID */
+      id: Snowflake;
+      /** Discord ID */
+      platform_id: Snowflake;
+      /** Username */
+      name: string;
+      avatar_url: string;
+    };
+    /**
+     * The number of votes this vote counted for. This is a rounded integer value which determines how many points this individual vote was worth.
+     */
+    weight: number;
+    /** Timestamp of when the vote was cast. */
+    created_at: string;
+    /** Timestamp of when the user can vote again. */
+    expires_at: string;
+    project: {
+      /** Top.gg ID */
+      id: Snowflake;
+      /** The project type */
+      type: "bot" | "server";
+      /**
+       * The platform the project belongs to.
+       *
+       * Always "discord" for discord bots and servers,
+       */
+      platform: "discord" | "roblox"; // get outta here roblox
+      /**
+       * The ID of the project on the platform it belongs to.
+       */
+      platform_id: Snowflake;
+    };
   };
 }
 

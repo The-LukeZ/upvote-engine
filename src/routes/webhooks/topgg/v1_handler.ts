@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../webhook";
-import { applications } from "../../../db/schema";
+import { applications, NewVote } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
@@ -36,12 +36,12 @@ export async function v1handler<CT extends Context>(c: CT) {
   const vote = valRes.payload;
 
   // Handle test votes
-  if (vote.type === "test" || vote.type === "bot.test") {
+  if (vote.type === "webhook.test") {
     console.log("Received test vote payload", { vote, version });
     c.executionCtx.waitUntil(
       dmUserOnTestVote(db, c.env, {
         applicationId: appId,
-        userId: vote.data.user,
+        userId: vote.data.user.id,
         source: "topgg",
       }),
     );
@@ -54,7 +54,7 @@ export async function v1handler<CT extends Context>(c: CT) {
 
   await c.env.VOTE_APPLY.send({
     id: voteId,
-    userId: vote.data.user,
+    userId: vote.data.user.id,
     applicationId: appId,
     guildId: appCfg.guildId,
     roleId: appCfg.voteRoleId,
