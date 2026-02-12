@@ -896,6 +896,31 @@ function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
 
 async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   const bot = ctx.options.getUser("bot", true);
+  if (!bot.bot) {
+    return ctx.reply({ content: "The selected user is not a bot." }, true);
+  }
+
+  const existingVerification = await db
+    .select()
+    .from(verifications)
+    .where(and(eq(verifications.applicationId, bot.id)))
+    .get();
+
+  if (existingVerification?.verified) {
+    const message =
+      existingVerification.userId === ctx.user.id
+        ? "Your ownership of this application has already been verified!"
+        : "This application's ownership has already been verified by another user.";
+
+    return ctx.editReply({
+      flags: MessageFlags.IsComponentsV2,
+      components: [
+        new ContainerBuilder()
+          .setAccentColor(Colors.Green)
+          .addTextDisplayComponents((t) => t.setContent(bold("Ownership Already Verified") + `\n${message}`)) as any,
+      ],
+    });
+  }
 
   await db
     .insert(verifications)
