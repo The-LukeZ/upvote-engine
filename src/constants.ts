@@ -17,7 +17,7 @@ export const BASE_URL = "https://upvote-engine.thelukez.com";
  * @returns The complete Platform webhook URL.
  */
 export const PlatformWebhookUrl = (platform: SupportedPlatforms, appId: string) =>
-  `${BASE_URL}/webhook/${platform}/${appId}` as const;
+  `${BASE_URL}/webhook/${platform === "topgg" ? "topgg/v1" : platform}/${appId}` as const;
 
 export const supportedPlatforms = {
   topgg: "Top.gg",
