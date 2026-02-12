@@ -7,7 +7,7 @@
   "name": "vote-handler",
   "main": "src/index.ts",
   "minify": true,
-  "compatibility_date": "2025-12-15",
+  "compatibility_date": "2026-02-12",
   "compatibility_flags": ["nodejs_compat"],
   "limits": {
     "cpu_ms": 20000,
@@ -24,15 +24,6 @@
   "observability": {
     "enabled": true,
   },
-  "d1_databases": [
-    {
-      "binding": "vote_handler",
-      "database_name": "vote_handler",
-      "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
-      "migrations_dir": "drizzle/migrations",
-      "remote": true,
-    },
-  ],
   "assets": {
     "directory": "./public/",
     "binding": "ASSETS",
@@ -40,53 +31,6 @@
   "triggers": {
     "crons": ["*/5 * * * *", "0 3 * * 1"], // every 5 mins, every sunday at 3 AM
   },
-  "queues": {
-    "producers": [
-      {
-        "queue": "voteapply",
-        "binding": "VOTE_APPLY",
-      },
-      {
-        "queue": "voteremove",
-        "binding": "VOTE_REMOVE",
-      },
-      {
-        "queue": "forwardwebhook",
-        "binding": "FORWARD_WEBHOOK",
-      },
-    ],
-    "consumers": [
-      {
-        "queue": "voteapply",
-        "type": "worker",
-        "max_retries": 5,
-      },
-      {
-        "queue": "voteremove",
-        "type": "worker",
-        "max_retries": 5,
-      },
-      {
-        "queue": "forwardwebhook",
-        "type": "worker",
-        "max_retries": 10, // We won't hit that because of the logic, but just to be safe
-      },
-    ],
-  },
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "BLACKLIST",
-        "class_name": "BlacklistCacheDO",
-      },
-    ],
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["BlacklistCacheDO"],
-    },
-  ],
   "env": {
     "preview": {
       "account_id": "92d72ac72fb811275ce6e8d5263a9816",
