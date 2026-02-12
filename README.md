@@ -10,7 +10,6 @@ roles based on top.gg votes with minimal latency and maximum scalability due to 
 ## How it's done
 
 - Cloudflare Worker built with Hono
-
   - Fetch handler by Hono
   - Queue handler native to Cloudflare Workers: This is used to process role assignments and removals asynchronously.
 
