@@ -84,7 +84,7 @@ export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentTyp
                 new ButtonBuilder()
                   .setLabel("Authorize Bot")
                   .setStyle(5)
-                  .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, botId))
+                  .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, ctx.applicationId))
                   .setEmoji({ name: "🔗" }),
                 new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${botId}`).setEmoji({ name: "✅" }),
               ),
@@ -148,7 +148,7 @@ export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentTyp
                 new ButtonBuilder()
                   .setLabel("Authorize Bot")
                   .setStyle(5)
-                  .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, botId))
+                  .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, ctx.applicationId))
                   .setEmoji({ name: "🔗" }),
                 new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${botId}`).setEmoji({ name: "✅" }),
               ),

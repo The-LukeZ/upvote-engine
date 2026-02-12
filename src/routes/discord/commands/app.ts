@@ -939,7 +939,7 @@ async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: Driz
             new ButtonBuilder()
               .setLabel("Authorize Bot")
               .setStyle(5)
-              .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, bot.id))
+              .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, ctx.applicationId))
               .setEmoji({ name: "🔗" }),
             new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${bot.id}`).setEmoji({ name: "✅" }),
           ),
