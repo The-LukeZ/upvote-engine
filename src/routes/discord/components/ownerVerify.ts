@@ -95,6 +95,7 @@ export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentTyp
         },
       });
       if (!response.ok) {
+        // It's a 403 if the user is not the owner, 200 if the user is the owner, and other status codes for different errors (e.g. 401 for invalid token)
         console.error("Failed to fetch entitlements with status", response.status);
         return ctx.editReply({
           flags: MessageFlags.IsComponentsV2,
