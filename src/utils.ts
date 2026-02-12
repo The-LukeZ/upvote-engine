@@ -199,7 +199,7 @@ export function cleanUrl(url: string) {
 
 export function getAuthorizeUrlForOwnershipVerify(requestUrl: string, botId: string) {
   const redirectUri = new URL(requestUrl);
-  redirectUri.pathname = `/discord/ownership-verify`;
+  redirectUri.pathname = `/ownership-verify`;
   redirectUri.search = "";
   redirectUri.hash = "";
   return `https://discord.com/api/oauth2/authorize?client_id=${botId}&scope=applications.entitlements+identify&redirect_uri=${encodeURIComponent(redirectUri.toString())}&response_type=code`;
