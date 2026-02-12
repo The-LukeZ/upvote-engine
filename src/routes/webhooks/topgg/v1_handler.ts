@@ -19,7 +19,6 @@ export async function v1handler<CT extends Context>(c: CT) {
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
 
   if (!appCfg) {
-    console.log(`Application with ID ${appId} not found`);
     return c.json({ error: "Application not found" }, 404);
   }
 
