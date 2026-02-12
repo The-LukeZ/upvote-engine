@@ -3,7 +3,7 @@ import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications, isUserVerifiedForApplication } from "../../../db/schema";
-import { randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
+import { getAuthorizeUrlForOwnershipVerify, randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
 import {
   GetSupportedPlatform,
@@ -928,23 +928,29 @@ async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: Driz
           ),
         )
         .addSeparatorComponents((s) => s.setSpacing(2))
-        .addTextDisplayComponents((t) =>
-          t.setContent(
-            "Ownership verification works by using application owned emojis. You can either add a new emoji to your app via the developer portal **or** by using an already existing emoji. Select below.",
-          ),
+        .addTextDisplayComponents(
+          (t) =>
+            t.setContent(
+              "Ownership verification works by using a workaround that requires you to authorize the bot so it can fetch your app's entitlements.\n" +
+                "It doesn't matter if your app supports it or not, the owner ship can be verified by the returned status code.",
+            ),
+          (t) =>
+            t.setContent(
+              "First, click the **Authorize Bot** button below. You will be prompted to authorize the bot with the `applications.entitlements` scope. This allows the bot to check for an entitlement that only the owner of the application would have.",
+            ),
+          (t) =>
+            t.setContent(
+              "After authorizing, return to this message and click the **Verify Ownership** button. The bot will check for the entitlement and verify your ownership based on that.",
+            ),
         )
         .addActionRowComponents((ar: ActionRowBuilder<ButtonBuilder>) =>
           ar.setComponents(
             new ButtonBuilder()
-              .setLabel("Use Existing Emoji")
-              .setStyle(2)
-              .setCustomId(`verify_ownership_use_existing_${bot.id}`)
-              .setEmoji({ name: "✅" }),
-            new ButtonBuilder()
-              .setLabel("Upload New Emoji")
-              .setStyle(1)
-              .setCustomId(`verify_ownership_upload_new_${bot.id}`)
-              .setEmoji({ name: "⬆️" }),
+              .setLabel("Authorize Bot")
+              .setStyle(5)
+              .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, botId))
+              .setEmoji({ name: "🔗" }),
+            new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${botId}`).setEmoji({ name: "✅" }),
           ),
         ) as any,
     ],
