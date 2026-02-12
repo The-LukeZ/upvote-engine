@@ -31,133 +31,180 @@
   "triggers": {
     "crons": ["*/5 * * * *", "0 3 * * 1"], // every 5 mins, every sunday at 3 AM
   },
-  "env": {
-    "preview": {
-      "account_id": "92d72ac72fb811275ce6e8d5263a9816",
-      "routes": [],
-      "preview_urls": true,
-      "durable_objects": {
-        "bindings": [
-          {
-            "name": "BLACKLIST",
-            "class_name": "BlacklistCacheDO",
-          },
-        ],
+  "queues": {
+    "producers": [
+      {
+        "queue": "voteapply",
+        "binding": "VOTE_APPLY",
       },
-      "migrations": [
-        {
-          "tag": "v1",
-          "new_sqlite_classes": ["BlacklistCacheDO"],
-        },
-      ],
-      "d1_databases": [
-        {
-          "binding": "vote_handler",
-          "database_name": "vote_handler",
-          "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
-          "migrations_dir": "drizzle/migrations",
-          "remote": true,
-        },
-      ],
-      "queues": {
-        "producers": [
-          {
-            "queue": "voteapply-preview",
-            "binding": "VOTE_APPLY",
-          },
-          {
-            "queue": "voteremove-preview",
-            "binding": "VOTE_REMOVE",
-          },
-          {
-            "queue": "forwardwebhook-preview",
-            "binding": "FORWARD_WEBHOOK",
-          },
-        ],
-        "consumers": [
-          {
-            "queue": "voteapply-preview",
-            "type": "worker",
-            "max_retries": 5,
-          },
-          {
-            "queue": "voteremove-preview",
-            "type": "worker",
-            "max_retries": 5,
-          },
-          {
-            "queue": "forwardwebhook-preview",
-            "type": "worker",
-            "max_retries": 10, // We won't hit that because of the logic, but just to be safe
-          },
-        ],
+      {
+        "queue": "voteremove",
+        "binding": "VOTE_REMOVE",
       },
-    },
-    "production": {
-      "account_id": "92d72ac72fb811275ce6e8d5263a9816",
-      "routes": [
-        {
-          "custom_domain": true,
-          "pattern": "upvote-engine.thelukez.com",
-        },
-      ],
-      "preview_urls": false,
-      "durable_objects": {
-        "bindings": [
-          {
-            "name": "BLACKLIST",
-            "class_name": "BlacklistCacheDO",
-          },
-        ],
+      {
+        "queue": "forwardwebhook",
+        "binding": "FORWARD_WEBHOOK",
       },
-      "migrations": [
-        {
-          "tag": "v1",
-          "new_sqlite_classes": ["BlacklistCacheDO"],
-        },
-      ],
-      "d1_databases": [
-        {
-          "binding": "vote_handler",
-          "database_name": "vote_handler",
-          "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
-          "migrations_dir": "drizzle/migrations",
-          "remote": true,
-        },
-      ],
-      "queues": {
-        "producers": [
-          {
-            "queue": "voteapply-live",
-            "binding": "VOTE_APPLY",
-          },
-          {
-            "queue": "voteremove-live",
-            "binding": "VOTE_REMOVE",
-          },
-          {
-            "queue": "forwardwebhook-live",
-            "binding": "FORWARD_WEBHOOK",
-          },
-        ],
-        "consumers": [
-          {
-            "queue": "voteapply-live",
-            "type": "worker",
-            "max_retries": 5,
-          },
-          {
-            "queue": "voteremove-live",
-            "type": "worker",
-            "max_retries": 5,
-          },
-          {
-            "queue": "forwardwebhook-live",
-            "type": "worker",
-            "max_retries": 10, // We won't hit that because of the logic, but just to be safe
-          },
-        ],
+    ],
+    "consumers": [
+      {
+        "queue": "voteapply",
+        "type": "worker",
+        "max_retries": 5,
       },
-    },
+      {
+        "queue": "voteremove",
+        "type": "worker",
+        "max_retries": 5,
+      },
+      {
+        "queue": "forwardwebhook",
+        "type": "worker",
+        "max_retries": 10, // We won't hit that because of the logic, but just to be safe
+      },
+    ],
   },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BLACKLIST",
+        "class_name": "BlacklistCacheDO",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BlacklistCacheDO"],
+    },
+  ],
+  // "env": {
+  //   "preview": {
+  //     "account_id": "92d72ac72fb811275ce6e8d5263a9816",
+  //     "routes": [],
+  //     "preview_urls": true,
+  //     "durable_objects": {
+  //       "bindings": [
+  //         {
+  //           "name": "BLACKLIST",
+  //           "class_name": "BlacklistCacheDO",
+  //         },
+  //       ],
+  //     },
+  //     "migrations": [
+  //       {
+  //         "tag": "v1",
+  //         "new_sqlite_classes": ["BlacklistCacheDO"],
+  //       },
+  //     ],
+  //     "d1_databases": [
+  //       {
+  //         "binding": "vote_handler",
+  //         "database_name": "vote_handler",
+  //         "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
+  //         "migrations_dir": "drizzle/migrations",
+  //         "remote": true,
+  //       },
+  //     ],
+  //     "queues": {
+  //       "producers": [
+  //         {
+  //           "queue": "voteapply-preview",
+  //           "binding": "VOTE_APPLY",
+  //         },
+  //         {
+  //           "queue": "voteremove-preview",
+  //           "binding": "VOTE_REMOVE",
+  //         },
+  //         {
+  //           "queue": "forwardwebhook-preview",
+  //           "binding": "FORWARD_WEBHOOK",
+  //         },
+  //       ],
+  //       "consumers": [
+  //         {
+  //           "queue": "voteapply-preview",
+  //           "type": "worker",
+  //           "max_retries": 5,
+  //         },
+  //         {
+  //           "queue": "voteremove-preview",
+  //           "type": "worker",
+  //           "max_retries": 5,
+  //         },
+  //         {
+  //           "queue": "forwardwebhook-preview",
+  //           "type": "worker",
+  //           "max_retries": 10, // We won't hit that because of the logic, but just to be safe
+  //         },
+  //       ],
+  //     },
+  //   },
+  //   "production": {
+  //     "account_id": "92d72ac72fb811275ce6e8d5263a9816",
+  //     "routes": [
+  //       {
+  //         "custom_domain": true,
+  //         "pattern": "upvote-engine.thelukez.com",
+  //       },
+  //     ],
+  //     "preview_urls": false,
+  //     "durable_objects": {
+  //       "bindings": [
+  //         {
+  //           "name": "BLACKLIST",
+  //           "class_name": "BlacklistCacheDO",
+  //         },
+  //       ],
+  //     },
+  //     "migrations": [
+  //       {
+  //         "tag": "v1",
+  //         "new_sqlite_classes": ["BlacklistCacheDO"],
+  //       },
+  //     ],
+  //     "d1_databases": [
+  //       {
+  //         "binding": "vote_handler",
+  //         "database_name": "vote_handler",
+  //         "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
+  //         "migrations_dir": "drizzle/migrations",
+  //         "remote": true,
+  //       },
+  //     ],
+  //     "queues": {
+  //       "producers": [
+  //         {
+  //           "queue": "voteapply",
+  //           "binding": "VOTE_APPLY",
+  //         },
+  //         {
+  //           "queue": "voteremove",
+  //           "binding": "VOTE_REMOVE",
+  //         },
+  //         {
+  //           "queue": "forwardwebhook",
+  //           "binding": "FORWARD_WEBHOOK",
+  //         },
+  //       ],
+  //       "consumers": [
+  //         {
+  //           "queue": "voteapply",
+  //           "type": "worker",
+  //           "max_retries": 5,
+  //         },
+  //         {
+  //           "queue": "voteremove",
+  //           "type": "worker",
+  //           "max_retries": 5,
+  //         },
+  //         {
+  //           "queue": "forwardwebhook",
+  //           "type": "worker",
+  //           "max_retries": 10, // We won't hit that because of the logic, but just to be safe
+  //         },
+  //       ],
+  //     },
+  //   },
+  // },
 }
