@@ -897,25 +897,16 @@ function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
 
 async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   const bot = ctx.options.getUser("bot", true);
-  const existingVerification = await db
-    .select()
-    .from(verifications)
-    .where(and(eq(verifications.applicationId, bot.id), eq(verifications.guildId, ctx.guildId!), eq(verifications.userId, ctx.user.id)))
-    .limit(1)
-    .get();
 
-  if (existingVerification) {
-    return ctx.reply(
-      `You have already requested ownership verification for <@${bot.id}> in this server. Please wait for an admin to review your request.`,
-      true,
-    );
-  }
-
-  await db.insert(verifications).values({
-    applicationId: bot.id,
-    guildId: ctx.guildId!,
-    userId: ctx.user.id,
-  });
+  await db
+    .insert(verifications)
+    .values({
+      applicationId: bot.id,
+      guildId: ctx.guildId!,
+      userId: ctx.user.id,
+    })
+    .onConflictDoNothing()
+    .run();
 
   return ctx.reply({
     flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
@@ -948,9 +939,9 @@ async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: Driz
             new ButtonBuilder()
               .setLabel("Authorize Bot")
               .setStyle(5)
-              .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, botId))
+              .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, bot.id))
               .setEmoji({ name: "🔗" }),
-            new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${botId}`).setEmoji({ name: "✅" }),
+            new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${bot.id}`).setEmoji({ name: "✅" }),
           ),
         ) as any,
     ],
