@@ -39,8 +39,8 @@ export type HonoEnv = {
 };
 export type MyContext = BaseInteractionContext<WorkerEnv, HonoVariables>;
 
-export interface QueueMessageBody extends APIVote {
+export type QueueMessageBody = APIVote & {
   timestamp: string;
-}
+};
 
 export type SupportedPlatforms = ApplicationCfg["source"];
