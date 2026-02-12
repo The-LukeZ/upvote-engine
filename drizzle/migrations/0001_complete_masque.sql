@@ -1,0 +1,1 @@
+DROP INDEX `applications_secret_unique`;
