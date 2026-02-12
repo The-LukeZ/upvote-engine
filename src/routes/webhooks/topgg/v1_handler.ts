@@ -41,7 +41,7 @@ export async function v1handler<CT extends Context>(c: CT) {
     c.executionCtx.waitUntil(
       dmUserOnTestVote(db, c.env, {
         applicationId: appId,
-        userId: vote.data.user.id,
+        userId: vote.data.user.platform_id,
         source: "topgg",
       }),
     );
@@ -54,7 +54,7 @@ export async function v1handler<CT extends Context>(c: CT) {
 
   await c.env.VOTE_APPLY.send({
     id: voteId,
-    userId: vote.data.user.id,
+    userId: vote.data.user.platform_id,
     applicationId: appId,
     guildId: appCfg.guildId,
     roleId: appCfg.voteRoleId,
