@@ -16,16 +16,16 @@ jobs:
       - name: Install Wrangler v4
         run: npm install -D wrangler@4
 
-      - name: Deploy to Production
-        if: github.ref == 'refs/heads/master'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          environment: production
-
       - name: Deploy to Preview
         if: github.ref != 'refs/heads/master'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           environment: preview
+
+      - name: Deploy to Production
+        if: github.ref == 'refs/heads/master'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          environment: production
