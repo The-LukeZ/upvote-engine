@@ -128,31 +128,31 @@
       "queues": {
         "producers": [
           {
-            "queue": "voteapply",
+            "queue": "voteapply-live",
             "binding": "VOTE_APPLY",
           },
           {
-            "queue": "voteremove",
+            "queue": "voteremove-live",
             "binding": "VOTE_REMOVE",
           },
           {
-            "queue": "forwardwebhook",
+            "queue": "forwardwebhook-live",
             "binding": "FORWARD_WEBHOOK",
           },
         ],
         "consumers": [
           {
-            "queue": "voteapply",
+            "queue": "voteapply-live",
             "type": "worker",
             "max_retries": 5,
           },
           {
-            "queue": "voteremove",
+            "queue": "voteremove-live",
             "type": "worker",
             "max_retries": 5,
           },
           {
-            "queue": "forwardwebhook",
+            "queue": "forwardwebhook-live",
             "type": "worker",
             "max_retries": 10, // We won't hit that because of the logic, but just to be safe
           },
