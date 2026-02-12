@@ -11,7 +11,7 @@ export const removeAppModal = new ModalHandler<MyContext>("remove_app").addHandl
   }
 
   const db = ctx.context.get("db");
-  const [botUser] = ctx.fields.getSelectedUsers("bot", true);
+  const botUser = ctx.fields.getSelectedUsers("bot", true).first()!;
   const [source] = ctx.fields.getSelectedValues("source", true);
   if (!botUser.bot) {
     return ctx.editReply({ content: "Selected user is not a bot." });
