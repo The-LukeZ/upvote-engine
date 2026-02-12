@@ -1,13 +1,4 @@
-import {
-  ActionRowBuilder,
-  bold,
-  ButtonBuilder,
-  codeBlock,
-  ContainerBuilder,
-  heading,
-  ModalBuilder,
-  StringSelectMenuOptionBuilder,
-} from "@discordjs/builders";
+import { bold, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
@@ -22,7 +13,15 @@ import {
   PlatformWebhookUrl,
 } from "../../../constants";
 import { ForwardingPayload } from "../../../../types/webhooks";
-import { ChatInputCommandInteraction, Colors } from "honocord";
+import {
+  ChatInputCommandInteraction,
+  Colors,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ContainerBuilder,
+  ModalBuilder,
+  StringSelectMenuOptionBuilder,
+} from "honocord";
 import { appCommand as appCommandData } from "./appCommandData";
 
 const MAX_APPS_PER_GUILD = 25;
@@ -127,6 +126,86 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
   return ctx.reply({ content: "Invalid subcommand." }, true);
 });
 
+function buildAppModal(
+  title: string,
+  botId: string,
+  roleId?: string,
+  newSecret: boolean = false,
+  durationHours?: number | null,
+  edit: boolean = false,
+) {
+  const modal = new ModalBuilder().setCustomId(`app/${edit ? "edit" : "add"}`).setTitle(title);
+  let text: string[] = [];
+  if (!edit) {
+    text = [
+      "Top.gg introduced **Webhooks V1** which works completely different from the previous version.",
+      "To set up your app configuration for Top.gg, please follow these steps:",
+      `1. Go to https://top.gg/bot/${botId}/dashboard/integrations`,
+      "2. Click on **Create** to create a new webhook integration.",
+      `3. Set the webhook URL to the following: ${codeBlock(PlatformWebhookUrl("topgg", botId))}`,
+      "4. Give it a unique label and toggle the **Vote Created** event to ON.",
+      "5. After creating the webhook, copy the generated secret and paste it below.",
+    ];
+  }
+  if (edit && newSecret) {
+    text = [
+      "Top.gg introduced **Webhooks V1** which works completely different from the previous version. The legacy webhooks will be removed some time in the future, so you need to migrate to the new system to keep receiving vote webhooks.",
+      "If you want to generate a new secret, please follow these steps:",
+      `1. Go to https://top.gg/bot/${botId}/dashboard/integrations`,
+      "",
+      "**Remove legacy webhook** (if exists)",
+      "2. If you have an existing webhook integration for the old system, please remove it to avoid confusion. Scroll all the way down to find legacy **Legacy Webhooks**.",
+      "",
+      "**Create new webhook**",
+      "1. Scroll up again, click on **Create** to create a new webhook integration.",
+      `2. Set the webhook URL to the following: ${codeBlock(PlatformWebhookUrl("topgg", botId))}`,
+      "3. Give it a unique label and toggle the **Vote Created** event to ON.",
+      "4. After creating the webhook, copy the generated secret and paste it below.",
+    ];
+  }
+
+  if (text.length > 0) {
+    modal
+      .addTextDisplayComponents((t) => t.setContent(text.join("\n")))
+      .addLabelComponents((l) =>
+        l.setLabel("Top.gg Webhook Secret").setTextInputComponent((t) => t.setCustomId("secret").setRequired(true).setStyle(1)),
+      );
+  }
+
+  modal.addLabelComponents((l) =>
+    l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(botId).setRequired(true)),
+  );
+
+  if (roleId || !edit) {
+    modal.addLabelComponents((l) =>
+      l.setLabel("Reward Role").setRoleSelectMenuComponent((rs) => {
+        rs.setCustomId("role").setRequired(true);
+        if (roleId) {
+          rs.setDefaultRoles(roleId);
+        }
+        return rs;
+      }),
+    );
+  }
+
+  if (durationHours || !edit) {
+    modal.addLabelComponents((l) =>
+      l
+        .setLabel("Role Duration (Hours)")
+        .setDescription("Hours after which the role will be removed; 0 = Don't remove role")
+        .setTextInputComponent((t) =>
+          t
+            .setCustomId("duration")
+            .setValue(durationHours ? durationHours.toString() || "0" : "0")
+            .setRequired(false)
+            .setMinLength(1)
+            .setStyle(1),
+        ),
+    );
+  }
+  return modal;
+}
+
 async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   console.log("Listing configured apps for guild");
   const guildId = ctx.guildId!;
@@ -157,7 +236,7 @@ async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: D
     return ctx.reply(
       {
         flags: MessageFlags.IsComponentsV2,
-        components: [container.toJSON()],
+        components: [container as any],
       },
       true,
     );
@@ -223,7 +302,12 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       return ctx.editReply({ content: "This command can only be used in a server." });
     }
 
-    // Check if a config for the bot already exists
+    if (source === "topgg") {
+      // topgg v1 webhooks generate the secret themselves and therefore we need to ask the user for it via a modal
+      return ctx.showModal(
+        buildAppModal("Add App - Top.gg Webhooks V1 Setup", bot.id, roleId, true, durationHours ? durationHours : undefined, false),
+      );
+    }
 
     const generatedSecret = randomStringWithSnowflake(32);
 
@@ -289,8 +373,16 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
   const durationHours = ctx.options.getInteger("duration");
   const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
-  const guildId = ctx.guildId!;
   const generateNewSecret = ctx.options.getBoolean("generate-secret") ?? false;
+
+  // show modal if source is topgg and user wants to generate new secret
+  if (source === "topgg" && generateNewSecret) {
+    return ctx.showModal(
+      buildAppModal("Edit App - Top.gg Webhooks V1 Setup", bot.id, roleId, true, durationHours !== null ? durationHours : undefined, true),
+    );
+  }
+
+  const guildId = ctx.guildId!;
   console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId, generateNewSecret });
 
   if (!roleId && !durationSeconds && !generateNewSecret) {
@@ -854,8 +946,7 @@ async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: Driz
               .setCustomId(`verify_ownership_upload_new_${bot.id}`)
               .setEmoji({ name: "⬆️" }),
           ),
-        )
-        .toJSON(),
+        ) as any,
     ],
   });
 }

@@ -65,7 +65,10 @@ export const appCommand = new SlashCommandHandler<MyContext>()
           .setMaxValue(336),
       )
       .addBooleanOption((opt) =>
-        opt.setName("generate-secret").setDescription("Whether to generate a new webhook secret").setRequired(false),
+        opt
+          .setName("generate-secret")
+          .setDescription("Whether to generate a new webhook secret | Has no effect on top.gg sources")
+          .setRequired(false),
       ),
   )
   .addSubcommand((sub) =>
