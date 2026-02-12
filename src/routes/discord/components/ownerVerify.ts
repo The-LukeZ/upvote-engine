@@ -3,18 +3,7 @@ import { MyContext } from "../../../../types";
 import { Cryptor, owners, verifications } from "../../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { REST } from "@discordjs/rest";
-import {
-  ComponentHandler,
-  ComponentType,
-  ModalHandler,
-  ContainerBuilder,
-  ModalBuilder,
-  ModalInteraction,
-  parseCustomId,
-  ActionRowBuilder,
-  ButtonBuilder,
-  Colors,
-} from "honocord";
+import { ComponentHandler, ComponentType, ContainerBuilder, ActionRowBuilder, ButtonBuilder, Colors } from "honocord";
 import { getAuthorizeUrlForOwnershipVerify } from "../../../utils";
 import { bold } from "@discordjs/builders";
 import dayjs from "dayjs";
@@ -159,6 +148,21 @@ export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentTyp
 
     await db.update(verifications).set({ verified: true }).where(eq(verifications.id, entry.id));
 
-    return ctx.editReply("### Ownership verified successfully!\nYou may now assign roles based on votes.");
+    return ctx.editReply({
+      flags: MessageFlags.IsComponentsV2,
+      components: [
+        new ContainerBuilder()
+          .setAccentColor(Colors.Green)
+          .addTextDisplayComponents((t) =>
+            t.setContent(bold("Ownership Verified") + "\nYour ownership of this application has been successfully verified!"),
+          )
+          .addSeparatorComponents((s) => s.setSpacing(2))
+          .addTextDisplayComponents((t) =>
+            t.setContent(
+              "If you have any issues or need further assistance, please contact support or refer to the documentation for more information on ownership verification.",
+            ),
+          ) as any,
+      ],
+    });
   },
 );
