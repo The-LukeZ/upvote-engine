@@ -140,7 +140,7 @@ function buildAppModal(
     text = [
       "Top.gg introduced **Webhooks V1** which works completely different from the previous version.",
       "To set up your app configuration for Top.gg, please follow these steps:",
-      `1. Go to https://top.gg/bot/${botId}/dashboard/integrations`,
+      `1. Go to the [Integrations Page](https://top.gg/bot/${botId}/dashboard/integrations) of your bot.`,
       "2. Click on **Create** to create a new webhook integration.",
       `3. Set the webhook URL to the following: ${codeBlock(PlatformWebhookUrl("topgg", botId))}`,
       "4. Give it a unique label and toggle the **Vote Created** event to ON.",
@@ -151,14 +151,15 @@ function buildAppModal(
     text = [
       "Top.gg introduced **Webhooks V1** which works completely different from the previous version. The legacy webhooks will be removed some time in the future, so you need to migrate to the new system to keep receiving vote webhooks.",
       "If you want to generate a new secret, please follow these steps:",
-      `1. Go to https://top.gg/bot/${botId}/dashboard/integrations`,
+      `1. Go to the [Integrations Page](https://top.gg/bot/${botId}/dashboard/integrations) of your bot.`,
       "",
       "**Remove legacy webhook** (if exists)",
       "2. If you have an existing webhook integration for the old system, please remove it to avoid confusion. Scroll all the way down to find legacy **Legacy Webhooks**.",
       "",
       "**Create new webhook**",
       "1. Scroll up again, click on **Create** to create a new webhook integration.",
-      `2. Set the webhook URL to the following: ${codeBlock(PlatformWebhookUrl("topgg", botId))}`,
+      "2. Set the webhook URL to the following:",
+      codeBlock(PlatformWebhookUrl("topgg", botId)),
       "3. Give it a unique label and toggle the **Vote Created** event to ON.",
       "4. After creating the webhook, copy the generated secret and paste it below.",
     ];
