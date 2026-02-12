@@ -85,7 +85,6 @@ export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentTyp
     }
 
     const decrypted = await new Cryptor(ctx.context.env.ENCRYPTION_KEY).decryptToken(ownerData.accessToken, ownerData.iv);
-    const rest = new REST({ authPrefix: "Bearer" }).setToken(decrypted);
 
     try {
       const entitlementsurl = `${RouteBases.api}${Routes.entitlements(botId)}` as const;
@@ -95,6 +94,17 @@ export const ownerVerifyComponent = new ComponentHandler<MyContext, ComponentTyp
           Authorization: `Bearer ${decrypted}`,
         },
       });
+      if (!response.ok) {
+        console.error("Failed to fetch entitlements with status", response.status);
+        return ctx.editReply({
+          flags: MessageFlags.IsComponentsV2,
+          components: [
+            new ContainerBuilder()
+              .setAccentColor(Colors.Red)
+              .addTextDisplayComponents((t) => t.setContent(bold("Ownership Verification Failed"))) as any,
+          ],
+        });
+      }
       console.log("response status", response.status);
     } catch (error: any) {
       console.error("Error fetching entitlements:", error);
