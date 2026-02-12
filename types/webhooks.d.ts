@@ -1,52 +1,49 @@
 import type { APIVote, ForwardingCfg } from "../src/db/schema";
 
+/** Discord Snowflake ID */
+type Snowflake = string;
+
 /**
- * @see {@link https://docs.top.gg/docs/Resources/webhooks/#bot-webhooks}
+ * Top.gg Webhook v1 Payload
+ * @see {@link https://github.com/top-gg/webhooks-v2-nodejs-example}
  */
-export interface TopGGPayload {
-  /** If webhook is a bot: ID of the bot that received a vote */
-  bot?: Snowflake;
-  /** If webhook is a server: ID of the server that received a vote */
-  guild?: Snowflake;
-  /** ID of the user who voted */
-  user: Snowflake;
-  /**
-   * The type of the vote (should always be "upvote" except when using the test
-   * button it's "test")
-   */
-  type: string;
-  /**
-   * Whether the weekend multiplier is in effect, meaning users votes count as
-   * two
-   */
-  isWeekend?: boolean;
-  /** Query parameters in vote page in a key to value object */
-  query:
-    | {
-        [key: string]: string;
-      }
-    | string;
+export interface TopGGV1Payload {
+  type: "bot.vote" | "bot.test" | "server.vote" | "server.test" | string;
+  data: {
+    user: Snowflake;
+    bot?: Snowflake;
+    guild?: Snowflake;
+    isWeekend?: boolean;
+    query?: Record<string, string> | string;
+  };
 }
 
 /**
+ * Top.gg Legacy Webhook (v0)
+ * @see {@link https://docs.top.gg/docs/Resources/webhooks/}
+ */
+export interface TopGGV0Payload {
+  bot?: Snowflake;
+  guild?: Snowflake;
+  user: Snowflake;
+  type: string;
+  isWeekend?: boolean;
+  query: Record<string, string> | string;
+}
+
+/**
+ * Union type supporting both webhook versions
+ */
+export type TopGGPayload = TopGGV1Payload | TopGGV0Payload;
+
+/**
+ * DiscordBotList webhook payload
  * @see {@link https://docs.discordbotlist.com/vote-webhooks#request-body}
  */
 export interface DBLPayload {
-  /**
-   * If the user is a site administrator
-   */
   admin: boolean;
-  /**
-   * The avatar hash of the user
-   */
   avatar: string;
-  /**
-   * The username of the user who voted
-   */
   username: string;
-  /**
-   * The ID of the user who voted
-   */
   id: Snowflake;
 }
 
@@ -59,41 +56,17 @@ type WebhookPayloadMapping = {
 
 export type WebhookSource<WithTest extends boolean = false> = WithTest extends true ? APIVote["source"] | "test" : APIVote["source"];
 
-// The forwarding payload sent to other services
+/**
+ * Forwarding payload sent to external services
+ */
 export type ForwardingPayload<TSource extends WebhookSource<true>> = {
-  /**
-   * An ISO 8601 string indicating when the original vote was received by our service.
-   */
   timestamp: string;
-  /**
-   * The vote source.
-   *
-   * Always acknowledge "test" payloads with a `204 No Content` response. Normally,
-   * just send a `200 OK` response with no body.
-   *
-   * If "test", indicates this is a test payload.
-   * Otherwise, indicates the source platform of the vote.
-   */
   source: TSource;
-  /**
-   * The original, unmodified JSON payload from the source platform. Its structure will vary depending on the `source`.
-   *
-   * If `source` is `test`, this field will be `null`.
-   */
   payload: TSource extends "test" ? null : WebhookPayloadMapping[TSource];
 };
 
 export type MessageQueuePayload<TSource extends WebhookSource> = {
-  /**
-   * The time the forward was created
-   */
   timestamp: string;
-  /**
-   * The forwarding payload containing the original vote data
-   */
   forwardingPayload: ForwardingPayload<TSource>;
-  /**
-   * The forwarding configuration
-   */
   to: ForwardingCfg;
 };
