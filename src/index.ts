@@ -47,9 +47,8 @@ app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/is
 app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
 
 app.route("/webhook", webhookApp);
-const interactionsApp = interactions.getApp();
-interactionsApp.get("/discord/ownership-verify", ovHandler);
-app.route("/discord", interactionsApp);
+app.route("/discord", interactions.getApp());
+app.get("/ownership-verify", ovHandler);
 
 app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
