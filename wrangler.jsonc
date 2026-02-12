@@ -92,6 +92,29 @@
       "account_id": "92d72ac72fb811275ce6e8d5263a9816",
       "routes": [],
       "preview_urls": true,
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "BLACKLIST",
+            "class_name": "BlacklistCacheDO",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["BlacklistCacheDO"],
+        },
+      ],
+      "d1_databases": [
+        {
+          "binding": "vote_handler",
+          "database_name": "vote_handler",
+          "database_id": "74e8d0ba-07ec-42e5-98e0-3722c84e7ca6",
+          "migrations_dir": "drizzle/migrations",
+          "remote": true,
+        },
+      ],
       "queues": {
         "producers": [
           {
