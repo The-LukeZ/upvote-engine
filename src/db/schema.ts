@@ -75,6 +75,17 @@ export const owners = sqliteTable("owners", {
   updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
 });
 
+export const integrations = sqliteTable("integrations", {
+  id: text("id").primaryKey(), // Unique ID for the integration
+  type: text("type", { enum: ["topgg"] })
+    .default("topgg")
+    .notNull(),
+  applicationId: text("application_id").notNull(),
+  secret: text("secret").notNull(),
+  userId: text("user_id").notNull(), // User who created the integration
+  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
+});
+
 // migration notifications for new top.gg votes
 // export const notifications = sqliteTable("notifications", {
 //   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -104,6 +115,9 @@ export type NewVerificationEntry = typeof verifications.$inferInsert;
 
 export type OwnerToken = typeof owners.$inferSelect;
 export type NewOwnerToken = typeof owners.$inferInsert;
+
+export type Integration = typeof integrations.$inferSelect;
+export type NewIntegration = typeof integrations.$inferInsert;
 
 export async function deleteApplicationCascade(db: DrizzleDB, applicationId: string, source: string, guildId: string) {
   // Delete related forwardings
