@@ -23,6 +23,7 @@ import {
 import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
 import { appCommand as appCommandData } from "./integrationsCommandData";
+import { url as zUrl, refine as zRefine } from "zod/mini";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -713,7 +714,6 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 
   try {
     const bot = ctx.options.getUser("bot", true);
-    const guildId = ctx.guildId!;
 
     // If bot is specified, show specific forwarding
     if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
@@ -755,19 +755,14 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 }
 
 function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
-  // 1. Is it even a url?
-  try {
-    const _url = new URL(url);
-    // 2. Do NOT allow localhost, ips and not the current origin
-    if (_url.origin === currentOrigin) {
-      return false;
-    } else if (_url.hostname === "localhost" || _url.hostname === "127.0.0.1" || _url.hostname === "::1") {
-      return false;
-    } else if (!hostnamePattern.test(_url.hostname)) {
-      return false;
-    }
-  } catch {
-    return false;
-  }
-  return true;
+  const forwardingUrlSchema = zUrl({ hostname: hostnamePattern, protocol: /^https:$/, normalize: true }).check(
+    zRefine((url) => {
+      // Disallow localhost and IP addresses
+      const _url = new URL(url);
+      const { hostname, origin } = _url;
+      return hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1" && origin !== currentOrigin;
+    }),
+  );
+
+  return forwardingUrlSchema.safeParse(url).success;
 }
