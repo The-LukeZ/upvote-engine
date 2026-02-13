@@ -51,8 +51,20 @@ integrationsApp.post(
     console.log("Received Top.gg integration webhook", { payload: data });
 
     if (dType === "integration.delete") {
+      // On delete, we need to find the integration first to get the applicationId
+      const integration = await db.select().from(integrations).where(eq(integrations.id, data.connection_id)).limit(1).get();
+      if (integration) {
+        // Delete the application entry (this will have null guildId if not yet configured)
+        await db.delete(applications).where(eq(applications.applicationId, integration.applicationId));
+      }
+      // Delete the integration entry
       await db.delete(integrations).where(eq(integrations.id, data.connection_id));
       return c.json({ message: "Integration deleted event received" }, 200);
+    }
+
+    // At this point, we know it's an integration.create event
+    if (dType !== "integration.create") {
+      return c.json({ error: "Unknown event type" }, 400);
     }
 
     if (data.project.platform !== "discord") {
