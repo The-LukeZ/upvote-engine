@@ -185,7 +185,7 @@ async function handleListIntegrations(ctx: ChatInputCommandInteraction<MyContext
   }
 }
 
-async function handleCreateIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleCreateIntegration(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   const bot = ctx.options.getUser("bot", true);
@@ -273,7 +273,7 @@ async function handleCreateIntegration(ctx: ChatInputCommandInteraction, db: Dri
   console.log("App configuration created in database");
 }
 
-async function handleEditIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleEditIntegration(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   const bot = ctx.options.getUser("bot", true);
@@ -377,7 +377,7 @@ function buildIntegrationInfo(clientId: string, cfg: ApplicationCfg, action: "ed
   };
 }
 
-async function handleForwarding(c: MyContext, ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleForwarding(c: MyContext, ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   const subcommand = ctx.options.getSubcommand(true) as "set" | "edit" | "remove" | "view";
   console.log("Handling forwarding subcommand:", subcommand);
 
@@ -408,7 +408,7 @@ async function handleForwarding(c: MyContext, ctx: ChatInputCommandInteraction, 
   }
 }
 
-async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   console.log("Setting forwarding configuration");
@@ -461,7 +461,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
     }
 
     // Testing the forwarding configuration
-    const testError = await testForwarding(targetUrl, forwardingSecret);
+    const testError = await testForwarding(ctx.context.env.RATELIMITER_FORWARDING_TEST, targetUrl, forwardingSecret);
     if (testError) {
       await ctx.editReply({
         content:
@@ -513,8 +513,11 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
  *
  * @returns An error message if the test fails, otherwise undefined
  */
-async function testForwarding(url: string, secret: string): Promise<string | undefined> {
-  console.log("Testing forwarding configuration");
+async function testForwarding(limiter: RateLimit, url: string, secret: string): Promise<string | undefined> {
+  const { success } = await limiter.limit({ key: encodeURIComponent(url) });
+  if (!success) {
+    return "Cannot send test payload due to rate limits. Please wait a minute before trying again.";
+  }
 
   const result = await sendTestPayload(url, secret);
   if (!result.success) {
@@ -551,7 +554,7 @@ async function sendTestPayload(url: string, secret: string): Promise<{ success: 
   }
 }
 
-async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   console.log("Editing forwarding configuration");
@@ -634,7 +637,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
   }
 }
 
-async function handleRemoveForwarding(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleRemoveForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   console.log("Showing remove forwarding modal");
 
   const bot = ctx.options.getUser("bot", true);
@@ -672,7 +675,7 @@ async function handleRemoveForwarding(ctx: ChatInputCommandInteraction, db: Driz
   );
 }
 
-async function handleViewForwarding(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleViewForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   console.log("Viewing forwarding configuration");
