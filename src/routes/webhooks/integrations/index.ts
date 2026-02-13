@@ -4,7 +4,7 @@ import { IntegrationCreateWebhookPayloadSchema, IntegrationDeleteWebhookPayloadS
 import { WebhookHandler } from "../../../utils/webhook";
 import { IntegrationCreateResponse, WebhookPayload } from "topgg-api-types";
 import * as z from "zod/mini";
-import { Cryptor, integrations } from "../../../db/schema";
+import { applications, Cryptor, integrations } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { PlatformWebhookUrl } from "../../../constants";
 
@@ -69,6 +69,11 @@ integrationsApp.post(
       applicationId: data.project.platform_id,
       secret: data.webhook_secret, // We dont need to encrypt this, because it's only used for validating incoming webhooks, not for authenticating outgoing requests
       userId: data.user.platform_id,
+    });
+
+    await db.insert(applications).values({
+      applicationId: data.project.platform_id,
+      source: "topgg",
     });
 
     const responsePayload: IntegrationCreateResponse = {

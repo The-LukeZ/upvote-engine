@@ -1,6 +1,6 @@
 import type { APIVote, ForwardingCfg } from "../src/db/schema";
 import type { Snowflake, WebhookPayload as TopggWebhookV1Payload } from "topgg-api-types/v1";
-import type { TopggWebhookV0Payload } from "topgg-api-types/v0";
+import type { BotWebhookPayload as TopggWebhookV0Payload } from "topgg-api-types/v0";
 
 /**
  * Union type supporting both webhook versions

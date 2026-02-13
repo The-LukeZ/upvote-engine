@@ -1,16 +1,15 @@
 import { Context } from "hono";
-import { QueueMessageBody } from "../../../../types";
+import { MyContext, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../../../utils/webhook";
-import { applications, NewVote } from "../../../db/schema";
+import { applications, integrations, NewVote, votes } from "../../../db/schema";
 import { eq } from "drizzle-orm";
-import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
 import { dmUserOnTestVote } from "../../../utils";
 import { WebhookPayload } from "topgg-api-types";
 
 // Path: /webhook/topgg/v1/:applicationId
-export async function v1handler<CT extends Context>(c: CT) {
-  const appId = c.req.param("applicationId");
+export async function v1handler(c: MyContext): Promise<Response> {
+  const appId = c.req.param("applicationId")!;
   const traceId = c.req.header("x-topgg-trace");
 
   console.log(`Received Top.gg webhook for application ID: ${appId}`, { traceId });
@@ -22,7 +21,17 @@ export async function v1handler<CT extends Context>(c: CT) {
     return c.json({ error: "Application not found" }, 404);
   }
 
-  const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(appCfg?.secret).validateRequest(c);
+  let secret = appCfg.secret;
+  if (!secret) {
+    const integration = await db.select().from(integrations).where(eq(integrations.applicationId, appId)).limit(1).get();
+    if (!integration) {
+      console.warn(`No integration record found for application ID ${appId}, cannot validate webhook`);
+      return c.json({ error: "Application not properly configured" }, 400);
+    }
+    secret = integration.secret;
+  }
+
+  const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(secret).validateRequest(c);
 
   if (!valRes.isValid || !valRes.payload) {
     console.error("Webhook validation failed");
@@ -33,15 +42,15 @@ export async function v1handler<CT extends Context>(c: CT) {
   console.log(`✅ Validated Top.gg webhook (${version})`, { traceId });
 
   // Normalize payload structure
-  const vote = valRes.payload;
+  const { type: vType, data: vote } = valRes.payload;
 
   // Handle test votes
-  if (vote.type === "webhook.test") {
+  if (vType === "webhook.test") {
     console.log("Received test vote payload", { vote, version });
     c.executionCtx.waitUntil(
       dmUserOnTestVote(db, c.env, {
         applicationId: appId,
-        userId: vote.data.user.platform_id,
+        userId: vote.user.platform_id,
         source: "topgg",
       }),
     );
@@ -49,23 +58,26 @@ export async function v1handler<CT extends Context>(c: CT) {
   }
 
   // Process actual vote
-  const voteId = generateSnowflake().toString();
+  const voteId = BigInt(vote.id);
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null;
 
+  await db.insert(votes).values({
+    id: voteId,
+    applicationId: appId,
+    userId: vote.user.platform_id,
+    source: "topgg",
+    guildId: appCfg.guildId,
+    hasRole: false,
+    expiresAt: expiresAt,
+  });
   if (!appCfg.voteRoleId || !appCfg.guildId) {
-    console.warn("Received vote for application without proper configuration", { applicationId: appId });
+    // Can happen if integration was set up but no application configuration was done yet.
     return c.json({ error: "Application not properly configured for vote processing" }, 400);
   }
 
   await c.env.VOTE_APPLY.send({
-    id: voteId,
-    userId: vote.data.user.platform_id,
-    applicationId: appId,
-    guildId: appCfg.guildId,
-    roleId: appCfg.voteRoleId,
-    expiresAt: expiresAt,
+    id: voteId.toString(),
     timestamp: new Date().toISOString(),
-    source: "topgg",
   } as QueueMessageBody);
 
   const forwardPayload = await WebhookHandler.buildForwardPayload(db, appId, "topgg", valRes.payload);

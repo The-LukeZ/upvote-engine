@@ -1,25 +1,59 @@
 import dayjs from "dayjs";
-import { QueueMessageBody } from "../types";
-import { APIVote, NewVote, votes } from "./db/schema";
+import { NonNullableFields, QueueMessageBody } from "../types";
+import { APIVote, votes } from "./db/schema";
 import { makeDB } from "./db/util";
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import { RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
 import { ForwardingPayload, MessageQueuePayload } from "../types/webhooks";
 import { delaySeconds } from "./utils";
+import { votes as votesTable } from "./db/schema";
 
 export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env: Env): Promise<void> {
-  console.log(`Processing vote apply batch with ${batch.messages.length} messages`);
   const db = makeDB(env.vote_handler);
-  for (const message of batch.messages) {
-    const body = message.body;
-    console.log(`Applying vote for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
+  const votes = await db
+    .select()
+    .from(votesTable)
+    .where(
+      and(
+        inArray(
+          votesTable.id,
+          batch.messages.map((msg) => BigInt(msg.id)),
+        ),
+        isNotNull(votesTable.roleId),
+        isNotNull(votesTable.guildId),
+      ),
+    );
+  const voteMessageDetails = new Map(batch.messages.map((vote) => [vote.id, vote]));
+  const mergedVotes = votes.map((vote) => ({
+    ...(vote as NonNullableFields<typeof vote>),
+    timestamp: voteMessageDetails.get(vote.id.toString())!.timestamp,
+  }));
+  for (const vote of mergedVotes) {
+    console.log(`Applying vote for user ${vote.userId} in guild ${vote.guildId} at ${vote.timestamp}`);
   }
+
+  const ackMessage = (voteId: bigint) => {
+    const message = batch.messages.find((msg) => msg.id === voteId.toString());
+    if (message) {
+      message.ack();
+    } else {
+      console.warn(`Could not find message for vote ID ${voteId} to acknowledge`);
+    }
+  };
+  const retryMessage = (voteId: bigint, delaySeconds?: number) => {
+    const message = batch.messages.find((msg) => msg.id === voteId.toString());
+    if (message) {
+      message.retry({ delaySeconds });
+    } else {
+      console.warn(`Could not find message for vote ID ${voteId} to retry`);
+    }
+  };
 
   // filter out messages older than 12 hours to avoid applying expired votes
   const twelveHoursAgo = dayjs().subtract(12, "hour");
-  const messages = batch.messages.filter((message) => dayjs(message.body.timestamp).isAfter(twelveHoursAgo));
-  const validMessages = messages.filter((message) => message.body.id != null && message.body.id !== undefined);
+  const messages = mergedVotes.filter((vote) => dayjs(vote.timestamp).isAfter(twelveHoursAgo));
+  const validMessages = messages.filter((vote) => vote.id != null && vote.id !== undefined);
   if (validMessages.length !== messages.length) {
     console.warn(`Filtered out ${messages.length - validMessages.length} messages with invalid id`);
   }
@@ -28,47 +62,31 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     return;
   }
 
-  await db.insert(votes).values(
-    validMessages.map(
-      (message) =>
-        ({
-          hasRole: false,
-          id: BigInt(message.body.id),
-          applicationId: message.body.applicationId,
-          guildId: message.body.guildId,
-          roleId: message.body.roleId,
-          userId: message.body.userId,
-          expiresAt: message.body.expiresAt,
-          source: message.body.source,
-        }) satisfies NewVote,
-    ),
-  );
-
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
   const successfulAdds = new Set<bigint>();
-  for (const message of messages) {
+  for (const vote of validMessages) {
     try {
-      console.log(`Assigning role ${message.body.roleId} to user ${message.body.userId} in guild ${message.body.guildId}`);
-      await rest.put(Routes.guildMemberRole(message.body.guildId, message.body.userId, message.body.roleId));
-      successfulAdds.add(BigInt(message.body.id));
-      message.ack();
+      console.log(`Assigning role ${vote.roleId} to user ${vote.userId} in guild ${vote.guildId}`);
+      await rest.put(Routes.guildMemberRole(vote.guildId, vote.userId, vote.roleId));
+      successfulAdds.add(BigInt(vote.id));
+      ackMessage(vote.id);
     } catch (error) {
       if (error instanceof DiscordAPIError && error.code === RESTJSONErrorCodes.UnknownMember) {
-        message.ack();
-        console.warn(`User ${message.body.userId} not found in guild ${message.body.guildId}, acknowledging message.`);
+        ackMessage(vote.id);
+        console.warn(`User ${vote.userId} not found in guild ${vote.guildId}, acknowledging message.`);
         continue;
       }
-      console.error(`Failed to assign role for vote ID ${message.body.id}:`, error);
-      message.retry({ delaySeconds: 60 });
+      console.error(`Failed to assign role for vote ID ${vote.id}:`, error);
+      retryMessage(vote.id, 60);
     }
   }
 
   // Bulk update hasRole status for successfully assigned roles, we don't assume this can fail, so we acknowledge before
   if (successfulAdds.size > 0) {
     await db
-      .update(votes)
+      .update(votesTable)
       .set({ hasRole: true })
-      .where(inArray(votes.id, Array.from(successfulAdds)));
+      .where(inArray(votesTable.id, Array.from(successfulAdds)));
   }
 }
 
@@ -77,18 +95,41 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   const db = makeDB(env.vote_handler);
   const currentTs = dayjs().toISOString();
 
-  // Collect unique user/guild/role combinations from the batch
+  // Query database for votes matching batch message IDs
+  const votes_list = await db
+    .select()
+    .from(votes)
+    .where(
+      and(
+        inArray(
+          votes.id,
+          batch.messages.map((msg) => BigInt(msg.id)),
+        ),
+        isNotNull(votes.roleId),
+        isNotNull(votes.guildId),
+      ),
+    );
+
+  // Create a map of message payloads
+  const voteMessageDetails = new Map(batch.messages.map((vote) => [vote.id, vote]));
+
+  // Merge database votes with message payloads
+  const mergedVotes = votes_list.map((vote) => ({
+    ...(vote as NonNullableFields<typeof vote>),
+    timestamp: voteMessageDetails.get(vote.id.toString())!.timestamp,
+  }));
+
+  // Collect unique user/guild/role combinations from merged votes
   const combinations = new Map<string, { guildId: string; userId: string; roleId: string; messageid: string }>();
   const voteIds = new Set<bigint>();
 
-  for (const message of batch.messages) {
-    const body = message.body;
-    console.log(`Processing removal for user ${body.userId} in guild ${body.guildId} at ${body.timestamp}`);
-    const key = `${body.guildId}-${body.userId}-${body.roleId}`;
+  for (const vote of mergedVotes) {
+    console.log(`Processing removal for user ${vote.userId} in guild ${vote.guildId} at ${vote.timestamp}`);
+    const key = `${vote.guildId}-${vote.userId}-${vote.roleId}`;
     if (!combinations.has(key)) {
-      combinations.set(key, { guildId: body.guildId, userId: body.userId, roleId: body.roleId, messageid: message.id });
+      combinations.set(key, { guildId: vote.guildId, userId: vote.userId, roleId: vote.roleId, messageid: vote.id.toString() });
     }
-    voteIds.add(BigInt(body.id));
+    voteIds.add(vote.id);
   }
 
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
@@ -166,7 +207,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePayload<APIVote["source"]>>): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   for (const message of batch.messages) {
-    const body = message.body;
+    const body = message;
     // If timestamp is older than 2 hours, ack and skip
     const twoHoursAgo = dayjs().subtract(2, "hour");
     if (dayjs(body.timestamp).isBefore(twoHoursAgo)) {
@@ -185,7 +226,7 @@ export async function handleForwardWebhook(batch: MessageBatch<MessageQueuePaylo
           authorization: body.to.secret,
         },
         body: JSON.stringify({
-          ...body.forwardingPayload,
+          ...forwardingPayload,
         } satisfies ForwardingPayload<APIVote["source"]>),
         signal: AbortSignal.timeout(5000), // wait 5 seconds max
       });
