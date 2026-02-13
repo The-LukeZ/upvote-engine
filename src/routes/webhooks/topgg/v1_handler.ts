@@ -52,6 +52,11 @@ export async function v1handler<CT extends Context>(c: CT) {
   const voteId = generateSnowflake().toString();
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null;
 
+  if (!appCfg.voteRoleId || !appCfg.guildId) {
+    console.warn("Received vote for application without proper configuration", { applicationId: appId });
+    return c.json({ error: "Application not properly configured for vote processing" }, 400);
+  }
+
   await c.env.VOTE_APPLY.send({
     id: voteId,
     userId: vote.data.user.platform_id,

@@ -418,43 +418,6 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   console.log("Guild configuration updated in database");
 }
 
-async function handleRemoveApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
-  await ctx.deferReply(true);
-
-  console.log("Removing app configuration for guild");
-
-  const bot = ctx.options.getUser("bot", true);
-  if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
-    return ctx.editReply({ content: "The selected user is not a bot." });
-  }
-
-  // Check if user has verified ownership (skip for owner)
-  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-  if (!isOwner) {
-    const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
-    if (!isVerified) {
-      return ctx.editReply(
-        "You must verify ownership of this application before configuring it.\n" +
-          `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
-      );
-    }
-  }
-
-  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
-  const guildId = ctx.guildId!;
-
-  const result = await db
-    .delete(applications)
-    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id), eq(applications.source, source)));
-
-  if (result.meta.changes === 0) {
-    return ctx.editReply({ content: "No existing configuration found for this bot in this guild for this source." });
-  }
-
-  console.log("Guild configuration removed from database");
-  return ctx.editReply({ content: `Successfully removed app configuration for <@${bot.id}> (${GetSupportedPlatform(source)}).` });
-}
-
 export function buildAppInfo(
   clientId: string,
   cfg: ApplicationCfg,
