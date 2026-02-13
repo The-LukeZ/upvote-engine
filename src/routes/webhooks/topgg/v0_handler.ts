@@ -1,25 +1,27 @@
 import { Context } from "hono";
-import { QueueMessageBody } from "../../../../types";
+import { MyContext, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../../../utils/webhook";
-import { applications } from "../../../db/schema";
+import { applications, votes } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
 import { BotWebhookPayload } from "topgg-api-types/v0";
 import { dmUserOnTestVote } from "../../../utils";
+import { incrementInvalidRequestCount } from "../../../utils/index";
 
 // Path: /webhook/topgg/v0/:applicationId
-export async function v0handler<CT extends Context>(c: CT) {
-  const appId = c.req.param("applicationId");
+export async function v0handler(c: MyContext) {
+  const appId = c.req.param("applicationId")!;
   console.log(`Received Top.gg webhook for application ID: ${appId}`, { daAuthHeader: c.req.header("authorization") });
   const db = c.get("db");
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
 
-  if (!appCfg) {
+  if (!appCfg || !appCfg.secret) {
+    await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not found" }, 404);
   }
 
-  const valRes = await new WebhookHandler<BotWebhookPayload>(appCfg?.secret).validateRequest(c);
+  const valRes = await new WebhookHandler<BotWebhookPayload>(appCfg.secret).validateRequest(c);
   if (!valRes.isValid || !valRes.payload) {
     return c.json({ error: "Invalid request" }, 403);
   }
@@ -32,11 +34,19 @@ export async function v0handler<CT extends Context>(c: CT) {
     return new Response(null, { status: 200 });
   }
 
-  const voteId = generateSnowflake().toString();
+  const voteId = generateSnowflake(); // in v1, Top.gg started sending a unique vote ID, but in v0 we need to generate it ourselves for tracking and forwarding purposes
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
 
-  await c.env.VOTE_APPLY.send({
+  await db.insert(votes).values({
     id: voteId,
+    applicationId: appId,
+    userId: vote.user,
+    source: "topgg",
+    guildId: appCfg.guildId!,
+    expiresAt: expiresAt,
+  });
+  await c.env.VOTE_APPLY.send({
+    id: voteId.toString(),
     timestamp: new Date().toISOString(),
   } as QueueMessageBody);
 
