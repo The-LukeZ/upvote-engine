@@ -83,6 +83,12 @@ integrationsApp.post(
       secret: data.webhook_secret, // We dont need to encrypt this, because it's only used for validating incoming webhooks, not for authenticating outgoing requests
       userId: data.user.platform_id,
     });
+    await db
+      .update(applications)
+      .set({
+        secret: null, // Clear the secret if it was set before, since we will now rely on the integration's webhook secret for validation
+      })
+      .where(eq(applications.applicationId, data.project.platform_id));
 
     const responsePayload: IntegrationCreateResponse = {
       routes: ["vote.create", "webhook.test"],
