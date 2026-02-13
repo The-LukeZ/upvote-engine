@@ -197,7 +197,7 @@ async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: 
   // Check integration authorization
   const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
-    return ctx.editReply({ content: authCheck.message });
+    return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
   }
 
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
@@ -334,7 +334,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
     // Check integration authorization
     const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
-      return ctx.editReply({ content: authCheck.message });
+      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
 
     const targetUrl = ctx.options.getString("url", true);
@@ -477,7 +477,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
     // Check integration authorization
     const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
-      return ctx.editReply({ content: authCheck.message });
+      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
 
     const targetUrl = ctx.options.getString("url");
