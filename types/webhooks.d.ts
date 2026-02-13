@@ -15,6 +15,9 @@ export interface DBLPayload {
   admin: boolean;
   avatar: string;
   username: string;
+  /**
+   * Discord user ID of the voter
+   */
   id: Snowflake;
 }
 
