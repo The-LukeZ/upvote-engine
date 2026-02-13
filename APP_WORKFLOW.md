@@ -97,7 +97,7 @@ graph TD
 
 **Step 3: Application Entry Creation**
 
-- Creates entry directly in `applications` table with all settings
+- Creates database entry for the application.
 
 ## Data Tables
 
