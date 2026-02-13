@@ -83,11 +83,6 @@ integrationsApp.post(
       userId: data.user.platform_id,
     });
 
-    await db.insert(applications).values({
-      applicationId: data.project.platform_id,
-      source: "topgg",
-    });
-
     const responsePayload: IntegrationCreateResponse = {
       routes: ["vote.create", "webhook.test"],
       webhook_url: PlatformWebhookUrl("topgg", data.project.platform_id),
