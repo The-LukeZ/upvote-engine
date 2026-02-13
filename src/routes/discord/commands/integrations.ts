@@ -238,7 +238,7 @@ async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: 
   console.log("Guild configuration updated in database");
 }
 
-export function buildIntegrationInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
+function buildIntegrationInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
   const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
   const fields = [
     {
