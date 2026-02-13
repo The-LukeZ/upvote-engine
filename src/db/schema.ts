@@ -75,6 +75,14 @@ export const owners = sqliteTable("owners", {
   updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
 });
 
+// migration notifications for new top.gg votes
+// export const notifications = sqliteTable("notifications", {
+//   id: integer("id").primaryKey({ autoIncrement: true }),
+//   userId: text("user_id").notNull(),
+//   applicationId: text("application_id").notNull(),
+//   timestamp: text("timestamp").$defaultFn(() => new Date().toISOString()),
+// });
+
 export type ApplicationCfg = typeof applications.$inferSelect;
 export type NewApplicationCfg = typeof applications.$inferInsert;
 
