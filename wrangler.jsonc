@@ -87,4 +87,14 @@
       "remote": true,
     },
   ],
+  "ratelimits": [
+    {
+      "name": "RATELIMITER_FORWARDING_TEST",
+      "namespace_id": "1101",
+      "simple": {
+        "limit": 3,
+        "period": 60,
+      },
+    },
+  ],
 }
