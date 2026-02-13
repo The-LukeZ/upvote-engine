@@ -1,11 +1,11 @@
-import { Context } from "hono";
 import { MyContext, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../../../utils/webhook";
-import { applications, integrations, NewVote, votes } from "../../../db/schema";
+import { applications, integrations, votes } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import { dmUserOnTestVote } from "../../../utils";
 import { WebhookPayload } from "topgg-api-types";
+import { incrementInvalidRequestCount } from "../../../utils/index";
 
 // Path: /webhook/topgg/v1/:applicationId
 export async function v1handler(c: MyContext): Promise<Response> {
@@ -72,6 +72,7 @@ export async function v1handler(c: MyContext): Promise<Response> {
   });
   if (!appCfg.voteRoleId || !appCfg.guildId) {
     // Can happen if integration was set up but no application configuration was done yet.
+    await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not properly configured for vote processing" }, 400);
   }
 
