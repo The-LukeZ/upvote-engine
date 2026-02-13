@@ -16,9 +16,12 @@ export async function v0handler(c: MyContext) {
   const db = c.get("db");
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
 
-  if (!appCfg || !appCfg.secret) {
+  if (!appCfg) {
     await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not found" }, 404);
+  } else if (!appCfg.secret) {
+    // discard as this is not a v0 configured application - v0 applications will have a secret, while v1 applications will not (since they use the integration's webhook secret instead)
+    return c.json({ error: "Application not configured for v0 webhooks" }, 400);
   }
 
   const valRes = await new WebhookHandler<BotWebhookPayload>(appCfg.secret).validateRequest(c);
@@ -29,7 +32,6 @@ export async function v0handler(c: MyContext) {
   const vote = valRes.payload;
 
   if (vote.type === "test") {
-    console.log("Received test vote payload", { vote });
     c.executionCtx.waitUntil(dmUserOnTestVote(db, c.env, { applicationId: appId, userId: vote.user, source: "topgg" }));
     return new Response(null, { status: 200 });
   }
