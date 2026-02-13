@@ -76,5 +76,5 @@ export const helpCommand = new SlashCommandHandler<MyContext>()
   .addHandler((ctx) => {
     const currentUrl = new URL(ctx.context.req.url);
     currentUrl.pathname = "";
-    return ctx.reply(helpMsg(currentUrl.toString().replace(/\/$/, "")));
+    return ctx.reply(helpMsg(currentUrl.toString().replace(/\/$/, "")) as any);
   });
