@@ -2,7 +2,15 @@ import { bold, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg, verifications, isUserVerifiedForApplication } from "../../../db/schema";
+import {
+  applications,
+  ApplicationCfg,
+  forwardings,
+  ForwardingCfg,
+  verifications,
+  isUserVerifiedForApplication,
+  integrations,
+} from "../../../db/schema";
 import { getAuthorizeUrlForOwnershipVerify, randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
 import {
@@ -10,7 +18,6 @@ import {
   getTestNoticeForPlatform,
   hostnamePattern,
   platformsWithTests,
-  PlatformWebhookUrl,
 } from "../../../constants";
 import { ForwardingPayload } from "../../../../types/webhooks";
 import {
@@ -126,85 +133,40 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
   return ctx.reply({ content: "Invalid subcommand." }, true);
 });
 
-function buildAppModal(
-  title: string,
-  botId: string,
-  roleId?: string,
-  newSecret: boolean = false,
-  durationHours?: number | null,
-  edit: boolean = false,
-) {
-  const modal = new ModalBuilder().setCustomId(`app/${edit ? "edit" : "add"}`).setTitle(title);
-  let text: string[] = [];
-  if (!edit) {
-    text = [
-      "Top.gg introduced **Webhooks V1** which works completely different from the previous version.",
-      "To set up your app configuration for Top.gg, please follow these steps:",
-      `1. Go to the [Integrations Page](https://top.gg/bot/${botId}/dashboard/integrations) of your bot.`,
-      "2. Click on **Create** to create a new webhook integration.",
-      `3. Set the webhook URL to the following: ${codeBlock(PlatformWebhookUrl("topgg", botId))}`,
-      "4. Give it a unique label and toggle the **Vote Created** event to ON.",
-      "5. After creating the webhook, copy the generated secret and paste it below.",
-    ];
-  }
-  if (edit && newSecret) {
-    text = [
-      "Top.gg introduced **Webhooks V1** which works completely different from the previous version. The legacy webhooks will be removed some time in the future, so you need to migrate to the new system to keep receiving vote webhooks.",
-      "If you want to generate a new secret, please follow these steps:",
-      `1. Go to the [Integrations Page](https://top.gg/bot/${botId}/dashboard/integrations) of your bot.`,
-      "",
-      "**Remove legacy webhook** (if exists)",
-      "2. If you have an existing webhook integration for the old system, please remove it to avoid confusion. Scroll all the way down to find legacy **Legacy Webhooks**.",
-      "",
-      "**Create new webhook**",
-      "1. Scroll up again, click on **Create** to create a new webhook integration.",
-      "2. Set the webhook URL to the following:",
-      codeBlock(PlatformWebhookUrl("topgg", botId)),
-      "3. Give it a unique label and toggle the **Vote Created** event to ON.",
-      "4. After creating the webhook, copy the generated secret and paste it below.",
-    ];
+async function checkIntegrationAuthorization(
+  db: DrizzleDB,
+  applicationId: string,
+  guildId: string,
+  userId: string,
+  isOwner: boolean,
+): Promise<{ authorized: boolean; integration?: typeof integrations.$inferSelect; message?: string }> {
+  // Check if integration exists
+  const integration = await db.select().from(integrations).where(eq(integrations.applicationId, applicationId)).limit(1).get();
+
+  if (!integration) {
+    return {
+      authorized: false,
+      message:
+        "No integration found for this bot. The bot owner must first connect the UpvoteEngine integration on Top.gg.\n" +
+        `Visit the [Integrations Page](https://top.gg/bot/${applicationId}/dashboard/integrations) and click **Connect** on the UpvoteEngine integration.`,
+    };
   }
 
-  if (text.length > 0) {
-    modal
-      .addTextDisplayComponents((t) => t.setContent(text.join("\n")))
-      .addLabelComponents((l) =>
-        l.setLabel("Top.gg Webhook Secret").setTextInputComponent((t) => t.setCustomId("secret").setRequired(true).setStyle(1)),
-      );
+  // Check if user is authorized (integration creator or verified owner)
+  const isIntegrationOwner = integration.userId === userId;
+  if (!isOwner && !isIntegrationOwner) {
+    const isVerified = await isUserVerifiedForApplication(db, applicationId, guildId, userId);
+    if (!isVerified) {
+      return {
+        authorized: false,
+        message:
+          "You are not authorized to configure this bot. Only the integration creator or verified owners can configure this bot.\n" +
+          `Use \`/app ownership-verify\` to verify your ownership of <@${applicationId}>.`,
+      };
+    }
   }
 
-  modal.addLabelComponents((l) =>
-    l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(botId).setRequired(true)),
-  );
-
-  if (roleId || !edit) {
-    modal.addLabelComponents((l) =>
-      l.setLabel("Reward Role").setRoleSelectMenuComponent((rs) => {
-        rs.setCustomId("role").setRequired(true);
-        if (roleId) {
-          rs.setDefaultRoles(roleId);
-        }
-        return rs;
-      }),
-    );
-  }
-
-  if (durationHours || !edit) {
-    modal.addLabelComponents((l) =>
-      l
-        .setLabel("Role Duration (Hours)")
-        .setDescription("Hours after which the role will be removed; 0 = Don't remove role")
-        .setTextInputComponent((t) =>
-          t
-            .setCustomId("duration")
-            .setValue(durationHours ? durationHours.toString() || "0" : "0")
-            .setRequired(false)
-            .setMinLength(1)
-            .setStyle(1),
-        ),
-    );
-  }
-  return modal;
+  return { authorized: true, integration };
 }
 
 async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
@@ -256,20 +218,17 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
-    // Check if user has verified ownership (skip for owner)
     const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-    if (!isOwner) {
-      const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
-      if (!isVerified) {
-        return ctx.editReply(
-          "You must verify ownership of this application before configuring it.\n" +
-            `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
-        );
-      }
+    const guildId = ctx.guildId!;
+
+    // Check integration authorization
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message });
     }
 
     // check if already 25 apps are configured for this guild
-    const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, ctx.guildId!)).get();
+    const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, guildId)).get();
     if (guildAppCount && guildAppCount.count >= MAX_APPS_PER_GUILD) {
       return ctx.editReply({
         content: `This guild has reached the maximum number of configured apps (${MAX_APPS_PER_GUILD}).\nYou can't add any more applications.`,
@@ -281,13 +240,13 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     const existingApp = await db
       .select()
       .from(applications)
-      .where(and(eq(applications.applicationId, bot.id)))
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
       .limit(1)
       .get();
 
-    if (existingApp && existingApp.guildId === ctx.guildId && existingApp.source === source) {
+    if (existingApp && existingApp.guildId === guildId) {
       return ctx.editReply({ content: "This bot is already configured for this server for this source." });
-    } else if (existingApp && existingApp.source === source && existingApp.guildId !== ctx.guildId) {
+    } else if (existingApp && existingApp.guildId && existingApp.guildId !== guildId) {
       return ctx.editReply({ content: "This bot is already configured for another server for this source." });
     }
 
@@ -296,48 +255,32 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
     const durationHours = ctx.options.getInteger("duration");
     const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null; // Minimum of 1 hour
-    const guildId = ctx.guildId;
     console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
-
-    if (!guildId) {
-      return ctx.editReply({ content: "This command can only be used in a server." });
-    }
-
-    if (source === "topgg") {
-      // topgg v1 webhooks generate the secret themselves and therefore we need to ask the user for it via a modal
-      return ctx.showModal(
-        buildAppModal("Add App - Top.gg Webhooks V1 Setup", bot.id, roleId, true, durationHours ? durationHours : undefined, false),
-      );
-    }
-
-    const generatedSecret = randomStringWithSnowflake(32);
 
     let newCfg: ApplicationCfg | undefined;
     try {
+      // Update the existing application entry with guild-specific config
       newCfg = await db
-        .insert(applications)
-        .values({
-          applicationId: bot.id,
-          source: source,
+        .update(applications)
+        .set({
           guildId: guildId,
           voteRoleId: roleId,
-          roleDurationSeconds: durationSeconds ? durationSeconds : null,
-          secret: generatedSecret,
+          roleDurationSeconds: durationSeconds,
         })
-        .onConflictDoNothing()
+        .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
         .returning()
         .get();
 
       if (!newCfg) {
-        return ctx.editReply({ content: "This bot is already configured for this server for this source." });
+        return ctx.editReply({ content: "Failed to configure the bot. The integration might not be set up correctly." });
       }
     } catch (error: any) {
-      console.error("Error inserting app configuration into database:", error);
+      console.error("Error updating app configuration in database:", error);
       return ctx.editReply({ content: error.message || "Failed to add app configuration. Please try again." });
     }
 
     await ctx.editReply(buildAppInfo(ctx.applicationId, newCfg, "create"));
-    console.log("Guild configuration inserted into database");
+    console.log("Guild configuration updated in database");
   } catch (error) {
     console.error("Error extracting parameters or adding app configuration:", error);
     await ctx.editReply({ content: `Failed to add app configuration: ${error instanceof Error ? error.message : "Unknown error"}` });
@@ -346,22 +289,20 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 }
 
 async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+  await ctx.deferReply(true);
+
   const bot = ctx.options.getUser("bot", true);
   if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
-    return ctx.reply({ content: "The selected user is not a bot." }, true);
+    return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
-  // Check if user has verified ownership (skip for owner)
   const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-  if (!isOwner) {
-    const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
-    if (!isVerified) {
-      return ctx.reply(
-        "You must verify ownership of this application before configuring it.\n" +
-          `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
-        true,
-      );
-    }
+  const guildId = ctx.guildId!;
+
+  // Check integration authorization
+  const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+  if (!authCheck.authorized) {
+    return ctx.editReply({ content: authCheck.message });
   }
 
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
@@ -370,35 +311,19 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
   const durationHours = ctx.options.getInteger("duration");
   const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
-  const generateNewSecret = ctx.options.getBoolean("generate-secret") ?? false;
 
-  // show modal if source is topgg and user wants to generate new secret
-  if (source === "topgg" && generateNewSecret) {
-    return ctx.showModal(
-      buildAppModal("Edit App - Top.gg Webhooks V1 Setup", bot.id, roleId, true, durationHours !== null ? durationHours : undefined, true),
-    );
-  }
+  console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
 
-  await ctx.deferReply(true);
-
-  const guildId = ctx.guildId!;
-  console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId, generateNewSecret });
-
-  if (!roleId && !durationSeconds && !generateNewSecret) {
+  if (!roleId && durationSeconds === null) {
     return ctx.editReply({ content: "Please provide at least one field to update." });
   }
 
-  let newSecret: string | undefined = undefined;
   let updateFields: Partial<ApplicationCfg> = {};
   if (roleId) {
     updateFields.voteRoleId = roleId;
   }
-  if (durationSeconds) {
+  if (durationSeconds !== null) {
     updateFields.roleDurationSeconds = durationSeconds;
-  }
-  if (generateNewSecret) {
-    newSecret = randomStringWithSnowflake(32);
-    updateFields.secret = newSecret;
   }
 
   const result = await db
@@ -410,21 +335,15 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
   if (!result) {
     return ctx.editReply({
-      content: "No existing configuration found for this bot in this guild for this source. Use `/config app add` to add it.",
+      content: "No existing configuration found for this bot in this guild for this source. Use `/app add` to add it.",
     });
   }
 
-  await ctx.editReply(buildAppInfo(ctx.applicationId, result, "edit", !!newSecret));
+  await ctx.editReply(buildAppInfo(ctx.applicationId, result, "edit"));
   console.log("Guild configuration updated in database");
 }
 
-export function buildAppInfo(
-  clientId: string,
-  cfg: ApplicationCfg,
-  action: "edit" | "create",
-  secretVisible: boolean = false,
-): { embeds: APIEmbed[] } {
-  secretVisible = secretVisible || action === "create";
+export function buildAppInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
   const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
   const fields = [
     {
@@ -452,40 +371,23 @@ export function buildAppInfo(
     });
   }
 
-  const embed1: APIEmbed = {
+  const embed: APIEmbed = {
     description: [
-      heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>:`, 3),
-      `Successfully updated configuration for bot <@${cfg.applicationId}> in this server for source ${bold(
+      heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>`, 3),
+      `Successfully ${action === "create" ? "configured" : "updated"} <@${cfg.applicationId}> in this server for ${bold(
         GetSupportedPlatform(cfg.source),
       )}.`,
+      "",
+      action === "create"
+        ? ":white_check_mark: The bot is now ready to receive vote webhooks. Votes will automatically grant the configured role."
+        : ":white_check_mark: Configuration updated successfully.",
     ].join("\n"),
     color: action === "create" ? Colors.Green : Colors.Yellow,
     fields: fields,
   };
 
-  const embed2: APIEmbed = {
-    color: Colors.Yellow,
-    description: [
-      heading("Webhook Information", 2),
-      "You need to configure your bot listing platform to use the following webhook data:",
-    ].join("\n"),
-    fields: [
-      {
-        name: "Webhook Endpoint",
-        value: codeBlock(PlatformWebhookUrl(cfg.source, cfg.applicationId)),
-      },
-      {
-        name: "Webhook Secret",
-        value: [
-          codeBlock(secretVisible ? cfg.secret : sanitizeSecret(cfg.secret)),
-          ":warning: **Keep this secret safe! It will not be shown again.**",
-        ].join("\n"),
-      },
-    ],
-  };
-
   return {
-    embeds: [embed1, embed2],
+    embeds: [embed],
   };
 }
 
@@ -531,21 +433,17 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
-    // Check if user has verified ownership (skip for owner)
     const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-    if (!isOwner) {
-      const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
-      if (!isVerified) {
-        return ctx.editReply(
-          "You must verify ownership of this application before configuring it.\n" +
-            `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
-        );
-      }
+    const guildId = ctx.guildId!;
+
+    // Check integration authorization
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message });
     }
 
     const targetUrl = ctx.options.getString("url", true);
     const forwardingSecret = ctx.options.getString("secret", true);
-    const guildId = ctx.guildId!;
 
     // Validate URL format
     try {
@@ -678,16 +576,13 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
       return ctx.editReply({ content: "The selected user is not a bot." });
     }
 
-    // Check if user has verified ownership (skip for owner)
     const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-    if (!isOwner) {
-      const isVerified = await isUserVerifiedForApplication(db, bot.id, ctx.guildId!, ctx.user.id);
-      if (!isVerified) {
-        return ctx.editReply(
-          "You must verify ownership of this application before configuring it.\n" +
-            `Use \`/app ownership-verify\` to start the verification process for <@${bot.id}>.`,
-        );
-      }
+    const guildId = ctx.guildId!;
+
+    // Check integration authorization
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message });
     }
 
     const targetUrl = ctx.options.getString("url");
