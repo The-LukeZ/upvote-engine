@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests } from "../../../constants";
 import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
-import { appCommand as appCommandData } from "./integrationsCommandData";
+import { appCommand as appCommandData } from "../../../utils/appCommandData";
 
 const MAX_APPS_PER_GUILD = 25;
 
