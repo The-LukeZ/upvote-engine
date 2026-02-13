@@ -222,7 +222,7 @@ export default {
     } else if (batch.queue === "voteremove") {
       await handleVoteRemove(batch, env);
     } else if (batch.queue === "forwardwebhook") {
-      ctx.waitUntil(handleForwardWebhook(batch));
+      ctx.waitUntil(handleForwardWebhook(batch, env));
     }
   },
 } satisfies ExportedHandler<Env, any>;

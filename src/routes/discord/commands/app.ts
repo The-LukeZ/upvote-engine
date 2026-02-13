@@ -10,6 +10,7 @@ import {
   isUserVerifiedForApplication,
   integrations,
   Integration,
+  Cryptor,
 } from "../../../db/schema";
 import { sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
@@ -23,7 +24,7 @@ import {
 import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
 import { appCommand as appCommandData } from "../../../utils/appCommandData";
-import { url as zUrl, refine as zRefine } from "zod/mini";
+import * as z from "zod/mini";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -455,14 +456,30 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
       return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
 
-    const targetUrl = ctx.options.getString("url", true);
+    const targetUrl = ctx.options.getString("url", true); // was validated before
     const forwardingSecret = ctx.options.getString("secret", true);
 
-    // Validate URL format
-    try {
-      new URL(targetUrl);
-    } catch {
-      return ctx.editReply({ content: "Invalid URL format provided." });
+    const secretSchema = z
+      .string()
+      .check(
+        z.minLength(32, "Secret must be at least 32 characters long"),
+        z.maxLength(512, "Secret must be less than 512 characters long"),
+        z.regex(/^[\w\-._~!@#$%^&*()+=]+$/, "Secret contains invalid characters"),
+      );
+
+    const secretValid = secretSchema.safeParse(forwardingSecret);
+    if (!secretValid.success) {
+      return ctx.editReply(
+        [
+          heading("Invalid forwarding secret", 3),
+          "The provided forwarding secret is invalid. Please ensure it meets the following criteria:",
+          "- Length: 32-512 characters",
+          "- Allowed characters: letters, numbers, and `-._~!@#$%^&*()+=` (Regex: `^[\\w\\-._~!@#$%^&*()+=]+$`)",
+          "",
+          bold("Errors:"),
+          ...secretValid.error.issues.map((i) => i.message),
+        ].join("\n"),
+      );
     }
 
     // Check if app configuration exists
@@ -487,6 +504,10 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
       });
     }
 
+    // Encrypt the secret
+    const cryptor = new Cryptor(ctx.context.env.ENCRYPTION_KEY);
+    const { token: encryptedSecret, iv } = await cryptor.encryptToken(forwardingSecret);
+
     // Testing the forwarding configuration
     const testError = await testForwarding(ctx.context.env.RATELIMITER_FORWARDING_TEST, targetUrl, forwardingSecret);
     if (testError) {
@@ -504,7 +525,8 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
       .values({
         applicationId: bot.id,
         targetUrl: targetUrl,
-        secret: forwardingSecret,
+        secret: encryptedSecret,
+        iv: iv,
       })
       .returning()
       .get();
@@ -520,7 +542,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
         },
         {
           name: "Forwarding Secret",
-          value: [codeBlock(newForwarding.secret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
+          value: [codeBlock(forwardingSecret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
           inline: false,
         },
       ],
@@ -630,7 +652,10 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
       updateFields.targetUrl = targetUrl;
     }
     if (newSecret) {
-      updateFields.secret = newSecret;
+      const cryptor = new Cryptor(ctx.context.env.ENCRYPTION_KEY);
+      const { token: encryptedSecret, iv } = await cryptor.encryptToken(newSecret);
+      updateFields.secret = encryptedSecret;
+      updateFields.iv = iv;
     }
 
     const result = await db.update(forwardings).set(updateFields).where(eq(forwardings.applicationId, bot.id)).returning().get();
@@ -652,7 +677,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
     if (newSecret) {
       fields.push({
         name: "New Forwarding Secret",
-        value: [codeBlock(result.secret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
+        value: [codeBlock(newSecret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
         inline: false,
       });
     }
@@ -759,8 +784,8 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction<MyContext>,
 }
 
 function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
-  const forwardingUrlSchema = zUrl({ hostname: hostnamePattern, protocol: /^https:$/, normalize: true }).check(
-    zRefine((url) => {
+  const forwardingUrlSchema = z.url({ hostname: hostnamePattern, protocol: /^https:$/, normalize: true }).check(
+    z.refine((url) => {
       // Disallow localhost and IP addresses
       const _url = new URL(url);
       const { hostname, origin } = _url;

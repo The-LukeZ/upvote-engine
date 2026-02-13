@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { NonNullableFields, QueueMessageBody } from "../types";
-import { APIVote, votes } from "./db/schema";
+import { APIVote, votes, Cryptor } from "./db/schema";
 import { makeDB } from "./db/util";
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
@@ -204,8 +204,10 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 }
 
 // This queue handler processes forwarding webhook payloads other services
-export async function handleForwardWebhook(batch: MessageBatch<ForwardingQueuePayload<APIVote["source"]>>): Promise<void> {
+export async function handleForwardWebhook(batch: MessageBatch<ForwardingQueuePayload<APIVote["source"]>>, env: Env): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
+  const cryptor = new Cryptor(env.ENCRYPTION_KEY);
+  
   for (const message of batch.messages) {
     const body = message.body;
     // If timestamp is older than 2 hours, ack and skip
@@ -219,11 +221,14 @@ export async function handleForwardWebhook(batch: MessageBatch<ForwardingQueuePa
     try {
       console.log(`Forwarding webhook payload to ${body.to.targetUrl}`);
 
+      // Decrypt the secret before using it
+      const decryptedSecret = await cryptor.decryptToken(body.to.secret, body.to.iv);
+
       const response = await fetch(body.to.targetUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          authorization: body.to.secret,
+          authorization: decryptedSecret,
         },
         body: JSON.stringify({
           ...body.forwardingPayload,

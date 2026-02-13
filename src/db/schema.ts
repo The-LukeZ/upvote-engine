@@ -37,6 +37,7 @@ export const forwardings = sqliteTable("forwardings", {
   applicationId: text("application_id").notNull(), // Removed .references() to avoid FK mismatch
   targetUrl: text("target_url").notNull(),
   secret: text("secret").notNull(),
+  iv: text("iv").notNull(), // Initialization vector for AES encryption
 });
 
 export const votes = sqliteTable(
