@@ -44,6 +44,9 @@ importers:
       topgg-api-types:
         specifier: ^0.0.7
         version: 0.0.7
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260212.0

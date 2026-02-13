@@ -1,12 +1,12 @@
 import { Context } from "hono";
 import { QueueMessageBody } from "../../../../types";
-import { WebhookHandler } from "../webhook";
+import { WebhookHandler } from "../../../utils/webhook";
 import { applications, NewVote } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
-import { TopGGV1Payload } from "../../../../types/webhooks";
 import { dmUserOnTestVote } from "../../../utils";
+import { WebhookPayload } from "topgg-api-types";
 
 // Path: /webhook/topgg/v1/:applicationId
 export async function v1handler<CT extends Context>(c: CT) {
@@ -22,7 +22,7 @@ export async function v1handler<CT extends Context>(c: CT) {
     return c.json({ error: "Application not found" }, 404);
   }
 
-  const valRes = await new WebhookHandler<TopGGV1Payload>(appCfg?.secret).validateRequest(c);
+  const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(appCfg?.secret).validateRequest(c);
 
   if (!valRes.isValid || !valRes.payload) {
     console.error("Webhook validation failed");
