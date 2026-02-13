@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 
 import type { DrizzleDB, HonoEnv, QueueMessageBody } from "../types";
 import { makeDB } from "./db/util";
-import { applications, blacklist, Vote, votes } from "./db/schema";
+import { applications, blacklist, deleteApplicationCascade, forwardings, integrations, Vote, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
 import { generateSnowflake } from "./snowflake";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
@@ -125,14 +125,23 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
     )
     .all();
 
-  const invalidGuilds: string[] = [];
-  const invalidApplications: string[] = [];
+  /**
+   * Map of applicationId to guildId (or null for non-guild-specific)
+   */
+  const invalidCfgs = new Map<string, { guildId: string | null; applicationId: string }>();
 
   for (const config of configs) {
     if (!config.guildId) {
-      invalidApplications.push(config.applicationId); // For non-guild-specific configs, we use applicationId as the identifier for cleanup
+      invalidCfgs.set(config.applicationId, { guildId: null, applicationId: config.applicationId }); // For non-guild-specific configs, we use applicationId as the identifier for cleanup
       continue;
     }
+
+    if (config.invalidRequests && config.invalidRequests >= 10) {
+      console.log(`Guild ${config.guildId} has ${config.invalidRequests} invalid requests, marking for deletion`);
+      invalidCfgs.set(config.applicationId, { guildId: config.guildId, applicationId: config.applicationId });
+      continue;
+    }
+
     try {
       // Try to fetch guild member (the bot itself)
       await rest.get(Routes.guildMember(config.guildId, env.DISCORD_APPLICATION_ID));
@@ -141,23 +150,30 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
       // If we get 403 or 404, the bot is no longer in the guild
       if (error?.status === 403 || error?.status === 404 || error?.code === 10004) {
         console.log(`Guild ${config.guildId} is invalid, marking for deletion`);
-        invalidGuilds.push(config.guildId);
+        invalidCfgs.set(config.applicationId, { guildId: config.guildId, applicationId: config.applicationId });
       } else {
         console.error(`Error checking guild ${config.guildId}:`, error);
       }
     }
 
     // Rate limit protection - wait between requests
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
   // Delete configurations and votes for invalid guilds
-  if (invalidGuilds.length > 0) {
-    console.log(`Deleting data for ${invalidGuilds.length} invalid guilds`);
+  if (invalidCfgs.size > 0) {
+    const invalidGuilds = Array.from(invalidCfgs.values())
+      .map((cfg) => cfg.guildId)
+      .filter((gid) => gid !== null);
+    const invalidApplications = Array.from(invalidCfgs.values()).map((cfg) => cfg.applicationId);
+    // we need to cascade related data first (votes, forwardings)
+    await db.delete(votes).where(inArray(votes.guildId, invalidGuilds));
+    await db.delete(forwardings).where(inArray(forwardings.applicationId, invalidApplications));
+    await db.delete(applications).where(inArray(applications.applicationId, invalidApplications));
+    // We could delete related integrations here as well, but it i not possible to revoke an integration from the bot's side,
+    // so it would lead to the integrtion being active on top.gg but not working - keep in DB unless user revokes it manually
 
-    await db.delete(applications).where(inArray(applications.guildId, invalidGuilds)); // Cascade deletes votes
-
-    console.log(`Cleanup complete. Removed data for guilds: ${invalidGuilds.join(", ")}`);
+    console.log(`Cleanup complete. Removed data for apps: ${invalidApplications.join(", ")}`);
   }
 }
 
