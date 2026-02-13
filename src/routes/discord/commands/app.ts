@@ -2,13 +2,28 @@ import { bold, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg, isUserVerifiedForApplication, integrations } from "../../../db/schema";
+import {
+  applications,
+  ApplicationCfg,
+  forwardings,
+  ForwardingCfg,
+  isUserVerifiedForApplication,
+  integrations,
+  Integration,
+} from "../../../db/schema";
 import { sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
-import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests } from "../../../constants";
+import {
+  GetSupportedPlatform,
+  getTestNoticeForPlatform,
+  hostnamePattern,
+  platformsWithTests,
+  supportedPlatforms,
+} from "../../../constants";
 import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
 import { appCommand as appCommandData } from "../../../utils/appCommandData";
+import { url as zUrl, refine as zRefine } from "zod/mini";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -112,24 +127,28 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
 async function checkIntegrationAuthorization(
   db: DrizzleDB,
   applicationId: string,
+  source: keyof typeof supportedPlatforms,
   guildId: string,
   userId: string,
   isOwner: boolean,
 ): Promise<{ authorized: boolean; integration?: typeof integrations.$inferSelect; message?: string }> {
-  // Check if integration exists
-  const integration = await db.select().from(integrations).where(eq(integrations.applicationId, applicationId)).limit(1).get();
+  let integration: Integration | undefined;
+  if (source === "topgg") {
+    // Check if integration exists
+    integration = await db.select().from(integrations).where(eq(integrations.applicationId, applicationId)).limit(1).get();
 
-  if (!integration) {
-    return {
-      authorized: false,
-      message:
-        "No integration found for this bot. The bot owner must first connect the UpvoteEngine integration on Top.gg.\n" +
-        `Visit the [Integrations Page](https://top.gg/bot/${applicationId}/dashboard/integrations) and click **Connect** on the UpvoteEngine integration.`,
-    };
+    if (!integration) {
+      return {
+        authorized: false,
+        message:
+          "No integration found for this bot. The bot owner must first connect the UpvoteEngine integration on Top.gg.\n" +
+          `Visit the [Integrations Page](https://top.gg/bot/${applicationId}/dashboard/integrations) and click **Connect** on the UpvoteEngine integration.`,
+      };
+    }
   }
 
   // Check if user is authorized (integration creator or verified owner)
-  const isIntegrationOwner = integration.userId === userId;
+  const isIntegrationOwner = integration?.userId === userId;
   if (!isOwner && !isIntegrationOwner) {
     const isVerified = await isUserVerifiedForApplication(db, applicationId, guildId, userId);
     if (!isVerified) {
@@ -287,7 +306,7 @@ async function handleEditIntegration(ctx: ChatInputCommandInteraction<MyContext>
 
   // For topgg, check integration authorization
   if (source === "topgg") {
-    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, source, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
       return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
@@ -411,8 +430,6 @@ async function handleForwarding(c: MyContext, ctx: ChatInputCommandInteraction<M
 async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
-  console.log("Setting forwarding configuration");
-
   try {
     const bot = ctx.options.getUser("bot", true);
     if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
@@ -422,8 +439,18 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
     const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
     const guildId = ctx.guildId!;
 
+    const appCfg = await db
+      .select({ source: applications.source })
+      .from(applications)
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.guildId, guildId)))
+      .get();
+
+    if (!appCfg) {
+      return ctx.editReply("No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.");
+    }
+
     // Check integration authorization
-    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, appCfg.source, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
       return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
@@ -557,8 +584,6 @@ async function sendTestPayload(url: string, secret: string): Promise<{ success: 
 async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   await ctx.deferReply(true);
 
-  console.log("Editing forwarding configuration");
-
   try {
     const bot = ctx.options.getUser("bot", true);
     if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
@@ -568,8 +593,18 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
     const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
     const guildId = ctx.guildId!;
 
+    const appCfg = await db
+      .select({ source: applications.source })
+      .from(applications)
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.guildId, guildId)))
+      .get();
+
+    if (!appCfg) {
+      return ctx.editReply("No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.");
+    }
+
     // Check integration authorization
-    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, appCfg.source, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
       return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
@@ -724,19 +759,14 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction<MyContext>,
 }
 
 function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
-  // 1. Is it even a url?
-  try {
-    const _url = new URL(url);
-    // 2. Do NOT allow localhost, ips and not the current origin
-    if (_url.origin === currentOrigin) {
-      return false;
-    } else if (_url.hostname === "localhost" || _url.hostname === "127.0.0.1" || _url.hostname === "::1") {
-      return false;
-    } else if (!hostnamePattern.test(_url.hostname)) {
-      return false;
-    }
-  } catch {
-    return false;
-  }
-  return true;
+  const forwardingUrlSchema = zUrl({ hostname: hostnamePattern, protocol: /^https:$/, normalize: true }).check(
+    zRefine((url) => {
+      // Disallow localhost and IP addresses
+      const _url = new URL(url);
+      const { hostname, origin } = _url;
+      return hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1" && origin !== currentOrigin;
+    }),
+  );
+
+  return forwardingUrlSchema.safeParse(url).success;
 }
