@@ -1,19 +1,36 @@
 import { sqliteTable, text, integer, blob, primaryKey, foreignKey } from "drizzle-orm/sqlite-core";
 import { DrizzleDB } from "../../types";
 import { and, eq } from "drizzle-orm";
+import { _NonNullableFields } from "discord-api-types/v10";
 
 export const applications = sqliteTable(
   "applications",
   {
     applicationId: text("application_id").notNull(),
     source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
-    secret: text("secret").notNull(),
-    guildId: text("guild_id").notNull(),
-    voteRoleId: text("vote_role_id").notNull(),
+    /**
+     * Only set gor legacy applications, that were set up before the integration system was implemented.
+     * New applications created via the integration system will have their secrets stored in the `integrations` table instead, to avoid FK issues with the new `integrations` table.
+     */
+    secret: text("secret"),
+    /**
+     * Missing (null) if the integration was created but the user did not set a guild yet.
+     * This is because the integration setup flow is split into two steps: first the user creates the integration, then they set up the guild-specific configuration.
+     */
+    guildId: text("guild_id"),
+    voteRoleId: text("vote_role_id"),
     roleDurationSeconds: integer("role_duration_seconds"),
+    /**
+     * We keep track of invalid webhook requests for each application. If it exceeds a certain threshold, we can automatically disable the application to prevent abuse and notify the owner to check their webhook configuration.
+     *
+     * This happens when someone sets an integration and votes are being sent but the guildId and voteRoleId are not set.
+     *
+     * This is unique per webhook event id (every vote has a unique id in the payload).
+     */
+    invalidRequests: integer("invalid_requests").default(0),
     createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
   },
-  (table) => [primaryKey({ columns: [table.applicationId, table.source, table.guildId] })],
+  (table) => [primaryKey({ columns: [table.applicationId, table.source] })],
 );
 
 export const forwardings = sqliteTable("forwardings", {
@@ -25,20 +42,20 @@ export const forwardings = sqliteTable("forwardings", {
 export const votes = sqliteTable(
   "votes",
   {
-    id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID
+    id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID by top.gg
     applicationId: text("application_id").notNull(),
     source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
-    guildId: text("guild_id").notNull(),
+    guildId: text("guild_id"),
     userId: text("user_id").notNull(),
-    roleId: text("role_id").notNull(),
+    roleId: text("role_id"),
     hasRole: integer("has_role", { mode: "boolean" }).notNull().default(false), // 1 = true, 0 = false
     expiresAt: text("expires_at"),
   },
   (table) => [
     foreignKey({
       name: "fk_votes_application",
-      columns: [table.applicationId, table.source, table.guildId],
-      foreignColumns: [applications.applicationId, applications.source, applications.guildId],
+      columns: [table.applicationId, table.source],
+      foreignColumns: [applications.applicationId, applications.source],
     }),
   ],
 );
@@ -99,7 +116,7 @@ export type NewApplicationCfg = typeof applications.$inferInsert;
 
 export type Vote = typeof votes.$inferSelect;
 export type NewVote = typeof votes.$inferInsert;
-export type APIVote = Omit<Vote, "id"> & { id: string };
+export type APIVote = _NonNullableFields<Omit<Vote, "id"> & { id: string }>;
 
 export type ForwardingCfg = typeof forwardings.$inferSelect;
 export type NewForwardingCfg = typeof forwardings.$inferInsert;

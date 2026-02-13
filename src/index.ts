@@ -3,7 +3,7 @@ import { ApplicationIntegrationType, Routes } from "discord-api-types/v10";
 import { REST } from "@discordjs/rest";
 import { Hono } from "hono";
 import { poweredBy } from "hono/powered-by";
-import { and, count, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
+import { and, count, eq, gt, inArray, isNotNull, isNull, lte, notExists, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import dayjs from "dayjs";
 
@@ -54,11 +54,11 @@ app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
 async function handleExpiredVotes(env: Env, db: DrizzleDB) {
   const currentTs = dayjs().toISOString();
-  let expiredVotes: Vote[] = [];
+  let expiredVotes: { id: bigint }[] = [];
   try {
     const v = alias(votes, "v");
     expiredVotes = await db
-      .select()
+      .select({ id: v.id })
       .from(v)
       .where(
         and(
@@ -96,10 +96,6 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
         (vote) =>
           ({
             id: vote.id.toString(),
-            guildId: vote.guildId,
-            userId: vote.userId,
-            roleId: vote.roleId,
-            expiresAt: vote.expiresAt,
             timestamp: new Date().toISOString(),
           }) as QueueMessageBody,
       )
@@ -115,11 +111,28 @@ async function deleteOldVotes(db: DrizzleDB) {
 
 async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
   const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
-  const configs = await db.select().from(applications).all();
+  const configs = await db
+    .select()
+    .from(applications)
+    .where(
+      or(
+        isNotNull(applications.guildId),
+        and(
+          isNull(applications.guildId),
+          lte(applications.createdAt, dayjs().subtract(7, "day").toISOString()), // Only check non-guild-specific configs that are older than 7 days, to give users time to configure them
+        ),
+      ),
+    )
+    .all();
 
   const invalidGuilds: string[] = [];
+  const invalidApplications: string[] = [];
 
   for (const config of configs) {
+    if (!config.guildId) {
+      invalidApplications.push(config.applicationId); // For non-guild-specific configs, we use applicationId as the identifier for cleanup
+      continue;
+    }
     try {
       // Try to fetch guild member (the bot itself)
       await rest.get(Routes.guildMember(config.guildId, env.DISCORD_APPLICATION_ID));

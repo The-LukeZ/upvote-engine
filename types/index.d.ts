@@ -39,8 +39,16 @@ export type HonoEnv = {
 };
 export type MyContext = BaseInteractionContext<WorkerEnv, HonoVariables>;
 
-export type QueueMessageBody = APIVote & {
+export type QueueMessageBody = {
+  /**
+   * Vote ID as a string (since it can be a bigint that exceeds JS number limits)
+   */
+  id: string;
   timestamp: string;
 };
 
 export type SupportedPlatforms = ApplicationCfg["source"];
+
+export type NonNullableFields<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};

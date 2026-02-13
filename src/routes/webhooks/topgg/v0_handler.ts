@@ -37,13 +37,7 @@ export async function v0handler<CT extends Context>(c: CT) {
 
   await c.env.VOTE_APPLY.send({
     id: voteId,
-    userId: vote.user,
-    applicationId: appId,
-    guildId: appCfg.guildId,
-    roleId: appCfg.voteRoleId,
-    expiresAt: expiresAt,
     timestamp: new Date().toISOString(),
-    source: "topgg",
   } as QueueMessageBody);
 
   const forwardPayload = await WebhookHandler.buildForwardPayload(db, appId, "topgg", vote);
