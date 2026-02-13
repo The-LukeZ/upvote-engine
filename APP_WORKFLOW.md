@@ -58,21 +58,11 @@ graph TD
 
 **Step 3: Authorization Check**
 
-- System verifies user is authorized by checking if they are:
-  - The integration creator (from `integrations.userId`)
-  - A verified bot owner (from `verifications` table)
-  - The service owner (environment variable `OWNER_ID`)
+- System verifies user is authorized by checking if they are the integration creator or a verified bot owner.
 
 **Step 4: Application Entry Creation/Update**
 
-- Creates or updates entry in `applications` table:
-  - `applicationId`: Bot's Discord ID
-  - `source`: "topgg"
-  - `guildId`: Discord guild ID
-  - `voteRoleId`: Role to assign on vote
-  - `roleDurationSeconds`: How long the role lasts
-  - `secret`: NULL (stored in integrations table instead)
-  - `createdAt`: Timestamp
+- Creates or updates database entry.
 
 ---
 
