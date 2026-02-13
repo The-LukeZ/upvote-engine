@@ -41,6 +41,9 @@ importers:
       honocord:
         specifier: ^1.5.4
         version: 1.5.4
+      topgg-api-types:
+        specifier: ^0.0.4
+        version: 0.0.4
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260212.0
@@ -1256,6 +1259,9 @@ packages:
     resolution: {integrity: sha512-PSkbLUoxOFRzJYjjxHJt9xro7D+iilgMX/C9lawzVuYiIdcihh9DXmVibBe8lmcFrRi/VzlPjBxbN7rH24q8/Q==}
     engines: {node: '>=14.0.0'}
 
+  topgg-api-types@0.0.4:
+    resolution: {integrity: sha512-mtm+KM5krbGAjIcVb0mdQEB7hKTFQuDOICfBBnCjbUQZkse5x3WpExjB2BrCmf7wt4vLI4jaCh2VvtNSAUc+FA==}
+
   ts-mixer@6.0.4:
     resolution: {integrity: sha512-ufKpbmrugz5Aou4wcr5Wc1UUFWOLhq+Fm6qa6P0w0K5Qw2yhaUoiWszhCVuNQyNwrlGiscHOmqYoAox1PtvgjA==}
 
@@ -1409,6 +1415,9 @@ packages:
 
   youch@4.1.0-beta.10:
     resolution: {integrity: sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ==}
+
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
 
@@ -2305,6 +2314,10 @@ snapshots:
 
   tinyrainbow@3.0.3: {}
 
+  topgg-api-types@0.0.4:
+    dependencies:
+      zod: 4.3.6
+
   ts-mixer@6.0.4: {}
 
   tslib@2.8.1: {}
@@ -2424,3 +2437,5 @@ snapshots:
       '@speed-highlight/core': 1.2.14
       cookie: 1.1.1
       youch-core: 0.3.3
+
+  zod@4.3.6: {}
