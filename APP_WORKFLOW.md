@@ -39,21 +39,16 @@ graph TD
 
 - Bot owner visits `https://top.gg/bot/{bot_id}/dashboard/integrations`
 - Clicks "Connect" on UpvoteEngine integration
-- This creates an entry in the `integrations` table with:
-  - `id`: Unique integration ID
-  - `applicationId`: The bot's Discord application ID
-  - `secret`: Webhook secret for verification
-  - `userId`: Discord ID of the user who created the integration
-  - `type`: "topgg"
+- This creates creates the integration entry in the database.
 
-**Step 2: Guild Configuration Attempt**
+**Guild Configuration Attempt**
 
 - Guild admin tries `/app create` with source "topgg"
 - System checks if integration exists:
   - **If NO**: Display message with setup instructions and link to Top.gg integrations page
   - **If YES**: Display message to use `/app edit` instead
 
-**Step 3: Configure Guild Settings**
+**Step 2: Configure Guild Settings**
 
 - Guild admin uses `/app edit` with:
   - `bot`: The bot user
@@ -61,14 +56,14 @@ graph TD
   - `role`: Role to assign on vote (optional)
   - `duration`: Duration in hours for role (optional)
 
-**Step 4: Authorization Check**
+**Step 3: Authorization Check**
 
 - System verifies user is authorized by checking if they are:
   - The integration creator (from `integrations.userId`)
   - A verified bot owner (from `verifications` table)
   - The service owner (environment variable `OWNER_ID`)
 
-**Step 5: Application Entry Creation/Update**
+**Step 4: Application Entry Creation/Update**
 
 - Creates or updates entry in `applications` table:
   - `applicationId`: Bot's Discord ID
@@ -78,6 +73,8 @@ graph TD
   - `roleDurationSeconds`: How long the role lasts
   - `secret`: NULL (stored in integrations table instead)
   - `createdAt`: Timestamp
+
+---
 
 ### DBL Workflow (Direct Configuration)
 
