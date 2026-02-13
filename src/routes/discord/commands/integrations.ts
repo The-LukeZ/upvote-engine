@@ -2,34 +2,13 @@ import { bold, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
-import {
-  applications,
-  ApplicationCfg,
-  forwardings,
-  ForwardingCfg,
-  verifications,
-  isUserVerifiedForApplication,
-  integrations,
-} from "../../../db/schema";
-import { getAuthorizeUrlForOwnershipVerify, randomStringWithSnowflake, sanitizeSecret } from "../../../utils";
+import { applications, ApplicationCfg, forwardings, ForwardingCfg, isUserVerifiedForApplication, integrations } from "../../../db/schema";
+import { sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
-import {
-  GetSupportedPlatform,
-  getTestNoticeForPlatform,
-  hostnamePattern,
-  platformsWithTests,
-} from "../../../constants";
+import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests } from "../../../constants";
 import { ForwardingPayload } from "../../../../types/webhooks";
-import {
-  ChatInputCommandInteraction,
-  Colors,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ContainerBuilder,
-  ModalBuilder,
-  StringSelectMenuOptionBuilder,
-} from "honocord";
-import { appCommand as appCommandData } from "./appCommandData";
+import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
+import { integrationsCommand as integrationsCommandData } from "./integrationsCommandData";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -37,7 +16,9 @@ async function validateBot(bot: APIUser, ownApplicationId: string, byOwner: bool
   return !!bot.bot && (byOwner || bot.id !== ownApplicationId);
 }
 
-export const appCommand = appCommandData.addHandler(async function handleApp(ctx: ChatInputCommandInteraction<MyContext>) {
+export const integrationsCommand = integrationsCommandData.addHandler(async function handleIntegrations(
+  ctx: ChatInputCommandInteraction<MyContext>,
+) {
   const subgroup = ctx.options.getSubcommandGroup() as "forwarding" | null;
   const db = ctx.context.get("db");
 
@@ -45,7 +26,7 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
     return handleForwarding(ctx.context, ctx, db);
   }
 
-  const subcommand = ctx.options.getSubcommand(true) as "list" | "add" | "edit" | "remove" | "ownership-verify";
+  const subcommand = ctx.options.getSubcommand(true) as "list" | "configure" | "edit" | "remove";
 
   const blCache = ctx.context.env.BLACKLIST.getByName("blacklist");
   const botOption = ctx.options.get("bot", ApplicationCommandOptionType.User, false);
@@ -56,19 +37,15 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
     }
   }
 
-  if (subcommand === "add") {
-    return handleAddApp(ctx, db);
+  if (subcommand === "configure") {
+    return handleConfigureIntegration(ctx, db);
   }
   if (subcommand === "edit") {
-    return handleEditApp(ctx, db);
+    return handleEditIntegration(ctx, db);
   }
 
   if (subcommand === "list") {
-    return handleListApps(ctx, db);
-  }
-
-  if (subcommand === "ownership-verify") {
-    return verifyOwnershipHandler(ctx, db);
+    return handleListIntegrations(ctx, db);
   }
 
   if (subcommand === "remove") {
@@ -78,8 +55,8 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
 
     return ctx.showModal(
       new ModalBuilder({
-        title: "Remove App",
-        custom_id: "remove_app_modal",
+        title: "Remove Integration",
+        custom_id: "remove_integration_modal",
       })
         .addLabelComponents((l) =>
           l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
@@ -125,7 +102,7 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
           ),
         )
         .addTextDisplayComponents((t) =>
-          t.setContent("### :warning: This will remove the app configuration __and__ all associated votes!"),
+          t.setContent("### :warning: This will remove the integration configuration __and__ all associated votes!"),
         ),
     );
   }
@@ -161,7 +138,7 @@ async function checkIntegrationAuthorization(
         authorized: false,
         message:
           "You are not authorized to configure this bot. Only the integration creator or verified owners can configure this bot.\n" +
-          `Use \`/app ownership-verify\` to verify your ownership of <@${applicationId}>.`,
+          `Use \`/verify-app-ownership\` to verify your ownership of <@${applicationId}>.`,
       };
     }
   }
@@ -169,18 +146,18 @@ async function checkIntegrationAuthorization(
   return { authorized: true, integration };
 }
 
-async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
-  console.log("Listing configured apps for guild");
+async function handleListIntegrations(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
+  console.log("Listing configured integrations for guild");
   const guildId = ctx.guildId!;
   try {
     const configs = await db.select().from(applications).where(eq(applications.guildId, guildId));
     if (configs.length === 0) {
-      return ctx.reply({ content: "No apps configured for this guild." }, true);
+      return ctx.reply({ content: "No integrations configured for this guild." }, true);
     }
 
     const container = new ContainerBuilder()
       .setAccentColor(Colors.Blurple)
-      .addTextDisplayComponents((t) => t.setContent("## Configured Apps"));
+      .addTextDisplayComponents((t) => t.setContent("## Configured Integrations"));
 
     configs.forEach((cfg) => {
       const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
@@ -209,7 +186,7 @@ async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: D
   }
 }
 
-async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   try {
@@ -231,7 +208,7 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
     const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, guildId)).get();
     if (guildAppCount && guildAppCount.count >= MAX_APPS_PER_GUILD) {
       return ctx.editReply({
-        content: `This guild has reached the maximum number of configured apps (${MAX_APPS_PER_GUILD}).\nYou can't add any more applications.`,
+        content: `This guild has reached the maximum number of configured integrations (${MAX_APPS_PER_GUILD}).\nYou can't configure any more integrations.`,
       });
     }
 
@@ -245,9 +222,9 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
       .get();
 
     if (existingApp && existingApp.guildId === guildId) {
-      return ctx.editReply({ content: "This bot is already configured for this server for this source." });
+      return ctx.editReply({ content: "This integration is already configured for this server." });
     } else if (existingApp && existingApp.guildId && existingApp.guildId !== guildId) {
-      return ctx.editReply({ content: "This bot is already configured for another server for this source." });
+      return ctx.editReply({ content: "This integration is already configured for another server." });
     }
 
     const role = ctx.options.getRole("role", true);
@@ -275,20 +252,20 @@ async function handleAddApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
         return ctx.editReply({ content: "Failed to configure the bot. The integration might not be set up correctly." });
       }
     } catch (error: any) {
-      console.error("Error updating app configuration in database:", error);
-      return ctx.editReply({ content: error.message || "Failed to add app configuration. Please try again." });
+      console.error("Error updating integration configuration in database:", error);
+      return ctx.editReply({ content: error.message || "Failed to configure integration. Please try again." });
     }
 
-    await ctx.editReply(buildAppInfo(ctx.applicationId, newCfg, "create"));
-    console.log("Guild configuration updated in database");
+    await ctx.editReply(buildIntegrationInfo(ctx.applicationId, newCfg, "create"));
+    console.log("Integration configuration updated in database");
   } catch (error) {
-    console.error("Error extracting parameters or adding app configuration:", error);
-    await ctx.editReply({ content: `Failed to add app configuration: ${error instanceof Error ? error.message : "Unknown error"}` });
+    console.error("Error extracting parameters or configuring integration:", error);
+    await ctx.editReply({ content: `Failed to configure integration: ${error instanceof Error ? error.message : "Unknown error"}` });
   }
   return;
 }
 
-async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleEditIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   const bot = ctx.options.getUser("bot", true);
@@ -335,15 +312,15 @@ async function handleEditApp(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
 
   if (!result) {
     return ctx.editReply({
-      content: "No existing configuration found for this bot in this guild for this source. Use `/app add` to add it.",
+      content: "No existing configuration found for this bot in this guild for this source. Use `/integrations configure` to add it.",
     });
   }
 
-  await ctx.editReply(buildAppInfo(ctx.applicationId, result, "edit"));
+  await ctx.editReply(buildIntegrationInfo(ctx.applicationId, result, "edit"));
   console.log("Guild configuration updated in database");
 }
 
-export function buildAppInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
+export function buildIntegrationInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
   const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
   const fields = [
     {
@@ -461,7 +438,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     if (!appConfig || appConfig.count === 0) {
       return ctx.editReply({
-        content: `No app configuration found for <@${bot.id}>.\nPlease add the app configuration first using \`/app add\`.`,
+        content: `No integration configuration found for <@${bot.id}>.\nPlease configure the integration first using \`/integrations configure\`.`,
       });
     }
 
@@ -470,7 +447,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     if (existingForwarding) {
       return ctx.editReply({
-        content: `Forwarding configuration already exists for <@${bot.id}>\nUse \`/app forwarding edit\` to modify it.`,
+        content: `Forwarding configuration already exists for <@${bot.id}>\nUse \`/integrations forwarding edit\` to modify it.`,
       });
     }
 
@@ -613,7 +590,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 
     if (!result) {
       return ctx.editReply({
-        content: `No forwarding configuration found for <@${bot.id}>.\nUse \`/app forwarding set\` to create one.`,
+        content: `No forwarding configuration found for <@${bot.id}>.\nUse \`/integrations forwarding set\` to create one.`,
       });
     }
 
@@ -750,82 +727,4 @@ function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
     return false;
   }
   return true;
-}
-
-async function verifyOwnershipHandler(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
-  const bot = ctx.options.getUser("bot", true);
-  if (!bot.bot) {
-    return ctx.reply({ content: "The selected user is not a bot." }, true);
-  }
-
-  const existingVerification = await db
-    .select()
-    .from(verifications)
-    .where(and(eq(verifications.applicationId, bot.id)))
-    .get();
-
-  if (existingVerification?.verified) {
-    const message =
-      existingVerification.userId === ctx.user.id
-        ? "Your ownership of this application has already been verified!"
-        : "This application's ownership has already been verified by another user.";
-
-    return ctx.editReply({
-      flags: MessageFlags.IsComponentsV2,
-      components: [
-        new ContainerBuilder()
-          .setAccentColor(Colors.Green)
-          .addTextDisplayComponents((t) => t.setContent(bold("Ownership Already Verified") + `\n${message}`)) as any,
-      ],
-    });
-  }
-
-  await db
-    .insert(verifications)
-    .values({
-      applicationId: bot.id,
-      guildId: ctx.guildId!,
-      userId: ctx.user.id,
-    })
-    .onConflictDoNothing()
-    .run();
-
-  return ctx.reply({
-    flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
-    components: [
-      new ContainerBuilder()
-        .setAccentColor(Colors.Blurple)
-        .addTextDisplayComponents((t) =>
-          t.setContent(
-            `## Ownership Verification Requested for <@${bot.id}>\nPlease follow the steps below to complete the verification process.`,
-          ),
-        )
-        .addSeparatorComponents((s) => s.setSpacing(2))
-        .addTextDisplayComponents(
-          (t) =>
-            t.setContent(
-              "Ownership verification works by using a workaround that requires you to authorize the bot so it can fetch your app's entitlements.\n" +
-                "It doesn't matter if your app supports it or not, the owner ship can be verified by the returned status code.",
-            ),
-          (t) =>
-            t.setContent(
-              "First, click the **Authorize Bot** button below. You will be prompted to authorize the bot with the `applications.entitlements` scope. This allows the bot to check for an entitlement that only the owner of the application would have.",
-            ),
-          (t) =>
-            t.setContent(
-              "After authorizing, return to this message and click the **Verify Ownership** button. The bot will check for the entitlement and verify your ownership based on that.",
-            ),
-        )
-        .addActionRowComponents((ar: ActionRowBuilder<ButtonBuilder>) =>
-          ar.setComponents(
-            new ButtonBuilder()
-              .setLabel("Authorize Bot")
-              .setStyle(5)
-              .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, ctx.applicationId))
-              .setEmoji({ name: "🔗" }),
-            new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${bot.id}`).setEmoji({ name: "✅" }),
-          ),
-        ) as any,
-    ],
-  });
 }

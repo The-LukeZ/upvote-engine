@@ -1,3 +1,3 @@
 export * from "./ownerVerify";
-export * from "./removeAppModal";
+export * from "./removeIntegrationModal";
 export * from "./app";

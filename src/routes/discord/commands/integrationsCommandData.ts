@@ -3,17 +3,17 @@ import { MyContext } from "../../../../types";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
 import { supportedPlatforms } from "../../../constants";
 
-export const appCommand = new SlashCommandHandler<MyContext>()
-  .setName("app")
-  .setDescription("Configure the application connections for this server")
+export const integrationsCommand = new SlashCommandHandler<MyContext>()
+  .setName("integrations")
+  .setDescription("Manage bot integrations for this server")
   .setContexts(0)
   .setIntegrationTypes(ApplicationIntegrationType.GuildInstall)
   .setDefaultMemberPermissions(32) // Manage Server
-  .addSubcommand((sub) => sub.setName("list").setDescription("List all configured apps"))
+  .addSubcommand((sub) => sub.setName("list").setDescription("List all configured integrations"))
   .addSubcommand((sub) =>
     sub
-      .setName("add")
-      .setDescription("Add a new app")
+      .setName("configure")
+      .setDescription("Configure an integration for this guild")
       .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to add").setRequired(true))
       .addStringOption((opt) =>
         opt
@@ -41,7 +41,7 @@ export const appCommand = new SlashCommandHandler<MyContext>()
   .addSubcommand((sub) =>
     sub
       .setName("edit")
-      .setDescription("Edit an existing app")
+      .setDescription("Edit an existing integration configuration")
       .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to edit").setRequired(true))
       .addStringOption((opt) =>
         opt
@@ -68,7 +68,7 @@ export const appCommand = new SlashCommandHandler<MyContext>()
   .addSubcommand((sub) =>
     sub
       .setName("remove")
-      .setDescription("Remove an app")
+      .setDescription("Remove an integration configuration")
       .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to remove").setRequired(true))
       .addStringOption((opt) =>
         opt
@@ -115,10 +115,4 @@ export const appCommand = new SlashCommandHandler<MyContext>()
           .setDescription("View the forwarding configuration")
           .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true)),
       ),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName("ownership-verify")
-      .setDescription("Verify ownership of a bot")
-      .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to verify").setRequired(true)),
   );
