@@ -5,7 +5,7 @@ import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
-import { TopGGV0Payload } from "../../../../types/webhooks";
+import { BotWebhookPayload } from "topgg-api-types/v0";
 import { dmUserOnTestVote } from "../../../utils";
 
 // Path: /webhook/topgg/v0/:applicationId
@@ -19,8 +19,7 @@ export async function v0handler<CT extends Context>(c: CT) {
     return c.json({ error: "Application not found" }, 404);
   }
 
-  const valRes = await new WebhookHandler<TopGGV0Payload>(appCfg?.secret).validateRequest(c);
-  console.log("Validation result:", valRes);
+  const valRes = await new WebhookHandler<BotWebhookPayload>(appCfg?.secret).validateRequest(c);
   if (!valRes.isValid || !valRes.payload) {
     return c.json({ error: "Invalid request" }, 403);
   }
