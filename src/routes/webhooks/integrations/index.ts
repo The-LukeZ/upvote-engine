@@ -4,7 +4,7 @@ import { IntegrationCreateWebhookPayloadSchema, IntegrationDeleteWebhookPayloadS
 import { WebhookHandler } from "../../../utils/webhook";
 import { IntegrationCreateResponse, WebhookPayload } from "topgg-api-types";
 import * as z from "zod/mini";
-import { applications, Cryptor, integrations } from "../../../db/schema";
+import { applications, Cryptor, forwardings, integrations, votes } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { PlatformWebhookUrl } from "../../../constants";
 
@@ -54,7 +54,8 @@ integrationsApp.post(
       // On delete, we need to find the integration first to get the applicationId
       const integration = await db.select().from(integrations).where(eq(integrations.id, data.connection_id)).limit(1).get();
       if (integration) {
-        // Delete the application entry (this will have null guildId if not yet configured)
+        await db.delete(votes).where(eq(votes.applicationId, integration.applicationId));
+        await db.delete(forwardings).where(eq(forwardings.applicationId, integration.applicationId));
         await db.delete(applications).where(eq(applications.applicationId, integration.applicationId));
       }
       // Delete the integration entry
