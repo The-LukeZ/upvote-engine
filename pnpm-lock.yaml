@@ -42,8 +42,8 @@ importers:
         specifier: ^1.5.4
         version: 1.5.4
       topgg-api-types:
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.1.1
+        version: 0.1.1
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -1262,8 +1262,8 @@ packages:
     resolution: {integrity: sha512-PSkbLUoxOFRzJYjjxHJt9xro7D+iilgMX/C9lawzVuYiIdcihh9DXmVibBe8lmcFrRi/VzlPjBxbN7rH24q8/Q==}
     engines: {node: '>=14.0.0'}
 
-  topgg-api-types@0.1.0:
-    resolution: {integrity: sha512-PnXvGyEO/3NTeHlFwpk/70z+vmJ7fB63Yn2iC2/vVWeSr2oHTHLg1NRAgg1zKuKM0KK7KaR1OKuSy5KBuBysjw==}
+  topgg-api-types@0.1.1:
+    resolution: {integrity: sha512-kKwCnzNgbQgHka7ehcO0QIB9YILCBwd/3UPEtt94IWBFeREXYtLW7emKXn62FLolS8sH4gKBDQigdrcBxNwjeA==}
 
   ts-mixer@6.0.4:
     resolution: {integrity: sha512-ufKpbmrugz5Aou4wcr5Wc1UUFWOLhq+Fm6qa6P0w0K5Qw2yhaUoiWszhCVuNQyNwrlGiscHOmqYoAox1PtvgjA==}
@@ -2317,7 +2317,7 @@ snapshots:
 
   tinyrainbow@3.0.3: {}
 
-  topgg-api-types@0.1.0:
+  topgg-api-types@0.1.1:
     dependencies:
       zod: 4.3.6
 

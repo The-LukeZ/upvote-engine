@@ -42,7 +42,7 @@
     "drizzle-orm": "^0.44.7",
     "hono": "^4.11.9",
     "honocord": "^1.5.4",
-    "topgg-api-types": "^0.1.0",
+    "topgg-api-types": "^0.1.1",
     "zod": "^4.3.6"
   },
   "license": "PolyForm Internal Use License 1.0.0"
