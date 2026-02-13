@@ -1,3 +1,5 @@
+// Types for the wiki
+
 // https://npmjs.com/topgg-api-types - my package with all important types for top.gg API
 import type { Snowflake, WebhookPayload as TopggWebhookV1Payload } from "topgg-api-types/v1";
 import type { BotWebhookPayload as TopggWebhookV0Payload } from "topgg-api-types/v0";
