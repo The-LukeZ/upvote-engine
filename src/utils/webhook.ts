@@ -1,6 +1,6 @@
-import { MessageQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../../types/webhooks";
-import { DrizzleDB, MyContext } from "../../../types";
-import { forwardings } from "../../db/schema";
+import { MessageQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../types/webhooks";
+import { DrizzleDB, MyContext } from "../../types";
+import { forwardings } from "../db/schema";
 import { eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import crypto from "crypto";

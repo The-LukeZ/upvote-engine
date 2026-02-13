@@ -4,7 +4,7 @@ import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
-import { WebhookHandler } from "../webhook";
+import { WebhookHandler } from "../../../utils/webhook";
 import { DBLPayload } from "../../../../types/webhooks";
 
 const dblApp = new Hono<HonoEnv, {}, "/dbl">();

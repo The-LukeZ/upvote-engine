@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { QueueMessageBody } from "../../../../types";
-import { WebhookHandler } from "../webhook";
+import { WebhookHandler } from "../../../utils/webhook";
 import { applications } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
