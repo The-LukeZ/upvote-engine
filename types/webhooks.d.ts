@@ -36,7 +36,7 @@ export type ForwardingPayload<TSource extends WebhookSource<true>> = {
   payload: TSource extends "test" ? null : WebhookPayloadMapping[TSource];
 };
 
-export type MessageQueuePayload<TSource extends WebhookSource> = {
+export type ForwardingQueuePayload<TSource extends WebhookSource> = {
   timestamp: string;
   forwardingPayload: ForwardingPayload<TSource>;
   to: ForwardingCfg;

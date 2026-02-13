@@ -1,4 +1,4 @@
-import { MessageQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../types/webhooks";
+import { ForwardingQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../types/webhooks";
 import { DrizzleDB, MyContext } from "../../types";
 import { forwardings } from "../db/schema";
 import { eq } from "drizzle-orm";
@@ -134,7 +134,7 @@ class WebhookHandler<T extends WebhookPayload> {
     appId: string,
     source: TSource,
     payload: WebhookPayloadMapping[TSource],
-  ): Promise<MessageQueuePayload<TSource> | undefined> {
+  ): Promise<ForwardingQueuePayload<TSource> | undefined> {
     const forwardCfg = await db.select().from(forwardings).where(eq(forwardings.applicationId, appId)).limit(1).get();
     if (!forwardCfg) return undefined;
 
