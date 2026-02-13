@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests } from "../../../constants";
 import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
-import { integrationsCommand as integrationsCommandData } from "./integrationsCommandData";
+import { appCommand as appCommandData } from "./integrationsCommandData";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -16,9 +16,7 @@ async function validateBot(bot: APIUser, ownApplicationId: string, byOwner: bool
   return !!bot.bot && (byOwner || bot.id !== ownApplicationId);
 }
 
-export const integrationsCommand = integrationsCommandData.addHandler(async function handleIntegrations(
-  ctx: ChatInputCommandInteraction<MyContext>,
-) {
+export const appCommand = appCommandData.addHandler(async function handleApp(ctx: ChatInputCommandInteraction<MyContext>) {
   const subgroup = ctx.options.getSubcommandGroup() as "forwarding" | null;
   const db = ctx.context.get("db");
 
@@ -26,7 +24,7 @@ export const integrationsCommand = integrationsCommandData.addHandler(async func
     return handleForwarding(ctx.context, ctx, db);
   }
 
-  const subcommand = ctx.options.getSubcommand(true) as "list" | "configure" | "remove";
+  const subcommand = ctx.options.getSubcommand(true) as "list" | "create" | "edit" | "remove";
 
   const blCache = ctx.context.env.BLACKLIST.getByName("blacklist");
   const botOption = ctx.options.get("bot", ApplicationCommandOptionType.User, false);
@@ -37,8 +35,12 @@ export const integrationsCommand = integrationsCommandData.addHandler(async func
     }
   }
 
-  if (subcommand === "configure") {
-    return handleConfigureIntegration(ctx, db);
+  if (subcommand === "create") {
+    return handleCreateIntegration(ctx, db);
+  }
+
+  if (subcommand === "edit") {
+    return handleEditIntegration(ctx, db);
   }
 
   if (subcommand === "list") {
@@ -52,7 +54,7 @@ export const integrationsCommand = integrationsCommandData.addHandler(async func
 
     return ctx.showModal(
       new ModalBuilder({
-        title: "Remove Integration",
+        title: "Remove App",
         custom_id: "remove_integration_modal",
       })
         .addLabelComponents((l) =>
@@ -99,7 +101,7 @@ export const integrationsCommand = integrationsCommandData.addHandler(async func
           ),
         )
         .addTextDisplayComponents((t) =>
-          t.setContent("### :warning: This will remove the integration configuration __and__ all associated votes!"),
+          t.setContent("### :warning: This will remove the app configuration __and__ all associated votes!"),
         ),
     );
   }
@@ -144,17 +146,17 @@ async function checkIntegrationAuthorization(
 }
 
 async function handleListIntegrations(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
-  console.log("Listing configured integrations for guild");
+  console.log("Listing configured apps for guild");
   const guildId = ctx.guildId!;
   try {
     const configs = await db.select().from(applications).where(eq(applications.guildId, guildId));
     if (configs.length === 0) {
-      return ctx.reply({ content: "No integrations configured for this guild." }, true);
+      return ctx.reply({ content: "No apps configured for this guild." }, true);
     }
 
     const container = new ContainerBuilder()
       .setAccentColor(Colors.Blurple)
-      .addTextDisplayComponents((t) => t.setContent("## Configured Integrations"));
+      .addTextDisplayComponents((t) => t.setContent("## Configured Apps"));
 
     configs.forEach((cfg) => {
       const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
@@ -183,7 +185,7 @@ async function handleListIntegrations(ctx: ChatInputCommandInteraction<MyContext
   }
 }
 
-async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+async function handleCreateIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   const bot = ctx.options.getUser("bot", true);
@@ -193,14 +195,103 @@ async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: 
 
   const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
   const guildId = ctx.guildId!;
+  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
 
-  // Check integration authorization
-  const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
-  if (!authCheck.authorized) {
-    return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+  // For topgg, check if integration exists and show notice
+  if (source === "topgg") {
+    const integration = await db.select().from(integrations).where(eq(integrations.applicationId, bot.id)).limit(1).get();
+
+    if (!integration) {
+      return ctx.editReply({
+        content:
+          "No integration found for this bot. The bot owner must first connect the UpvoteEngine integration on Top.gg.\n\n" +
+          `**Steps to set up the integration:**\n` +
+          `1. Visit the [Integrations Page](https://top.gg/bot/${bot.id}/dashboard/integrations)\n` +
+          `2. Click **Connect** on the UpvoteEngine integration\n` +
+          `3. Once connected, come back and use \`/app edit\` to configure the integration for this server`,
+        flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+      });
+    }
+
+    // Integration exists, show notice to use edit instead
+    return ctx.editReply({
+      content: `An integration already exists for <@${bot.id}>.\n\n` + `Please use \`/app edit\` to configure the bot for this server.`,
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
+  // For non-topgg sources (like dbl), create the configuration directly
+  const role = ctx.options.getRole("role");
+  const roleId = role?.id;
+
+  const durationHours = ctx.options.getInteger("duration");
+  const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null;
+
+  if (!roleId) {
+    return ctx.editReply({ content: "Please provide a role to assign on vote." });
+  }
+
+  console.log("Creating app configuration:", { bot: bot.id, source, roleId, durationSeconds, guildId });
+
+  // Check if configuration already exists
+  const existing = await db
+    .select()
+    .from(applications)
+    .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source), eq(applications.guildId, guildId)))
+    .limit(1)
+    .get();
+
+  if (existing) {
+    return ctx.editReply({
+      content: `A configuration already exists for <@${bot.id}> (${GetSupportedPlatform(source)}) in this guild.\nUse \`/app edit\` to modify it.`,
+    });
+  }
+
+  // Check guild app limit
+  const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, guildId)).get();
+
+  if (guildAppCount && guildAppCount.count >= MAX_APPS_PER_GUILD) {
+    return ctx.editReply({
+      content: `This guild has reached the maximum limit of ${MAX_APPS_PER_GUILD} app configurations.`,
+    });
+  }
+
+  // Create the configuration
+  const newConfig = await db
+    .insert(applications)
+    .values({
+      applicationId: bot.id,
+      source: source,
+      guildId: guildId,
+      voteRoleId: roleId,
+      roleDurationSeconds: durationSeconds,
+    })
+    .returning()
+    .get();
+
+  await ctx.editReply(buildIntegrationInfo(ctx.applicationId, newConfig, "create"));
+  console.log("App configuration created in database");
+}
+
+async function handleEditIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
+  await ctx.deferReply(true);
+
+  const bot = ctx.options.getUser("bot", true);
+  if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
+    return ctx.editReply({ content: "The selected user is not a bot." });
+  }
+
+  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+  const guildId = ctx.guildId!;
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+
+  // For topgg, check integration authorization
+  if (source === "topgg") {
+    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+    }
+  }
   const role = ctx.options.getRole("role");
   const roleId = role?.id;
 
@@ -230,7 +321,7 @@ async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: 
 
   if (!result) {
     return ctx.editReply({
-      content: "No existing configuration found for this bot in this guild for this source. Use `/integrations configure` to add it.",
+      content: "No existing configuration found for this bot in this guild for this source. Use `/app create` to add it.",
     });
   }
 
@@ -356,7 +447,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     if (!appConfig || appConfig.count === 0) {
       return ctx.editReply({
-        content: `No integration configuration found for <@${bot.id}>.\nPlease configure the integration first using \`/integrations configure\`.`,
+        content: `No app configuration found for <@${bot.id}>.\nPlease configure the app first using \`/app create\`.`,
       });
     }
 
@@ -365,7 +456,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction, db: Drizzle
 
     if (existingForwarding) {
       return ctx.editReply({
-        content: `Forwarding configuration already exists for <@${bot.id}>\nUse \`/integrations forwarding edit\` to modify it.`,
+        content: `Forwarding configuration already exists for <@${bot.id}>\nUse \`/app forwarding edit\` to modify it.`,
       });
     }
 
@@ -508,7 +599,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction, db: Drizzl
 
     if (!result) {
       return ctx.editReply({
-        content: `No forwarding configuration found for <@${bot.id}>.\nUse \`/integrations forwarding set\` to create one.`,
+        content: `No forwarding configuration found for <@${bot.id}>.\nUse \`/app forwarding set\` to create one.`,
       });
     }
 
