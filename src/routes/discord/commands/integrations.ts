@@ -26,7 +26,7 @@ export const integrationsCommand = integrationsCommandData.addHandler(async func
     return handleForwarding(ctx.context, ctx, db);
   }
 
-  const subcommand = ctx.options.getSubcommand(true) as "list" | "configure" | "edit" | "remove";
+  const subcommand = ctx.options.getSubcommand(true) as "list" | "configure" | "remove";
 
   const blCache = ctx.context.env.BLACKLIST.getByName("blacklist");
   const botOption = ctx.options.get("bot", ApplicationCommandOptionType.User, false);
@@ -39,9 +39,6 @@ export const integrationsCommand = integrationsCommandData.addHandler(async func
 
   if (subcommand === "configure") {
     return handleConfigureIntegration(ctx, db);
-  }
-  if (subcommand === "edit") {
-    return handleEditIntegration(ctx, db);
   }
 
   if (subcommand === "list") {
@@ -187,85 +184,6 @@ async function handleListIntegrations(ctx: ChatInputCommandInteraction<MyContext
 }
 
 async function handleConfigureIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
-  await ctx.deferReply(true);
-
-  try {
-    const bot = ctx.options.getUser("bot", true);
-    if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {
-      return ctx.editReply({ content: "The selected user is not a bot." });
-    }
-
-    const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-    const guildId = ctx.guildId!;
-
-    // Check integration authorization
-    const authCheck = await checkIntegrationAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
-    if (!authCheck.authorized) {
-      return ctx.editReply({ content: authCheck.message });
-    }
-
-    // check if already 25 apps are configured for this guild
-    const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, guildId)).get();
-    if (guildAppCount && guildAppCount.count >= MAX_APPS_PER_GUILD) {
-      return ctx.editReply({
-        content: `This guild has reached the maximum number of configured integrations (${MAX_APPS_PER_GUILD}).\nYou can't configure any more integrations.`,
-      });
-    }
-
-    const source = ctx.options.getString<"topgg" | "dbl">("source", true);
-
-    const existingApp = await db
-      .select()
-      .from(applications)
-      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
-      .limit(1)
-      .get();
-
-    if (existingApp && existingApp.guildId === guildId) {
-      return ctx.editReply({ content: "This integration is already configured for this server." });
-    } else if (existingApp && existingApp.guildId && existingApp.guildId !== guildId) {
-      return ctx.editReply({ content: "This integration is already configured for another server." });
-    }
-
-    const role = ctx.options.getRole("role", true);
-    const roleId = role.id;
-
-    const durationHours = ctx.options.getInteger("duration");
-    const durationSeconds = durationHours ? Math.max(durationHours * 3600, 3600) : null; // Minimum of 1 hour
-    console.log("Extracted parameters:", { bot, roleId, durationSeconds, guildId });
-
-    let newCfg: ApplicationCfg | undefined;
-    try {
-      // Update the existing application entry with guild-specific config
-      newCfg = await db
-        .update(applications)
-        .set({
-          guildId: guildId,
-          voteRoleId: roleId,
-          roleDurationSeconds: durationSeconds,
-        })
-        .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
-        .returning()
-        .get();
-
-      if (!newCfg) {
-        return ctx.editReply({ content: "Failed to configure the bot. The integration might not be set up correctly." });
-      }
-    } catch (error: any) {
-      console.error("Error updating integration configuration in database:", error);
-      return ctx.editReply({ content: error.message || "Failed to configure integration. Please try again." });
-    }
-
-    await ctx.editReply(buildIntegrationInfo(ctx.applicationId, newCfg, "create"));
-    console.log("Integration configuration updated in database");
-  } catch (error) {
-    console.error("Error extracting parameters or configuring integration:", error);
-    await ctx.editReply({ content: `Failed to configure integration: ${error instanceof Error ? error.message : "Unknown error"}` });
-  }
-  return;
-}
-
-async function handleEditIntegration(ctx: ChatInputCommandInteraction, db: DrizzleDB) {
   await ctx.deferReply(true);
 
   const bot = ctx.options.getUser("bot", true);

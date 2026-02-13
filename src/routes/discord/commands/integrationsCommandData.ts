@@ -27,7 +27,7 @@ export const integrationsCommand = new SlashCommandHandler<MyContext>()
             })),
           ),
       )
-      .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
+      .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(false))
       .addIntegerOption(
         (op) =>
           op
@@ -36,33 +36,6 @@ export const integrationsCommand = new SlashCommandHandler<MyContext>()
             .setRequired(false)
             .setMinValue(1)
             .setMaxValue(336), // 14 days
-      ),
-  )
-  .addSubcommand((sub) =>
-    sub
-      .setName("edit")
-      .setDescription("Edit an existing integration configuration")
-      .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to edit").setRequired(true))
-      .addStringOption((opt) =>
-        opt
-          .setName("source")
-          .setDescription("The bot listing source")
-          .setRequired(true)
-          .addChoices(
-            Object.keys(supportedPlatforms).map((key) => ({
-              name: supportedPlatforms[key as keyof typeof supportedPlatforms],
-              value: key,
-            })),
-          ),
-      )
-      .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(false))
-      .addIntegerOption((op) =>
-        op
-          .setName("duration")
-          .setDescription("Duration in hours (!) for which the role will be active")
-          .setRequired(false)
-          .setMinValue(1)
-          .setMaxValue(336),
       ),
   )
   .addSubcommand((sub) =>
