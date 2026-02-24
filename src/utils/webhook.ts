@@ -108,7 +108,8 @@ class WebhookHandler<T extends WebhookPayload> {
     // v1 webhook detection
     if (!!v1Signature) {
       console.log("Detected v1 webhook with signature");
-      return this.validateV1Request(c, v1Signature);
+      const result = await this.validateV1Request(c, v1Signature);
+      return result;
     }
 
     // Fall back to v0 (legacy) validation
