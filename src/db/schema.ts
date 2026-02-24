@@ -28,7 +28,7 @@ export const forwardings = sqliteTable("forwardings", {
 export const votes = sqliteTable(
   "votes",
   {
-    id: blob("id", { mode: "bigint" }).primaryKey(), // Snowflake ID by top.gg
+    id: text("id").primaryKey(), // Snowflake ID by top.gg
     applicationId: text("application_id").notNull(),
     source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
     guildId: text("guild_id"),

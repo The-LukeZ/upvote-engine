@@ -18,7 +18,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
       and(
         inArray(
           votesTable.id,
-          batch.messages.map((msg) => BigInt(msg.body.id)),
+          batch.messages.map((msg) => msg.body.id),
         ),
         isNotNull(votesTable.roleId),
         isNotNull(votesTable.guildId),
@@ -33,16 +33,16 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     console.log(`Applying vote for user ${vote.userId} in guild ${vote.guildId} at ${vote.timestamp}`);
   }
 
-  const ackMessage = (voteId: bigint) => {
-    const message = batch.messages.find((msg) => msg.body.id === voteId.toString());
+  const ackMessage = (voteId: string) => {
+    const message = batch.messages.find((msg) => msg.body.id === voteId);
     if (message) {
       message.ack();
     } else {
       console.warn(`Could not find message for vote ID ${voteId} to acknowledge`);
     }
   };
-  const retryMessage = (voteId: bigint, delaySeconds?: number) => {
-    const message = batch.messages.find((msg) => msg.body.id === voteId.toString());
+  const retryMessage = (voteId: string, delaySeconds?: number) => {
+    const message = batch.messages.find((msg) => msg.body.id === voteId);
     if (message) {
       message.retry({ delaySeconds });
     } else {
@@ -63,12 +63,12 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
   }
 
   const rest = new REST({ version: "10", authPrefix: "Bot", timeout: 5000 }).setToken(env.DISCORD_TOKEN);
-  const successfulAdds = new Set<bigint>();
+  const successfulAdds = new Set<string>();
   for (const vote of validMessages) {
     try {
       console.log(`Assigning role ${vote.roleId} to user ${vote.userId} in guild ${vote.guildId}`);
       await rest.put(Routes.guildMemberRole(vote.guildId, vote.userId, vote.roleId));
-      successfulAdds.add(BigInt(vote.id));
+      successfulAdds.add(vote.id);
       ackMessage(vote.id);
     } catch (error) {
       if (error instanceof DiscordAPIError && error.code === RESTJSONErrorCodes.UnknownMember) {
@@ -103,7 +103,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
       and(
         inArray(
           votes.id,
-          batch.messages.map((msg) => BigInt(msg.body.id)),
+          batch.messages.map((msg) => msg.body.id),
         ),
         isNotNull(votes.roleId),
         isNotNull(votes.guildId),
@@ -121,7 +121,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 
   // Collect unique user/guild/role combinations from merged votes
   const combinations = new Map<string, { guildId: string; userId: string; roleId: string; messageid: string }>();
-  const voteIds = new Set<bigint>();
+  const voteIds = new Set<string>();
 
   for (const vote of mergedVotes) {
     console.log(`Processing removal for user ${vote.userId} in guild ${vote.guildId} at ${vote.timestamp}`);
