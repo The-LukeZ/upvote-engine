@@ -29,7 +29,10 @@ export async function v1handler(c: MyContext): Promise<Response> {
   const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(secret).validateRequest(c);
 
   if (!valRes.isValid || !valRes.payload) {
-    console.error("Webhook validation failed");
+    console.error("Webhook validation failed", {
+      traceId,
+      payload: valRes.payload,
+    });
     return c.json({ error: "Invalid request" }, 403);
   }
 
