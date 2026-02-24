@@ -1,18 +1,18 @@
 import { Hono } from "hono";
-import { HonoEnv, QueueMessageBody } from "../../../../types";
+import { HonoEnv, MyContext, QueueMessageBody } from "../../../../types";
 import { applications, votes } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
 import { WebhookHandler } from "../../../utils/webhook";
 import { DBLPayload } from "../../../../types/webhooks";
-import { incrementInvalidRequestCount } from "../../../utils/index";
+import { incrementInvalidRequestCount, resetInvalidRequestCount } from "../../../utils/index";
 
 const dblApp = new Hono<HonoEnv, {}, "/dbl">();
 
 // Path: /webhook/dbl/:applicationId
-dblApp.post("/:applicationId", async (c) => {
-  const appId = c.req.param("applicationId");
+dblApp.post("/:applicationId", async (c: MyContext) => {
+  const appId = c.req.param("applicationId")!;
   console.log(`Received DBL webhook for application ID: ${appId}`);
   const db = c.get("db");
   const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
@@ -31,6 +31,8 @@ dblApp.post("/:applicationId", async (c) => {
 
   const voteId = generateSnowflake();
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
+
+  await resetInvalidRequestCount(db, appId);
 
   await db.insert(votes).values({
     id: voteId,

@@ -7,7 +7,7 @@ import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
 import { BotWebhookPayload } from "topgg-api-types/v0";
 import { dmUserOnTestVote } from "../../../utils";
-import { incrementInvalidRequestCount } from "../../../utils/index";
+import { incrementInvalidRequestCount, resetInvalidRequestCount } from "../../../utils/index";
 
 // Path: /webhook/topgg/v0/:applicationId
 export async function v0handler(c: MyContext) {
@@ -35,6 +35,8 @@ export async function v0handler(c: MyContext) {
     c.executionCtx.waitUntil(dmUserOnTestVote(db, c.env, { applicationId: appId, userId: vote.user, source: "topgg" }));
     return new Response(null, { status: 200 });
   }
+
+  await resetInvalidRequestCount(db, appId);
 
   const voteId = generateSnowflake(); // in v1, Top.gg started sending a unique vote ID, but in v0 we need to generate it ourselves for tracking and forwarding purposes
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
