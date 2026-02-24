@@ -10,7 +10,7 @@ import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
 import { appCommand as appCommandData } from "../../../utils/appCommandData";
 import * as z from "zod/mini";
-import { generateRandomToken } from "../../../utils/index";
+import { buildAppInfo, generateRandomToken } from "../../../utils/index";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -211,7 +211,7 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
   const secret = source !== "topgg" ? generateRandomToken() : null; // For top.gg we need to ask the user for the secret upfront because of the way their authorization works
 
   // Create the configuration
-  const newConfig = await db
+  await db
     .insert(applications)
     .values({
       applicationId: bot.id,
@@ -353,7 +353,7 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
   } else if (appCfg.source === "topgg") {
     await ctx.showModal(
       new ModalBuilder()
-        .setCustomId(`app/create?${appCfg.applicationId}`)
+        .setCustomId(`app/secret?${appCfg.applicationId}`)
         .setTitle("Reset Secret")
         .addTextDisplayComponents((t) =>
           t.setContent(
@@ -388,54 +388,6 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
       "Set this secret in the settings of your bot on the listing page and you're good to go!",
     ].join("\n"),
   });
-}
-
-function buildAppInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
-  const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
-  const fields = [
-    {
-      name: "Vote Role",
-      value: `<@&${cfg.voteRoleId}>`,
-      inline: false,
-    },
-    {
-      name: "Role Duration",
-      value: durationText,
-      inline: false,
-    },
-    {
-      name: "Created At",
-      value: `<t:${dayjs(cfg.createdAt).unix()}>`,
-      inline: false,
-    },
-  ];
-
-  if (platformsWithTests.includes(cfg.source)) {
-    fields.push({
-      name: "Test Vote Notice",
-      value: getTestNoticeForPlatform(cfg.source, clientId),
-      inline: false,
-    });
-  }
-
-  const embed: APIEmbed = {
-    description: [
-      heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>`, 3),
-      `Successfully ${action === "create" ? "configured" : "updated"} <@${cfg.applicationId}> in this server for ${bold(
-        GetSupportedPlatform(cfg.source),
-      )}.`,
-      "",
-      action === "create"
-        ? ":white_check_mark: The bot is now ready to receive vote webhooks. Votes will automatically grant the configured role."
-        : ":white_check_mark: Configuration updated successfully.",
-    ].join("\n"),
-    color: action === "create" ? Colors.Green : Colors.Yellow,
-    fields: fields,
-  };
-
-  return {
-    embeds: [embed],
-  };
 }
 
 async function handleForwarding(c: MyContext, ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
