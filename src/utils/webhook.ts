@@ -98,6 +98,7 @@ class WebhookHandler<T extends WebhookPayload> {
     // Verify signature using Web Crypto API
     const isValidSignature = await this.verifyV1Signature(signature, timestamp, rawBody, this.authorization);
 
+    console.log(`Signature verification result: ${isValidSignature}`);
     if (!isValidSignature) {
       console.error("Signature verification failed");
       return { isValid: false };
@@ -112,12 +113,14 @@ class WebhookHandler<T extends WebhookPayload> {
     }
   }
   public async validateRequest(c: MyContext): Promise<{ isValid: boolean; payload?: T; version?: "v0" | "v1" }> {
-    const v1Signature = c.req.header("x-topgg-trace");
+    const traceHeader = c.req.header("x-topgg-trace");
+    console.log(`Received webhook request with trace header: ${traceHeader}`);
 
     // v1 webhook detection
-    if (!!v1Signature) {
-      console.log("Detected v1 webhook with signature");
+    if (!!traceHeader) {
+      console.log("Detected v1 webhook with trace header");
       const result = await this.validateV1Request(c);
+      console.log(`v1 validation result: ${result.isValid}, version: ${result.version}`);
       return result;
     }
 
