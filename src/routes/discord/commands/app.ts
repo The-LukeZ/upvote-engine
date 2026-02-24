@@ -367,7 +367,9 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
           ),
         )
         .addLabelComponents((l) =>
-          l.setLabel("New Secret").setTextInputComponent((t) => t.setCustomId("secret").setPlaceholder("whs_...").setRequired(true)),
+          l
+            .setLabel("New Secret")
+            .setTextInputComponent((t) => t.setCustomId("secret").setStyle(1).setPlaceholder("whs_...").setRequired(true)),
         ),
     );
     return;
