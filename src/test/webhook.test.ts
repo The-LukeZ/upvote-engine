@@ -34,9 +34,29 @@ describe("WebhookHandler", () => {
 
   describe("verifyV1Signature", () => {
     it("should verify a valid v1 signature", async () => {
-      const secret = "test-secret";
-      const timestamp = "1234567890";
-      const rawBody = '{"test":"data"}';
+      const secret = "whs_5b79ab7ca91cbea7826105240ba53547a00a7db3703ce4eef54b12d0b70d504c"; // test secret, not real
+      const timestamp = "1771937884";
+      const rawBody = JSON.stringify({
+        type: "vote.create",
+        data: {
+          id: "808499215864008704",
+          weight: 1,
+          created_at: "2026-02-09T00:47:14.2510149+00:00",
+          expires_at: "2026-02-09T12:47:14.2510149+00:00",
+          project: {
+            id: "1082707872565182614",
+            type: "bot",
+            platform: "discord",
+            platform_id: "1082707872565182614",
+          },
+          user: {
+            id: "506893652266844162",
+            platform_id: "506893652266844162",
+            name: "thelukez",
+            avatar_url: "https://example.com",
+          },
+        },
+      });
 
       const encoder = new TextEncoder();
       const keyData = encoder.encode(secret);
@@ -52,12 +72,7 @@ describe("WebhookHandler", () => {
     });
 
     it("should reject an invalid v1 signature", async () => {
-      const result = await handler.verifyV1Signature(
-        "0000000000000000000000000000000000000000000000000000000000000000",
-        "1234567890",
-        '{"test":"data"}',
-        "test-secret",
-      );
+      const result = await handler.verifyV1Signature("1234134132412412412415346456869", "1234567890", '{"test":"data"}', "test-secret");
       expect(result).toBe(false);
     });
   });
@@ -100,9 +115,30 @@ describe("WebhookHandler", () => {
     });
 
     it("should detect and validate v1 webhook", async () => {
-      const secret = "test-secret";
-      const timestamp = "1234567890";
-      const rawBody = '{"userId":"123"}';
+      const secret = "whs_5b79ab7ca91cbea7826105240ba53547a00a7db3703ce4eef54b12d0b70d504c"; // test secret, not real
+      handler = new WebhookHandler(secret);
+      const timestamp = "1771937884";
+      const rawBody = JSON.stringify({
+        type: "vote.create",
+        data: {
+          id: "808499215864008704",
+          weight: 1,
+          created_at: "2026-02-09T00:47:14.2510149+00:00",
+          expires_at: "2026-02-09T12:47:14.2510149+00:00",
+          project: {
+            id: "1082707872565182614",
+            type: "bot",
+            platform: "discord",
+            platform_id: "1082707872565182614",
+          },
+          user: {
+            id: "506893652266844162",
+            platform_id: "506893652266844162",
+            name: "thelukez",
+            avatar_url: null,
+          },
+        },
+      });
 
       const encoder = new TextEncoder();
       const keyData = encoder.encode(secret);
