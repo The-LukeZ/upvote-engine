@@ -64,7 +64,7 @@ export async function v1handler(c: MyContext): Promise<Response> {
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null;
 
   await db.insert(votes).values({
-    id: BigInt(vote.id),
+    id: vote.id,
     applicationId: appId,
     userId: vote.user.platform_id,
     source: "topgg",

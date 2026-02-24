@@ -43,7 +43,7 @@ export async function v0handler(c: MyContext) {
 
   await resetInvalidRequestCount(db, appId);
 
-  const voteId = generateSnowflake(); // in v1, Top.gg started sending a unique vote ID, but in v0 we need to generate it ourselves for tracking and forwarding purposes
+  const voteId = generateSnowflake().toString(); // in v1, Top.gg started sending a unique vote ID, but in v0 we need to generate it ourselves for tracking and forwarding purposes
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
 
   await db.insert(votes).values({
