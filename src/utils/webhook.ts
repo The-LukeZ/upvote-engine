@@ -66,8 +66,10 @@ class WebhookHandler<T extends WebhookPayload> {
   /**
    * v1-specific validation with Web Crypto
    */
-  private async validateV1Request(c: MyContext, signatureHeader: string): Promise<{ isValid: boolean; payload?: T; version?: "v1" }> {
+  private async validateV1Request(c: MyContext): Promise<{ isValid: boolean; payload?: T; version?: "v1" }> {
     // Parse signature: t={timestamp},v1={signature}
+    const signatureHeader = c.req.header("x-topgg-signature") || "";
+    console.log(`Received v1 webhook with signature header: ${signatureHeader}`);
     const parts = signatureHeader.split(",").map((p) => p.split("="));
     const sigObj = Object.fromEntries(parts);
     const timestamp = sigObj["t"];
@@ -108,7 +110,7 @@ class WebhookHandler<T extends WebhookPayload> {
     // v1 webhook detection
     if (!!v1Signature) {
       console.log("Detected v1 webhook with signature");
-      const result = await this.validateV1Request(c, v1Signature);
+      const result = await this.validateV1Request(c);
       return result;
     }
 
