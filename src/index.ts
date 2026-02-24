@@ -13,7 +13,7 @@ import { applications, blacklist, forwardings, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
 import { generateSnowflake } from "./snowflake";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
-import { bot as interactions } from "./routes/discord";
+import { bot } from "./routes/discord";
 import webhookApp from "./routes/webhooks";
 import { cache } from "hono/cache";
 import { ovHandler } from "./routes/discord/ownershipVerifyCallback";
@@ -47,7 +47,7 @@ app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/is
 app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
 
 app.route("/webhook", webhookApp);
-app.route("/discord", interactions.getApp());
+app.route("/discord", bot.getApp());
 app.get("/ownership-verify", ovHandler);
 
 app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
