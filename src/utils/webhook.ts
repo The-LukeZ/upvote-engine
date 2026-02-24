@@ -98,10 +98,6 @@ class WebhookHandler<T extends WebhookPayload> {
       return { isValid: false };
     }
 
-    console.log(`Secret prefix: "${this.authorization.substring(0, 8)}", length: ${this.authorization.length}`);
-    console.log(`Timestamp: "${timestamp}", Signature: "${signature.substring(0, 8)}..."`);
-    console.log(`Raw body length: ${rawBody.length}, preview: "${rawBody.substring(0, 50)}"`);
-
     // Verify signature using Web Crypto API
     const isValidSignature = await this.verifyV1Signature(signature, timestamp, rawBody, this.authorization);
 

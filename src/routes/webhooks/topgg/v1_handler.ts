@@ -1,7 +1,7 @@
 import { MyContext, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../../../utils/webhook";
 import { applications, votes } from "../../../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import { dmUserOnTestVote } from "../../../utils";
 import { WebhookPayload } from "topgg-api-types";
@@ -15,7 +15,12 @@ export async function v1handler(c: MyContext): Promise<Response> {
   console.log(`Received Top.gg webhook for application ID: ${appId}`, { traceId });
 
   const db = c.get("db");
-  const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
+  const appCfg = await db
+    .select()
+    .from(applications)
+    .where(and(eq(applications.applicationId, appId), eq(applications.source, "topgg")))
+    .limit(1)
+    .get();
 
   if (!appCfg) {
     return c.json({ error: "Application not found" }, 404);
