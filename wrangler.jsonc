@@ -8,7 +8,7 @@
   "main": "src/index.ts",
   "minify": true,
   "compatibility_date": "2026-02-12",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": ["nodejs_compat_v2"],
   "limits": {
     "cpu_ms": 20000,
   },
@@ -70,12 +70,20 @@
         "name": "BLACKLIST",
         "class_name": "BlacklistCacheDO",
       },
+      {
+        "name": "HC_CACHE",
+        "class_name": "HonocordCacheDO",
+      },
     ],
   },
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["BlacklistCacheDO"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["HonocordCacheDO"],
     },
   ],
   "d1_databases": [

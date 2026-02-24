@@ -1,6 +1,6 @@
 import { MyContext, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../../../utils/webhook";
-import { applications, integrations, votes } from "../../../db/schema";
+import { applications, votes } from "../../../db/schema";
 import { eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import { dmUserOnTestVote } from "../../../utils";
@@ -23,12 +23,7 @@ export async function v1handler(c: MyContext): Promise<Response> {
 
   let secret = appCfg.secret;
   if (!secret) {
-    const integration = await db.select().from(integrations).where(eq(integrations.applicationId, appId)).limit(1).get();
-    if (!integration) {
-      console.warn(`No integration record found for application ID ${appId}, cannot validate webhook`);
-      return c.json({ error: "Application not properly configured" }, 400);
-    }
-    secret = integration.secret;
+    return c.json({ error: "Application not properly configured" }, 400);
   }
 
   const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(secret).validateRequest(c);
@@ -71,7 +66,6 @@ export async function v1handler(c: MyContext): Promise<Response> {
     expiresAt: expiresAt,
   });
   if (!appCfg.voteRoleId || !appCfg.guildId) {
-    // Can happen if integration was set up but no application configuration was done yet.
     await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not properly configured for vote processing" }, 400);
   }

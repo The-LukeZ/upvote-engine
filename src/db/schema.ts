@@ -8,25 +8,10 @@ export const applications = sqliteTable(
   {
     applicationId: text("application_id").notNull(),
     source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
-    /**
-     * Only set gor legacy applications, that were set up before the integration system was implemented.
-     * New applications created via the integration system will have their secrets stored in the `integrations` table instead, to avoid FK issues with the new `integrations` table.
-     */
     secret: text("secret"),
-    /**
-     * Missing (null) if the integration was created but the user did not set a guild yet.
-     * This is because the integration setup flow is split into two steps: first the user creates the integration, then they set up the guild-specific configuration.
-     */
     guildId: text("guild_id"),
     voteRoleId: text("vote_role_id"),
     roleDurationSeconds: integer("role_duration_seconds"),
-    /**
-     * We keep track of invalid webhook requests for each application. If it exceeds a certain threshold, we can automatically disable the application to prevent abuse and notify the owner to check their webhook configuration.
-     *
-     * This happens when someone sets an integration and votes are being sent but the guildId and voteRoleId are not set.
-     *
-     * This is unique per webhook event id (every vote has a unique id in the payload).
-     */
     invalidRequests: integer("invalid_requests").default(0),
     createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
   },
@@ -93,25 +78,6 @@ export const owners = sqliteTable("owners", {
   updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
 });
 
-export const integrations = sqliteTable("integrations", {
-  id: text("id").primaryKey(), // Unique ID for the integration
-  type: text("type", { enum: ["topgg"] })
-    .default("topgg")
-    .notNull(),
-  applicationId: text("application_id").notNull(),
-  secret: text("secret").notNull(),
-  userId: text("user_id").notNull(), // User who created the integration
-  createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-});
-
-// migration notifications for new top.gg votes
-// export const notifications = sqliteTable("notifications", {
-//   id: integer("id").primaryKey({ autoIncrement: true }),
-//   userId: text("user_id").notNull(),
-//   applicationId: text("application_id").notNull(),
-//   timestamp: text("timestamp").$defaultFn(() => new Date().toISOString()),
-// });
-
 export type ApplicationCfg = typeof applications.$inferSelect;
 export type NewApplicationCfg = typeof applications.$inferInsert;
 
@@ -133,9 +99,6 @@ export type NewVerificationEntry = typeof verifications.$inferInsert;
 
 export type OwnerToken = typeof owners.$inferSelect;
 export type NewOwnerToken = typeof owners.$inferInsert;
-
-export type Integration = typeof integrations.$inferSelect;
-export type NewIntegration = typeof integrations.$inferInsert;
 
 export async function deleteApplicationCascade(db: DrizzleDB, applicationId: string, source: string, guildId: string) {
   // Delete related forwardings

@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 
 import type { DrizzleDB, HonoEnv, QueueMessageBody } from "../types";
 import { makeDB } from "./db/util";
-import { applications, blacklist, deleteApplicationCascade, forwardings, integrations, Vote, votes } from "./db/schema";
+import { applications, blacklist, forwardings, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
 import { generateSnowflake } from "./snowflake";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
@@ -242,6 +242,8 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env, any>;
+
+export { HonocordCacheDO } from "@honocord/cache-do";
 
 export class BlacklistCacheDO extends DurableObject {
   private readonly blacklistedGuilds: Set<string> = new Set<string>();

@@ -37,6 +37,7 @@ export type HonoEnv = {
   Bindings: WorkerEnv;
   Variables: HonoVariables;
 };
+
 export type MyContext = BaseInteractionContext<WorkerEnv, HonoVariables>;
 
 export type QueueMessageBody = {
