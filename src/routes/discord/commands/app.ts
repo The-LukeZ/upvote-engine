@@ -2,7 +2,7 @@ import { bold, ButtonBuilder, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "../../../../types";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg, isUserVerifiedForApplication, Cryptor } from "../../../db/schema";
+import { applications, ApplicationCfg, forwardings, ForwardingCfg, Cryptor } from "../../../db/schema";
 import { sanitizeSecret } from "../../../utils";
 import dayjs from "dayjs";
 import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests } from "../../../constants";
@@ -10,7 +10,7 @@ import { ForwardingPayload } from "../../../../types/webhooks";
 import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
 import { appCommand as appCommandData } from "../../../utils/appCommandData";
 import * as z from "zod/mini";
-import { buildAppInfo, generateRandomToken } from "../../../utils/index";
+import { buildAppInfo, checkAppAuthorization, generateRandomToken } from "../../../utils/index";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -48,9 +48,18 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
   }
 
   if (subcommand === "remove") {
-    console.log("Showing remove app modal", { options: ctx.options.data });
     const { user: bot } = ctx.options.getMember("bot", true);
     const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+
+    const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    const guildId = ctx.guildId!;
+
+    const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    if (!authCheck.authorized) {
+      return ctx.reply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds }, true);
+    }
+
+    console.log("Showing remove app modal", { options: ctx.options.data });
 
     return ctx.showModal(
       new ModalBuilder({
@@ -109,27 +118,6 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
   return ctx.reply({ content: "Invalid subcommand." }, true);
 });
 
-async function checkAppAuthorization(
-  db: DrizzleDB,
-  applicationId: string,
-  guildId: string,
-  userId: string,
-  isOwner: boolean,
-  isSelf: boolean,
-): Promise<{ authorized: boolean; message?: string }> {
-  const isVerified = await isUserVerifiedForApplication(db, applicationId, guildId, userId);
-  if (!isVerified) {
-    return {
-      authorized: false,
-      message:
-        "You are not authorized to configure this bot. Only the application owner or verified owners can configure this bot.\n" +
-        `Use \`/verify-app-ownership\` to verify your ownership of <@${applicationId}>.`,
-    };
-  }
-
-  return { authorized: true };
-}
-
 async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   console.log("Listing configured apps for guild");
   const guildId = ctx.guildId!;
@@ -178,7 +166,14 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
     return ctx.editReply({ content: "The selected user is not a bot." });
   }
 
+  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
   const guildId = ctx.guildId!;
+
+  const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+  if (!authCheck.authorized) {
+    return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+  }
+
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
   const role = ctx.options.getRole("role", true);
 
@@ -293,14 +288,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction<MyContext>, db: Dr
   const guildId = ctx.guildId!;
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
 
-  const authCheck = await checkAppAuthorization(
-    db,
-    bot.id,
-    guildId,
-    ctx.user.id,
-    isOwner,
-    ctx.context.env.DISCORD_APPLICATION_ID === bot.id,
-  );
+  const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
     return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
   }
@@ -341,6 +329,14 @@ async function handleEditApp(ctx: ChatInputCommandInteraction<MyContext>, db: Dr
 async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   const { user: bot } = ctx.options.getMember("bot", true);
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+
+  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+  const guildId = ctx.guildId!;
+
+  const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+  if (!authCheck.authorized) {
+    return ctx.reply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds }, true);
+  }
 
   const appCfg = await db
     .select()
@@ -443,14 +439,7 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
       return ctx.editReply("No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.");
     }
 
-    const authCheck = await checkAppAuthorization(
-      db,
-      bot.id,
-      guildId,
-      ctx.user.id,
-      isOwner,
-      ctx.context.env.DISCORD_APPLICATION_ID === bot.id,
-    );
+    const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
       return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
@@ -625,14 +614,7 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
     }
 
     // Check app authorization
-    const authCheck = await checkAppAuthorization(
-      db,
-      bot.id,
-      guildId,
-      ctx.user.id,
-      isOwner,
-      ctx.context.env.DISCORD_APPLICATION_ID === bot.id,
-    );
+    const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
       return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
     }
@@ -704,9 +686,17 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
 }
 
 async function handleRemoveForwarding(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
-  console.log("Showing remove forwarding modal");
-
   const { user: bot } = ctx.options.getMember("bot", true);
+
+  const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+  const guildId = ctx.guildId!;
+
+  const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+  if (!authCheck.authorized) {
+    return ctx.reply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds }, true);
+  }
+
+  console.log("Showing remove forwarding modal");
 
   return ctx.showModal(
     new ModalBuilder({
@@ -748,6 +738,14 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction<MyContext>,
 
   try {
     const { user: bot } = ctx.options.getMember("bot", true);
+
+    const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    const guildId = ctx.guildId!;
+
+    const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+    }
 
     // If bot is specified, show specific forwarding
     if (!(await validateBot(bot, ctx.applicationId, ctx.context.env.OWNER_ID === ctx.user.id))) {

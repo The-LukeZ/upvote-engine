@@ -1,11 +1,33 @@
 import { eq, sql } from "drizzle-orm";
 import { DrizzleDB } from "../../types";
-import { ApplicationCfg, applications } from "../db/schema";
+import { ApplicationCfg, applications, isUserVerifiedForApplication } from "../db/schema";
 import { bold, heading } from "@discordjs/builders";
 import { GetSupportedPlatform, getTestNoticeForPlatform, platformsWithTests } from "../constants";
 import { APIEmbed } from "discord-api-types/payloads/v10";
 import { Colors } from "honocord";
 import dayjs from "dayjs";
+
+export async function checkAppAuthorization(
+  db: DrizzleDB,
+  applicationId: string,
+  guildId: string,
+  userId: string,
+  isGlobalOwner: boolean,
+): Promise<{ authorized: boolean; message?: string }> {
+  if (isGlobalOwner) return { authorized: true };
+
+  const isVerified = await isUserVerifiedForApplication(db, applicationId, guildId, userId);
+  if (!isVerified) {
+    return {
+      authorized: false,
+      message:
+        "You are not authorized to configure this bot. Only the application owner or verified owners can configure this bot.\n" +
+        `Use \`/verify-app-ownership\` to verify your ownership of <@${applicationId}>.`,
+    };
+  }
+
+  return { authorized: true };
+}
 
 export async function incrementInvalidRequestCount(db: DrizzleDB, applicationId: string) {
   await db
