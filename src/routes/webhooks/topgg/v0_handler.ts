@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { MyContext, QueueMessageBody } from "../../../../types";
 import { WebhookHandler } from "../../../utils/webhook";
 import { applications, votes } from "../../../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { generateSnowflake } from "../../../snowflake";
 import dayjs from "dayjs";
 import { BotWebhookPayload } from "topgg-api-types/v0";
@@ -14,7 +14,12 @@ export async function v0handler(c: MyContext) {
   const appId = c.req.param("applicationId")!;
   console.log(`Received Top.gg webhook for application ID: ${appId}`, { daAuthHeader: c.req.header("authorization") });
   const db = c.get("db");
-  const appCfg = await db.select().from(applications).where(eq(applications.applicationId, appId)).limit(1).get();
+  const appCfg = await db
+    .select()
+    .from(applications)
+    .where(and(eq(applications.applicationId, appId), eq(applications.source, "topgg")))
+    .limit(1)
+    .get();
 
   if (!appCfg) {
     await incrementInvalidRequestCount(db, appId);
