@@ -3,7 +3,7 @@ import { MyContext } from "../../../../types";
 import { ApplicationCfg, applications, deleteApplicationCascade } from "../../../db/schema";
 import { bold } from "@discordjs/builders";
 import { and, eq } from "drizzle-orm";
-import { buildAppInfo } from "../../../utils/index";
+import { buildAppInfo, checkAppAuthorization } from "../../../utils/index";
 
 // Note: Modal handlers are no longer used with the new system.
 // Application configuration is now done via the /app command.
@@ -20,9 +20,15 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(asy
     }
 
     const botUser = ctx.fields.getSelectedUsers("bot", true).first()!;
-    const [source] = ctx.fields.getSelectedValues("source", true);
+    const [source] = ctx.fields.getSelectedValues("source", true) as ["topgg" | "dbl"];
     if (!botUser.bot) {
       return ctx.editReply({ content: "Selected user is not a bot." });
+    }
+
+    const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    const authCheck = await checkAppAuthorization(db, botUser.id, ctx.guildId!, ctx.user.id, isGlobalOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message });
     }
 
     try {
@@ -44,7 +50,13 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(asy
   } else if (component === "create") {
     const secret = ctx.fields.getString("secret");
     const { params } = parseCustomId(ctx.customId) as { params: string[] };
-    const [botId, source, roleId, durationHoursStr] = params[0];
+    const [botId, source, roleId, durationHoursStr] = params[0].split("/");
+
+    const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    const authCheck = await checkAppAuthorization(db, botId, ctx.guildId!, ctx.user.id, isGlobalOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message });
+    }
 
     const existingCfg = await db.select().from(applications).where(eq(applications.applicationId, botId)).limit(1).get();
     if (existingCfg) {
@@ -79,6 +91,12 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(asy
     const secret = ctx.fields.getString("secret");
     const { firstParam: botId } = parseCustomId(ctx.customId) as { firstParam: string };
 
+    const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+    const authCheck = await checkAppAuthorization(db, botId, ctx.guildId!, ctx.user.id, isGlobalOwner);
+    if (!authCheck.authorized) {
+      return ctx.editReply({ content: authCheck.message });
+    }
+
     let appCfg: ApplicationCfg;
     try {
       appCfg = await db
@@ -104,6 +122,15 @@ export const appBtnHandler = new ComponentHandler<MyContext, ComponentType.Butto
   async function handleAppBtn(ctx) {
     const { component, params } = parseCustomId(ctx.customId) as { params: string[]; component: string };
     if (component === "create") {
+      const db = ctx.context.get("db");
+      const botId = params[0].split("/")[0];
+
+      const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
+      const authCheck = await checkAppAuthorization(db, botId, ctx.guildId!, ctx.user.id, isGlobalOwner);
+      if (!authCheck.authorized) {
+        return ctx.reply({ content: authCheck.message }, true);
+      }
+
       return ctx.showModal(
         new ModalBuilder()
           .setCustomId(`app/create?${params.join("/")}`)

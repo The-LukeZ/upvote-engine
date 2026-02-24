@@ -103,10 +103,10 @@ class WebhookHandler<T extends WebhookPayload> {
     }
   }
   public async validateRequest(c: MyContext): Promise<{ isValid: boolean; payload?: T; version?: "v0" | "v1" }> {
-    const v1Signature = c.req.header("x-topgg-signature");
+    const v1Signature = c.req.header("x-topgg-trace");
 
     // v1 webhook detection
-    if (v1Signature) {
+    if (!!v1Signature) {
       console.log("Detected v1 webhook with signature");
       return this.validateV1Request(c, v1Signature);
     }

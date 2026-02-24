@@ -53,11 +53,10 @@ export async function v1handler(c: MyContext): Promise<Response> {
   }
 
   // Process actual vote
-  const voteId = BigInt(vote.id);
   const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null;
 
   await db.insert(votes).values({
-    id: voteId,
+    id: BigInt(vote.id),
     applicationId: appId,
     userId: vote.user.platform_id,
     source: "topgg",
@@ -71,7 +70,7 @@ export async function v1handler(c: MyContext): Promise<Response> {
   }
 
   await c.env.VOTE_APPLY.send({
-    id: voteId.toString(),
+    id: vote.id,
     timestamp: new Date().toISOString(),
   } as QueueMessageBody);
 
