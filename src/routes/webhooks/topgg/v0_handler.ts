@@ -51,6 +51,7 @@ export async function v0handler(c: MyContext) {
     applicationId: appId,
     userId: vote.user,
     source: "topgg",
+    roleId: appCfg.voteRoleId,
     guildId: appCfg.guildId!,
     expiresAt: expiresAt,
   });

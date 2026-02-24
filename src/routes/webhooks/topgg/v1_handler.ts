@@ -69,7 +69,7 @@ export async function v1handler(c: MyContext): Promise<Response> {
     userId: vote.user.platform_id,
     source: "topgg",
     guildId: appCfg.guildId,
-    hasRole: false,
+    roleId: appCfg.voteRoleId,
     expiresAt: expiresAt,
   });
   if (!appCfg.voteRoleId || !appCfg.guildId) {
