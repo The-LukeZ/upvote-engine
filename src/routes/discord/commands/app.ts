@@ -353,7 +353,7 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
   } else if (appCfg.source === "topgg") {
     await ctx.showModal(
       new ModalBuilder()
-        .setCustomId(`app/secret?${appCfg.applicationId}`)
+        .setCustomId(`app/create?${appCfg.applicationId}`)
         .setTitle("Reset Secret")
         .addTextDisplayComponents((t) =>
           t.setContent(
