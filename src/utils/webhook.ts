@@ -54,13 +54,20 @@ class WebhookHandler<T extends WebhookPayload> {
 
     const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
 
-    const signatureBuffer = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
+    const hmacSignature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
 
-    const digest = Array.from(new Uint8Array(signatureBuffer))
+    const digest = Array.from(new Uint8Array(hmacSignature))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    return crypto.timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(digest, "hex"));
+    const signatureBuffer = Buffer.from(signature, "hex");
+    const digestBuffer = Buffer.from(digest, "hex");
+
+    if (signatureBuffer.length !== digestBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(signatureBuffer, digestBuffer);
   }
 
   /**
