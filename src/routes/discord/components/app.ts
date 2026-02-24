@@ -10,6 +10,9 @@ import { buildAppInfo } from "../../../utils/index";
 export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(async function handleAppModal(ctx) {
   const { component } = parseCustomId(ctx.customId) as { component: string };
   const db = ctx.context.get("db");
+
+  await ctx.deferReply(true);
+
   if (component === "remove") {
     const confirmation = ctx.fields.getSelectedValues("confirmation")![0] === "1";
     if (!confirmation) {
@@ -80,13 +83,17 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(asy
     try {
       appCfg = await db
         .update(applications)
-        .set({ secret })
+        .set({ secret: secret })
         .where(and(eq(applications.applicationId, botId), eq(applications.guildId, ctx.guildId!), eq(applications.source, "topgg")))
         .returning()
         .get();
     } catch (error) {
       console.error("Database error while updating app secret:", { error });
       return ctx.editReply({ content: "Failed to update app secret due to a database error." });
+    }
+
+    if (!appCfg) {
+      return ctx.editReply({ content: "No configuration found for this bot and source." });
     }
 
     await ctx.editReply(buildAppInfo(botId, appCfg, "edit"));
