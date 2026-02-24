@@ -77,7 +77,10 @@ class WebhookHandler<T extends WebhookPayload> {
     // Parse signature: t={timestamp},v1={signature}
     const signatureHeader = c.req.header("x-topgg-signature") || "";
     console.log(`Received v1 webhook with signature header: ${signatureHeader}`);
-    const parts = signatureHeader.split(",").map((p) => p.split("="));
+    const parts = signatureHeader.split(",").map((p) => {
+      const idx = p.indexOf("=");
+      return [p.slice(0, idx), p.slice(idx + 1)];
+    });
     const sigObj = Object.fromEntries(parts);
     const timestamp = sigObj["t"];
     const signature = sigObj["v1"];
@@ -94,6 +97,10 @@ class WebhookHandler<T extends WebhookPayload> {
       console.error("No webhook secret configured");
       return { isValid: false };
     }
+
+    console.log(`Secret prefix: "${this.authorization.substring(0, 8)}", length: ${this.authorization.length}`);
+    console.log(`Timestamp: "${timestamp}", Signature: "${signature.substring(0, 8)}..."`);
+    console.log(`Raw body length: ${rawBody.length}, preview: "${rawBody.substring(0, 50)}"`);
 
     // Verify signature using Web Crypto API
     const isValidSignature = await this.verifyV1Signature(signature, timestamp, rawBody, this.authorization);
