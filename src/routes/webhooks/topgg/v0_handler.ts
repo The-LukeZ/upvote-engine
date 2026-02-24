@@ -20,7 +20,7 @@ export async function v0handler(c: MyContext) {
     await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not found" }, 404);
   } else if (!appCfg.secret) {
-    // discard as this is not a v0 configured application - v0 applications will have a secret, while v1 applications will not (since they use the integration's webhook secret instead)
+    await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not configured for v0 webhooks" }, 400);
   }
 

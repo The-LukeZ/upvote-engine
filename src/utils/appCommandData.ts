@@ -27,7 +27,7 @@ export const appCommand = new SlashCommandHandler<MyContext>()
             })),
           ),
       )
-      .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(false))
+      .addRoleOption((opt) => opt.setName("role").setDescription("Role to assign on vote").setRequired(true))
       .addIntegerOption(
         (op) =>
           op
@@ -64,6 +64,24 @@ export const appCommand = new SlashCommandHandler<MyContext>()
             .setRequired(false)
             .setMinValue(1)
             .setMaxValue(336), // 14 days
+      ),
+  )
+  .addSubcommand((sub) =>
+    sub
+      .setName("reset-secret")
+      .setDescription("Reset the secret for an app configuration")
+      .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to reset the secret for").setRequired(true))
+      .addStringOption((opt) =>
+        opt
+          .setName("source")
+          .setDescription("The bot listing source")
+          .setChoices(
+            Object.keys(supportedPlatforms).map((key) => ({
+              name: supportedPlatforms[key as keyof typeof supportedPlatforms],
+              value: key,
+            })),
+          )
+          .setRequired(true),
       ),
   )
   .addSubcommand((sub) =>

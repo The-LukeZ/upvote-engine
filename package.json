@@ -35,15 +35,17 @@
     "@discordjs/collection": "^2.1.1",
     "@discordjs/core": "^2.4.0",
     "@discordjs/rest": "^2.6.0",
+    "@honocord/cache-do": "^0.1.2",
     "@sapphire/snowflake": "^3.5.5",
     "dayjs": "^1.11.19",
     "discord-api-types": "^0.38.38",
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.11.9",
-    "honocord": "^1.5.4",
+    "honocord": "^2.0.1",
     "topgg-api-types": "^0.1.1",
     "zod": "^4.3.6"
   },
-  "license": "PolyForm Internal Use License 1.0.0"
+  "license": "PolyForm Internal Use License 1.0.0",
+  "packageManager": "pnpm@10.30.2"
 }

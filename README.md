@@ -5,16 +5,10 @@ This serverless approach ensures highly performant role management by automatica
 roles based on top.gg votes with minimal latency and maximum scalability due to the services used.
 
 > [!IMPORTANT]
-> UpvoteEngine now uses Top.gg's Integrations system! The old webhook setup method is deprecated.
-> You must connect the UpvoteEngine integration on Top.gg first before you can configure vote rewards in Discord.
+> Top.gg has changed their webhook system, and the legacy webhook configuration is no longer supported for new setups.
+> Use `/app create` and follow the instructions to set up new webhooks with the new system.
 >
-> **Migration from legacy webhooks:**
-> If you're currently using the old webhook system, you'll need to:
->
-> 1. Go to your bot's [Top.gg Integrations page](https://top.gg/bot/YOUR_BOT_ID/dashboard/integrations)
-> 2. Remove any legacy webhook configurations
-> 3. Click **Connect** on the UpvoteEngine integration
-> 4. Reconfigure your guild settings using `/integrations configure` in Discord
+> Existing legacy webhook configurations continue to be supported until the end of 2026, but they can no longer be newly configured or modified.
 
 ## How it's done
 
@@ -39,33 +33,28 @@ If you want to contribute, feel free to open issues or pull requests!
 
 ### For Bot Owners
 
-1. **Connect the Integration on Top.gg**
-   - Go to your bot's Integrations page on Top.gg
-   - Find the **UpvoteEngine** integration and click **Connect**
-   - Wait a few seconds for the connection to be established
-   - The webhook is now automatically configured!
-
-2. **Configure Guild Settings in Discord**
-   - Go to your Discord server where you want vote rewards
-   - Run `/integrations configure` command
-   - Select your bot, the vote source (Top.gg), the reward role, and optional duration
-   - Done! Users will now receive the role when they vote
+1. **Configure in Discord**
+   - Run the `/app create` command in your Discord server.
+   - Select the bot to configure, the vote source (e.g., Top.gg), the reward role, and optional duration.
+2. **Follow On-Screen Instructions**
+   - The bot will provide a webhook URL and secret.
+   - Follow the provided instructions to add the webhook on the voting site (Top.gg/DBL).
+   - Once configured, votes will be processed automatically!
 
 ### Authorization
 
-Only the following users can configure an integration:
+Only the following users can configure an app:
 
-- The user who created the integration on Top.gg
-- Verified bot owners (use `/integrations ownership-verify` to verify)
+- Verified bot owners (use `/verify-app-ownership` to verify)
 - The UpvoteEngine system owner
 
 ### Additional Commands
 
-- `/integrations list` - View all configured integrations in your server
-- `/integrations edit` - Modify role or duration settings
-- `/integrations remove` - Remove an integration configuration
-- `/integrations forwarding set/edit/remove/view` - Set up webhook forwarding to your own backend
-- `/integrations ownership-verify` - Verify your bot ownership to gain configuration access
+- `/app list` - View all configured apps in your server
+- `/app edit` - Modify role or duration settings for an app
+- `/app remove` - Remove an app configuration
+- `/app forwarding set/edit/remove/view` - Set up webhook forwarding to your own backend
+- `/verify-app-ownership` - Verify your bot ownership to gain configuration access
 
 ## Notes
 
