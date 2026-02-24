@@ -18,23 +18,23 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
       and(
         inArray(
           votesTable.id,
-          batch.messages.map((msg) => BigInt(msg.id)),
+          batch.messages.map((msg) => BigInt(msg.body.id)),
         ),
         isNotNull(votesTable.roleId),
         isNotNull(votesTable.guildId),
       ),
     );
-  const voteMessageDetails = new Map(batch.messages.map((vote) => [vote.id, vote]));
+  const voteMessageDetails = new Map(batch.messages.map((vote) => [vote.body.id, vote]));
   const mergedVotes = votes.map((vote) => ({
     ...(vote as NonNullableFields<typeof vote>),
-    timestamp: voteMessageDetails.get(vote.id.toString())!.timestamp,
+    timestamp: voteMessageDetails.get(vote.id.toString())!.body.timestamp,
   }));
   for (const vote of mergedVotes) {
     console.log(`Applying vote for user ${vote.userId} in guild ${vote.guildId} at ${vote.timestamp}`);
   }
 
   const ackMessage = (voteId: bigint) => {
-    const message = batch.messages.find((msg) => msg.id === voteId.toString());
+    const message = batch.messages.find((msg) => msg.body.id === voteId.toString());
     if (message) {
       message.ack();
     } else {
@@ -42,7 +42,7 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     }
   };
   const retryMessage = (voteId: bigint, delaySeconds?: number) => {
-    const message = batch.messages.find((msg) => msg.id === voteId.toString());
+    const message = batch.messages.find((msg) => msg.body.id === voteId.toString());
     if (message) {
       message.retry({ delaySeconds });
     } else {
@@ -103,7 +103,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
       and(
         inArray(
           votes.id,
-          batch.messages.map((msg) => BigInt(msg.id)),
+          batch.messages.map((msg) => BigInt(msg.body.id)),
         ),
         isNotNull(votes.roleId),
         isNotNull(votes.guildId),
@@ -111,12 +111,12 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
     );
 
   // Create a map of message payloads
-  const voteMessageDetails = new Map(batch.messages.map((vote) => [vote.id, vote]));
+  const voteMessageDetails = new Map(batch.messages.map((vote) => [vote.body.id, vote]));
 
   // Merge database votes with message payloads
   const mergedVotes = votes_list.map((vote) => ({
     ...(vote as NonNullableFields<typeof vote>),
-    timestamp: voteMessageDetails.get(vote.id.toString())!.timestamp,
+    timestamp: voteMessageDetails.get(vote.id.toString())!.body.timestamp,
   }));
 
   // Collect unique user/guild/role combinations from merged votes
@@ -165,7 +165,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
           removals.ack.add(combo.messageid);
         } else {
           console.error(`Failed to remove role for user ${combo.userId} in guild ${combo.guildId}:`, error);
-          const message = batch.messages.find((msg) => msg.id === combo.messageid);
+          const message = batch.messages.find((msg) => msg.body.id === combo.messageid);
           if (!message) continue;
           const delay = delaySeconds[message.attempts]; // Exponential backoff
           if (delay === undefined) {
@@ -192,14 +192,14 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   }
 
   for (const msgid of removals.success) {
-    batch.messages.find((msg) => msg.id === msgid)?.ack();
+    batch.messages.find((msg) => msg.body.id === msgid)?.ack();
   }
   for (const msgid of removals.ack) {
-    batch.messages.find((msg) => msg.id === msgid)?.ack();
+    batch.messages.find((msg) => msg.body.id === msgid)?.ack();
   }
   for (const [msgid, delay] of removals.retry) {
     // Updated: Use stored delay
-    batch.messages.find((msg) => msg.id === msgid)?.retry({ delaySeconds: delay });
+    batch.messages.find((msg) => msg.body.id === msgid)?.retry({ delaySeconds: delay });
   }
 }
 
@@ -207,7 +207,7 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 export async function handleForwardWebhook(batch: MessageBatch<ForwardingQueuePayload<APIVote["source"]>>, env: Env): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   const cryptor = new Cryptor(env.ENCRYPTION_KEY);
-  
+
   for (const message of batch.messages) {
     const body = message.body;
     // If timestamp is older than 2 hours, ack and skip
