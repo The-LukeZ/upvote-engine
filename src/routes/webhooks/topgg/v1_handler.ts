@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import dayjs from "dayjs";
 import { dmUserOnTestVote } from "../../../utils";
 import { WebhookPayload } from "topgg-api-types";
-import { incrementInvalidRequestCount } from "../../../utils/index";
+import { incrementInvalidRequestCount, resetInvalidRequestCount } from "../../../utils/index";
 
 // Path: /webhook/topgg/v1/:applicationId
 export async function v1handler(c: MyContext): Promise<Response> {
@@ -71,6 +71,7 @@ export async function v1handler(c: MyContext): Promise<Response> {
     await incrementInvalidRequestCount(db, appId);
     return c.json({ error: "Application not properly configured for vote processing" }, 400);
   }
+  await resetInvalidRequestCount(db, appId);
 
   await c.env.VOTE_APPLY.send({
     id: vote.id,

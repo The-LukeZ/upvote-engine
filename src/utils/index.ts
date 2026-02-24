@@ -38,6 +38,10 @@ export async function incrementInvalidRequestCount(db: DrizzleDB, applicationId:
     .where(eq(applications.applicationId, applicationId));
 }
 
+export async function resetInvalidRequestCount(db: DrizzleDB, applicationId: string) {
+  await db.update(applications).set({ invalidRequests: 0 }).where(eq(applications.applicationId, applicationId));
+}
+
 /**
  * Generates a random token string of the specified length.
  * @param length The length of the random token to generate. Default is 32 characters.
