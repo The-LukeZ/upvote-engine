@@ -1,16 +1,27 @@
 import { bold, ButtonBuilder, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
-import { DrizzleDB, MyContext } from "../../../../types";
-import { applications, ApplicationCfg, forwardings, ForwardingCfg, Cryptor } from "../../../db/schema";
-import { sanitizeSecret } from "../../../utils";
+import { DrizzleDB, MyContext } from "$types";
+import { applications, ApplicationCfg, forwardings, ForwardingCfg, Cryptor } from "$/db/schema";
+import { sanitizeSecret } from "$/utils";
 import dayjs from "dayjs";
-import { GetSupportedPlatform, getTestNoticeForPlatform, hostnamePattern, platformsWithTests } from "../../../constants";
-import { ForwardingPayload } from "../../../../types/webhooks";
-import { ChatInputCommandInteraction, Colors, ContainerBuilder, ModalBuilder, StringSelectMenuOptionBuilder } from "honocord";
-import { appCommand as appCommandData } from "../../../utils/appCommandData";
+import {
+  GetSupportedPlatform,
+  getTestNoticeForPlatform,
+  hostnamePattern,
+  platformsWithTests,
+} from "$/constants";
+import { ForwardingPayload } from "$types/webhooks";
+import {
+  ChatInputCommandInteraction,
+  Colors,
+  ContainerBuilder,
+  ModalBuilder,
+  StringSelectMenuOptionBuilder,
+} from "honocord";
+import { appCommand as appCommandData } from "$/utils/appCommandData";
 import * as z from "zod/mini";
-import { buildAppInfo, checkAppAuthorization, generateRandomToken } from "../../../utils/index";
+import { buildAppInfo, checkAppAuthorization, generateRandomToken } from "$/utils/index";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -18,7 +29,9 @@ async function validateBot(bot: APIUser, ownApplicationId: string, byOwner: bool
   return !!bot.bot && (byOwner || bot.id !== ownApplicationId);
 }
 
-export const appCommand = appCommandData.addHandler(async function handleApp(ctx: ChatInputCommandInteraction<MyContext>) {
+export const appCommand = appCommandData.addHandler(async function handleApp(
+  ctx: ChatInputCommandInteraction<MyContext>,
+) {
   const subgroup = ctx.options.getSubcommandGroup() as "forwarding" | null;
   const db = ctx.context.get("db");
 
@@ -26,14 +39,18 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
     return handleForwarding(ctx.context, ctx, db);
   }
 
-  const subcommand = ctx.options.getSubcommand(true) as "list" | "create" | "edit" | "remove" | "reset-secret";
+  const subcommand = ctx.options.getSubcommand(true) as
+    "list" | "create" | "edit" | "remove" | "reset-secret";
 
   const blCache = ctx.context.env.BLACKLIST.getByName("blacklist");
   const botOption = ctx.options.get("bot", ApplicationCommandOptionType.User, false);
   if (botOption?.value) {
     const isBlBot = await blCache.isBlacklisted(botOption?.value, "b");
     if (isBlBot) {
-      return ctx.reply({ content: "The selected bot cannot be configured, because it is blacklisted." }, true);
+      return ctx.reply(
+        { content: "The selected bot cannot be configured, because it is blacklisted." },
+        true,
+      );
     }
   }
 
@@ -56,7 +73,10 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
 
     const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
-      return ctx.reply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds }, true);
+      return ctx.reply(
+        { content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds },
+        true,
+      );
     }
 
     console.log("Showing remove app modal", { options: ctx.options.data });
@@ -67,7 +87,11 @@ export const appCommand = appCommandData.addHandler(async function handleApp(ctx
         custom_id: "app/remove",
       })
         .addLabelComponents((l) =>
-          l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
+          l
+            .setLabel("Bot")
+            .setUserSelectMenuComponent((us) =>
+              us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true),
+            ),
         )
         .addLabelComponents((l) =>
           l.setLabel("Source").setStringSelectMenuComponent((ss) =>
@@ -132,7 +156,9 @@ async function handleListApps(ctx: ChatInputCommandInteraction<MyContext>, db: D
       .addTextDisplayComponents((t) => t.setContent("## Configured Apps"));
 
     configs.forEach((cfg) => {
-      const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
+      const durationText = cfg.roleDurationSeconds
+        ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)`
+        : "Permanent";
       container.addTextDisplayComponents((t) =>
         t.setContent(
           [
@@ -171,7 +197,10 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
 
   const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
-    return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+    return ctx.editReply({
+      content: authCheck.message,
+      flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+    });
   }
 
   const source = ctx.options.getString<"topgg" | "dbl">("source", true);
@@ -184,7 +213,13 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
   const existing = await db
     .select()
     .from(applications)
-    .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source), eq(applications.guildId, guildId)))
+    .where(
+      and(
+        eq(applications.applicationId, bot.id),
+        eq(applications.source, source),
+        eq(applications.guildId, guildId),
+      ),
+    )
     .limit(1)
     .get();
 
@@ -195,7 +230,11 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
   }
 
   // Check guild app limit
-  const guildAppCount = await db.select({ count: count() }).from(applications).where(eq(applications.guildId, guildId)).get();
+  const guildAppCount = await db
+    .select({ count: count() })
+    .from(applications)
+    .where(eq(applications.guildId, guildId))
+    .get();
 
   if (guildAppCount && guildAppCount.count >= MAX_APPS_PER_GUILD) {
     return ctx.editReply({
@@ -229,24 +268,30 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
             t.setContent(
               [
                 `### Top.gg App Setup`,
-                "Top.gg changed the way their API works. Legacy mode is still supported but can't be configured. Follow the steps below:",
+                "Top.gg changed the way their API works. Legacy (v0) webhooks are still supported, but stop working at the end of 2026 and can no longer be newly configured. Follow the steps below:",
                 `1. Go to the [Top.gg Integrations Page](https://top.gg/bot/${bot.id}/dashboard/integrations) and click **Create** to add a webhook.`,
               ].join("\n"),
             ),
           )
-          .addMediaGalleryComponents((g) => g.addItems((i) => i.setURL("https://i.ibb.co/ynJHwSjK/topgg-wh-setup-1.png")))
+          .addMediaGalleryComponents((g) =>
+            g.addItems((i) => i.setURL("https://i.ibb.co/ynJHwSjK/topgg-wh-setup-1.png")),
+          )
           .addTextDisplayComponents((t) =>
             t.setContent(
               "2. Copy the webhook url below and paste it in the URL field on Top.gg. Then enable the **Vote Created** event and save the webhook.",
             ),
           )
-          .addMediaGalleryComponents((g) => g.addItems((i) => i.setURL("https://i.ibb.co/1fp8P7Pm/topgg-wh-setup-2.png")))
+          .addMediaGalleryComponents((g) =>
+            g.addItems((i) => i.setURL("https://i.ibb.co/1fp8P7Pm/topgg-wh-setup-2.png")),
+          )
           .addTextDisplayComponents((t) =>
             t.setContent(
               "The webhook is now created and you will see a secret like in the image below. Copy that secret and click the button below.",
             ),
           )
-          .addMediaGalleryComponents((g) => g.addItems((i) => i.setURL("https://i.ibb.co/spHFXsP7/topgg-wh-setup-3.png")))
+          .addMediaGalleryComponents((g) =>
+            g.addItems((i) => i.setURL("https://i.ibb.co/spHFXsP7/topgg-wh-setup-3.png")),
+          )
           .addActionRowComponents((r) =>
             r.setComponents(
               new ButtonBuilder({
@@ -290,7 +335,10 @@ async function handleEditApp(ctx: ChatInputCommandInteraction<MyContext>, db: Dr
 
   const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
-    return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+    return ctx.editReply({
+      content: authCheck.message,
+      flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+    });
   }
   const role = ctx.options.getRole("role");
   const roleId = role?.id;
@@ -313,13 +361,20 @@ async function handleEditApp(ctx: ChatInputCommandInteraction<MyContext>, db: Dr
   const result = await db
     .update(applications)
     .set(updateFields)
-    .where(and(eq(applications.guildId, guildId), eq(applications.applicationId, bot.id), eq(applications.source, source)))
+    .where(
+      and(
+        eq(applications.guildId, guildId),
+        eq(applications.applicationId, bot.id),
+        eq(applications.source, source),
+      ),
+    )
     .returning()
     .get();
 
   if (!result) {
     return ctx.editReply({
-      content: "No existing configuration found for this bot in this guild for this source. Use `/app create` to add it.",
+      content:
+        "No existing configuration found for this bot in this guild for this source. Use `/app create` to add it.",
     });
   }
 
@@ -335,7 +390,10 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
 
   const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
-    return ctx.reply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds }, true);
+    return ctx.reply(
+      { content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds },
+      true,
+    );
   }
 
   const appCfg = await db
@@ -345,7 +403,10 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
     .get();
 
   if (!appCfg) {
-    return ctx.reply({ content: "No configuration found for this bot and source. Use `/app create` to add it." }, true);
+    return ctx.reply(
+      { content: "No configuration found for this bot and source. Use `/app create` to add it." },
+      true,
+    );
   } else if (appCfg.source === "topgg") {
     await ctx.showModal(
       new ModalBuilder()
@@ -365,7 +426,9 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
         .addLabelComponents((l) =>
           l
             .setLabel("New Secret")
-            .setTextInputComponent((t) => t.setCustomId("secret").setStyle(1).setPlaceholder("whs_...").setRequired(true)),
+            .setTextInputComponent((t) =>
+              t.setCustomId("secret").setStyle(1).setPlaceholder("whs_...").setRequired(true),
+            ),
         ),
     );
     return;
@@ -436,12 +499,17 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
       .get();
 
     if (!appCfg) {
-      return ctx.editReply("No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.");
+      return ctx.editReply(
+        "No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.",
+      );
     }
 
     const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
-      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+      return ctx.editReply({
+        content: authCheck.message,
+        flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+      });
     }
 
     const targetUrl = ctx.options.getString("url", true); // was validated before
@@ -484,7 +552,11 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
     }
 
     // Check if forwarding already exists
-    const existingForwarding = await db.select().from(forwardings).where(eq(forwardings.applicationId, bot.id)).get();
+    const existingForwarding = await db
+      .select()
+      .from(forwardings)
+      .where(eq(forwardings.applicationId, bot.id))
+      .get();
 
     if (existingForwarding) {
       return ctx.editReply({
@@ -497,7 +569,11 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
     const { token: encryptedSecret, iv } = await cryptor.encryptToken(forwardingSecret);
 
     // Testing the forwarding configuration
-    const testError = await testForwarding(ctx.context.env.RATELIMITER_FORWARDING_TEST, targetUrl, forwardingSecret);
+    const testError = await testForwarding(
+      ctx.context.env.RATELIMITER_FORWARDING_TEST,
+      targetUrl,
+      forwardingSecret,
+    );
     if (testError) {
       await ctx.editReply({
         content:
@@ -530,7 +606,10 @@ async function handleSetForwarding(ctx: ChatInputCommandInteraction<MyContext>, 
         },
         {
           name: "Forwarding Secret",
-          value: [codeBlock(forwardingSecret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
+          value: [
+            codeBlock(forwardingSecret),
+            ":warning: **Keep this secret safe! It will not be shown again.**",
+          ].join("\n"),
           inline: false,
         },
       ],
@@ -610,20 +689,27 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
       .get();
 
     if (!appCfg) {
-      return ctx.editReply("No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.");
+      return ctx.editReply(
+        "No app configuration found for this bot in this guild.\nPlease configure the app first using `/app create`.",
+      );
     }
 
     // Check app authorization
     const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
-      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+      return ctx.editReply({
+        content: authCheck.message,
+        flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+      });
     }
 
     const targetUrl = ctx.options.getString("url");
     const newSecret = ctx.options.getString("secret");
 
     if (!targetUrl && !newSecret) {
-      return ctx.editReply({ content: "Please provide either a new URL or request to regenerate the secret." });
+      return ctx.editReply({
+        content: "Please provide either a new URL or request to regenerate the secret.",
+      });
     }
 
     // Validate URL format if provided
@@ -646,7 +732,12 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
       updateFields.iv = iv;
     }
 
-    const result = await db.update(forwardings).set(updateFields).where(eq(forwardings.applicationId, bot.id)).returning().get();
+    const result = await db
+      .update(forwardings)
+      .set(updateFields)
+      .where(eq(forwardings.applicationId, bot.id))
+      .returning()
+      .get();
 
     if (!result) {
       return ctx.editReply({
@@ -665,7 +756,10 @@ async function handleEditForwarding(ctx: ChatInputCommandInteraction<MyContext>,
     if (newSecret) {
       fields.push({
         name: "New Forwarding Secret",
-        value: [codeBlock(newSecret), ":warning: **Keep this secret safe! It will not be shown again.**"].join("\n"),
+        value: [
+          codeBlock(newSecret),
+          ":warning: **Keep this secret safe! It will not be shown again.**",
+        ].join("\n"),
         inline: false,
       });
     }
@@ -693,7 +787,10 @@ async function handleRemoveForwarding(ctx: ChatInputCommandInteraction<MyContext
 
   const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
-    return ctx.reply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds }, true);
+    return ctx.reply(
+      { content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds },
+      true,
+    );
   }
 
   console.log("Showing remove forwarding modal");
@@ -704,7 +801,11 @@ async function handleRemoveForwarding(ctx: ChatInputCommandInteraction<MyContext
       custom_id: "remove_forwarding_modal",
     })
       .addLabelComponents((l) =>
-        l.setLabel("Bot").setUserSelectMenuComponent((us) => us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true)),
+        l
+          .setLabel("Bot")
+          .setUserSelectMenuComponent((us) =>
+            us.setCustomId("bot").setDefaultUsers(bot.id).setRequired(true),
+          ),
       )
       .addLabelComponents((l) =>
         l.setLabel("Confirmation").setStringSelectMenuComponent((ss) =>
@@ -727,7 +828,9 @@ async function handleRemoveForwarding(ctx: ChatInputCommandInteraction<MyContext
           ),
         ),
       )
-      .addTextDisplayComponents((t) => t.setContent("### :warning: This will remove the forwarding configuration!")),
+      .addTextDisplayComponents((t) =>
+        t.setContent("### :warning: This will remove the forwarding configuration!"),
+      ),
   );
 }
 
@@ -744,7 +847,10 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction<MyContext>,
 
     const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
     if (!authCheck.authorized) {
-      return ctx.editReply({ content: authCheck.message, flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds });
+      return ctx.editReply({
+        content: authCheck.message,
+        flags: MessageFlags.Ephemeral | MessageFlags.SuppressEmbeds,
+      });
     }
 
     // If bot is specified, show specific forwarding
@@ -787,14 +893,21 @@ async function handleViewForwarding(ctx: ChatInputCommandInteraction<MyContext>,
 }
 
 function isValidForwardingUrl(currentOrigin: string, url: string): boolean {
-  const forwardingUrlSchema = z.url({ hostname: hostnamePattern, protocol: /^https:$/, normalize: true }).check(
-    z.refine((url) => {
-      // Disallow localhost and IP addresses
-      const _url = new URL(url);
-      const { hostname, origin } = _url;
-      return hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "::1" && origin !== currentOrigin;
-    }),
-  );
+  const forwardingUrlSchema = z
+    .url({ hostname: hostnamePattern, protocol: /^https:$/, normalize: true })
+    .check(
+      z.refine((url) => {
+        // Disallow localhost and IP addresses
+        const _url = new URL(url);
+        const { hostname, origin } = _url;
+        return (
+          hostname !== "localhost" &&
+          hostname !== "127.0.0.1" &&
+          hostname !== "::1" &&
+          origin !== currentOrigin
+        );
+      }),
+    );
 
   return forwardingUrlSchema.safeParse(url).success;
 }

@@ -15,37 +15,36 @@
     "migrate": "wrangler d1 migrations apply vote_handler --remote",
     "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
     "drizzle:push": "drizzle-kit push --config drizzle.config.ts",
-    "docs:dev": "astro dev --config docs/config.mjs",
-    "docs:build": "astro build --config docs/config.mjs",
-    "docs:preview": "astro preview --config docs/config.mjs",
-    "astro": "astro --config docs/config.mjs",
-    "test": "vitest"
+    "test": "vitest",
+    "format": "prettier --write ."
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260212.0",
-    "@types/node": "^24.10.13",
-    "drizzle-kit": "^0.31.9",
-    "tsx": "^4.21.0",
+    "@cloudflare/workers-types": "^5.20260823.1",
+    "@types/node": "^26.2.0",
+    "drizzle-kit": "^0.31.10",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18",
-    "wrangler": "^4.64.0"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.125.0"
   },
   "dependencies": {
-    "@discordjs/builders": "^1.13.1",
+    "@discordjs/builders": "^1.14.1",
     "@discordjs/collection": "^2.1.1",
-    "@discordjs/core": "^2.4.0",
-    "@discordjs/rest": "^2.6.0",
-    "@honocord/cache-do": "^0.1.2",
+    "@discordjs/core": "^2.6.0",
+    "@discordjs/rest": "^2.6.3",
+    "@honocord/cache-do": "^0.3.1",
     "@sapphire/snowflake": "^3.5.5",
-    "dayjs": "^1.11.19",
-    "discord-api-types": "^0.38.38",
+    "dayjs": "^1.11.23",
+    "discord-api-types": "^0.38.53",
     "discord-interactions": "^4.4.0",
-    "drizzle-orm": "^0.44.7",
-    "hono": "^4.11.9",
-    "honocord": "^2.0.1",
-    "topgg-api-types": "^0.1.1",
-    "zod": "^4.3.6"
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.3",
+    "honocord": "^3.0.0",
+    "topgg-api-types": "^2.0.1",
+    "zod": "^4.4.3"
   },
   "license": "PolyForm Internal Use License 1.0.0",
-  "packageManager": "pnpm@10.30.2"
+  "packageManager": "pnpm@11.23.0"
 }

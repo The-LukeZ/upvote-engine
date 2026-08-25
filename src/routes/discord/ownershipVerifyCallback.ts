@@ -1,10 +1,10 @@
 import { Context } from "hono";
 import { API } from "@discordjs/core/http-only";
 import { REST } from "@discordjs/rest";
-import { cleanUrl } from "../../utils";
-import { makeDB } from "../../db/util";
-import { Cryptor, owners } from "../../db/schema";
-import { HonoEnv } from "../../../types";
+import { cleanUrl } from "$/utils";
+import { makeDB } from "$/db/util";
+import { Cryptor, owners } from "$/db/schema";
+import { HonoEnv } from "$types";
 import dayjs from "dayjs";
 
 export async function ovHandler(c: Context<HonoEnv>) {
@@ -33,7 +33,10 @@ export async function ovHandler(c: Context<HonoEnv>) {
 
   const userApi = new API(new REST({ authPrefix: "Bearer" }).setToken(tokenRes.access_token));
   const atUser = await userApi.users.getCurrent().catch((error) => {
-    console.error("Failed to fetch user info with access token:", { error, access_token: tokenRes.access_token });
+    console.error("Failed to fetch user info with access token:", {
+      error,
+      access_token: tokenRes.access_token,
+    });
     return null;
   });
   if (!atUser) {

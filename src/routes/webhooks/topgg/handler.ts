@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { HonoEnv } from "../../../../types";
+import { HonoEnv } from "$types";
 import { v0handler } from "./v0_handler";
 import { v1handler } from "./v1_handler";
 

@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm";
-import { DrizzleDB } from "../../types";
+import { DrizzleDB } from "$types";
 import { ApplicationCfg, applications, isUserVerifiedForApplication } from "../db/schema";
 import { bold, heading } from "@discordjs/builders";
 import { GetSupportedPlatform, getTestNoticeForPlatform, platformsWithTests } from "../constants";
@@ -39,7 +39,10 @@ export async function incrementInvalidRequestCount(db: DrizzleDB, applicationId:
 }
 
 export async function resetInvalidRequestCount(db: DrizzleDB, applicationId: string) {
-  await db.update(applications).set({ invalidRequests: 0 }).where(eq(applications.applicationId, applicationId));
+  await db
+    .update(applications)
+    .set({ invalidRequests: 0 })
+    .where(eq(applications.applicationId, applicationId));
 }
 
 /**
@@ -49,11 +52,19 @@ export async function resetInvalidRequestCount(db: DrizzleDB, applicationId: str
  */
 export function generateRandomToken(length: number = 32): string {
   const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzöäüß0123456789.-_:=+<>@()[]{}|~";
-  return Array.from({ length }, () => characters.charAt(Math.floor(Math.random() * characters.length))).join("");
+  return Array.from({ length }, () => characters.charAt(Math.floor(Math.random() * characters.length))).join(
+    "",
+  );
 }
 
-export function buildAppInfo(clientId: string, cfg: ApplicationCfg, action: "edit" | "create"): { embeds: APIEmbed[] } {
-  const durationText = cfg.roleDurationSeconds ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)` : "Permanent";
+export function buildAppInfo(
+  clientId: string,
+  cfg: ApplicationCfg,
+  action: "edit" | "create",
+): { embeds: APIEmbed[] } {
+  const durationText = cfg.roleDurationSeconds
+    ? `${Math.floor(cfg.roleDurationSeconds / 3600)} hour(s)`
+    : "Permanent";
   const fields = [
     {
       name: "Vote Role",
@@ -80,9 +91,21 @@ export function buildAppInfo(clientId: string, cfg: ApplicationCfg, action: "edi
     });
   }
 
+  if (cfg.source === "topgg" && action === "edit") {
+    fields.push({
+      name: "Legacy Webhook Notice",
+      value:
+        "If this app still receives votes through Top.gg's legacy (v0) webhook, note that it stops working at the end of 2026 and can no longer be reconfigured. Set up a v1 webhook via `/app create` to migrate.",
+      inline: false,
+    });
+  }
+
   const embed: APIEmbed = {
     description: [
-      heading(`Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>`, 3),
+      heading(
+        `Configuration ${action === "create" ? "created" : "updated"} for bot <@${cfg.applicationId}>`,
+        3,
+      ),
       `Successfully ${action === "create" ? "configured" : "updated"} <@${cfg.applicationId}> in this server for ${bold(
         GetSupportedPlatform(cfg.source),
       )}.`,

@@ -14,7 +14,7 @@ import {
   Routes,
 } from "discord-api-types/v10";
 import { generateSnowflake } from "./snowflake";
-import { DrizzleDB, SupportedPlatforms } from "../types";
+import { DrizzleDB, SupportedPlatforms } from "$types";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { Colors } from "honocord";
@@ -50,7 +50,12 @@ export function sendMessage(data: APIInteractionResponseCallbackData | string, f
     type: InteractionResponseType.ChannelMessageWithSource,
     data: {
       ...(typeof data === "string" ? { content: data } : data),
-      flags: forceEphemeral && typeof data !== "string" ? (data.flags || 0) | 64 : typeof data === "string" ? 0 : data.flags,
+      flags:
+        forceEphemeral && typeof data !== "string"
+          ? (data.flags || 0) | 64
+          : typeof data === "string"
+            ? 0
+            : data.flags,
     },
   });
 }
@@ -66,7 +71,9 @@ export function isModalInteraction(interaction: APIInteraction): interaction is 
   return interaction.type === InteractionType.ModalSubmit;
 }
 
-export function isMessageComponentInteraction(interaction: APIInteraction): interaction is APIMessageComponentInteraction {
+export function isMessageComponentInteraction(
+  interaction: APIInteraction,
+): interaction is APIMessageComponentInteraction {
   return interaction.type === InteractionType.MessageComponent;
 }
 
@@ -120,10 +127,17 @@ export async function dmUserOnTestVote(
   env: Env,
   { userId, applicationId, source }: { userId: string; applicationId: string; source: SupportedPlatforms },
 ) {
-  console.log(`Starting DM process for test vote - userId: ${userId}, applicationId: ${applicationId}, source: ${source}`);
+  console.log(
+    `Starting DM process for test vote - userId: ${userId}, applicationId: ${applicationId}, source: ${source}`,
+  );
 
   const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
-  const existingUserDM = await db.select({ dmId: users.dmId }).from(users).where(eq(users.id, userId)).limit(1).get();
+  const existingUserDM = await db
+    .select({ dmId: users.dmId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+    .get();
 
   console.log(`Existing DM check result:`, existingUserDM);
 

@@ -2,7 +2,7 @@
 
 // https://npmjs.com/topgg-api-types - my package with all important types for top.gg API
 import type { Snowflake, WebhookPayload as TopggWebhookV1Payload } from "topgg-api-types/v1";
-import type { BotWebhookPayload as TopggWebhookV0Payload } from "topgg-api-types/v0";
+import type { TopggWebhookV0Payload } from "./webhooks";
 
 /**
  * Union type supporting both webhook versions
@@ -40,7 +40,9 @@ type WebhookPayloadMapping = {
   dbl: DBLPayload;
 };
 
-type WebhookSource<WithTest extends boolean = false> = WithTest extends true ? SupportedSources | "test" : SupportedSources;
+type WebhookSource<WithTest extends boolean = false> = WithTest extends true
+  ? SupportedSources | "test"
+  : SupportedSources;
 
 // The forwarding payload sent to other services
 type ForwardingPayload<TSource extends WebhookSource<true>> = {

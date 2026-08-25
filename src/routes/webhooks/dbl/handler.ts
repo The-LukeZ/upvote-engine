@@ -1,12 +1,12 @@
 import { Hono } from "hono";
-import { HonoEnv, MyContext, QueueMessageBody } from "../../../../types";
-import { applications, votes } from "../../../db/schema";
+import { HonoEnv, MyContext, QueueMessageBody } from "$types";
+import { applications, votes } from "$/db/schema";
 import { and, eq } from "drizzle-orm";
-import { generateSnowflake } from "../../../snowflake";
+import { generateSnowflake } from "$/snowflake";
 import dayjs from "dayjs";
-import { WebhookHandler } from "../../../utils/webhook";
-import { DBLPayload } from "../../../../types/webhooks";
-import { incrementInvalidRequestCount, resetInvalidRequestCount } from "../../../utils/index";
+import { WebhookHandler } from "$/utils/webhook";
+import { DBLPayload } from "$types/webhooks";
+import { incrementInvalidRequestCount, resetInvalidRequestCount } from "$/utils/index";
 
 const dblApp = new Hono<HonoEnv, {}, "/dbl">();
 
@@ -35,12 +35,14 @@ dblApp.post("/:applicationId", async (c: MyContext) => {
   const vote = valRes.payload;
 
   const voteId = generateSnowflake();
-  const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null; // D1 needs ISO string, because sqlite does not have a native date type
+  const expiresAt = appCfg.roleDurationSeconds
+    ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString()
+    : null; // D1 needs ISO string, because sqlite does not have a native date type
 
   await resetInvalidRequestCount(db, appId);
 
   await db.insert(votes).values({
-    id: voteId,
+    id: String(voteId),
     applicationId: appId,
     userId: vote.id,
     source: "dbl",

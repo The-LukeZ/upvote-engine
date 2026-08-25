@@ -1,7 +1,11 @@
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
-  - workerd
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
 
 packages:
   - "."
+
+minimumReleaseAgeExclude:
+  - honocord
+  - topgg-api-types

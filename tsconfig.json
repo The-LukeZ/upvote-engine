@@ -33,6 +33,14 @@
 
     /* Skip type checking all .d.ts files. */
     "skipLibCheck": true,
-    "types": ["./worker-configuration.d.ts", "node"]
+    "types": ["./worker-configuration.d.ts", "node"],
+
+    /* Path aliases to avoid long relative imports across src/ and types/. */
+    /* "@types/*" is avoided: TypeScript special-cases the "@types/" scope for ambient type packages. */
+    "paths": {
+      "$/*": ["./src/*"],
+      "$types": ["./types/index.d.ts"],
+      "$types/*": ["./types/*"]
+    }
   }
 }

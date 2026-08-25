@@ -1,5 +1,5 @@
-import { DrizzleDB, MyContext } from "../../../../types";
-import { blacklist, BlacklistEntry, NewBlacklistEntry } from "../../../db/schema";
+import { DrizzleDB, MyContext } from "$types";
+import { blacklist, BlacklistEntry, NewBlacklistEntry } from "$/db/schema";
 import { eq, isNotNull } from "drizzle-orm";
 import { ChatInputCommandInteraction, SlashCommandHandler } from "honocord";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
@@ -20,13 +20,17 @@ export const adminCommand = new SlashCommandHandler<MyContext>()
         sub
           .setName("add")
           .setDescription("Add a guild to the blacklist")
-          .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to blacklist").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("guild-id").setDescription("The guild ID to blacklist").setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
           .setName("remove")
           .setDescription("Remove a guild from the blacklist")
-          .addStringOption((opt) => opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("guild-id").setDescription("The guild ID to remove").setRequired(true),
+          ),
       )
       .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted guilds")),
   )
@@ -38,13 +42,17 @@ export const adminCommand = new SlashCommandHandler<MyContext>()
         sub
           .setName("add")
           .setDescription("Add a user to the blacklist")
-          .addStringOption((opt) => opt.setName("user-id").setDescription("The user to blacklist").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("user-id").setDescription("The user to blacklist").setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
           .setName("remove")
           .setDescription("Remove a user from the blacklist")
-          .addStringOption((opt) => opt.setName("user-id").setDescription("The user to remove").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("user-id").setDescription("The user to remove").setRequired(true),
+          ),
       )
       .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted users")),
   )
@@ -56,13 +64,17 @@ export const adminCommand = new SlashCommandHandler<MyContext>()
         sub
           .setName("add")
           .setDescription("Add an application to the blacklist")
-          .addStringOption((opt) => opt.setName("bot-id").setDescription("The bot to blacklist").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("bot-id").setDescription("The bot to blacklist").setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
           .setName("remove")
           .setDescription("Remove an application from the blacklist")
-          .addStringOption((opt) => opt.setName("bot-id").setDescription("The bot to remove").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("bot-id").setDescription("The bot to remove").setRequired(true),
+          ),
       )
       .addSubcommand((sub) => sub.setName("list").setDescription("List all blacklisted applications")),
   )
@@ -86,7 +98,12 @@ export const adminCommand = new SlashCommandHandler<MyContext>()
     }
   });
 
-async function handleAdd(ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot", id: string) {
+async function handleAdd(
+  ctx: ChatInputCommandInteraction,
+  db: DrizzleDB,
+  type: "guild" | "user" | "bot",
+  id: string,
+) {
   try {
     let insert: NewBlacklistEntry = {};
     if (type === "guild") {
@@ -111,7 +128,12 @@ async function handleAdd(ctx: ChatInputCommandInteraction, db: DrizzleDB, type: 
   }
 }
 
-async function handleRemove(ctx: ChatInputCommandInteraction, db: DrizzleDB, type: "guild" | "user" | "bot", id: string) {
+async function handleRemove(
+  ctx: ChatInputCommandInteraction,
+  db: DrizzleDB,
+  type: "guild" | "user" | "bot",
+  id: string,
+) {
   try {
     let equals;
     if (type === "guild") {
@@ -131,7 +153,9 @@ async function handleRemove(ctx: ChatInputCommandInteraction, db: DrizzleDB, typ
 
       return ctx.editReply(`Successfully removed ${type} \`${id}\` from the blacklist.`);
     } else {
-      return ctx.editReply(`${type.charAt(0).toUpperCase() + type.slice(1)} \`${id}\` is not in the blacklist.`);
+      return ctx.editReply(
+        `${type.charAt(0).toUpperCase() + type.slice(1)} \`${id}\` is not in the blacklist.`,
+      );
     }
   } catch (err) {
     console.error(err);

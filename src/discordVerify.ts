@@ -10,7 +10,10 @@ export const subtleCrypto = crypto.subtle;
  * @param format - Format of value. Valid options: 'hex'. Defaults to utf-8.
  * @returns Value in Uint8Array form.
  */
-export function valueToUint8Array(value: Uint8Array | ArrayBuffer | Buffer | string, format?: string): Uint8Array {
+export function valueToUint8Array(
+  value: Uint8Array | ArrayBuffer | Buffer | string,
+  format?: string,
+): Uint8Array {
   if (value == null) {
     return new Uint8Array();
   }
@@ -103,11 +106,15 @@ export async function verifyKey(
   }
 }
 
-export async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(req: HonoRequest, env: Env) {
+export async function verifyDiscordRequest<T extends APIInteraction | APIWebhookEvent = APIInteraction>(
+  req: HonoRequest,
+  env: Env,
+) {
   const signature = req.header("x-signature-ed25519");
   const timestamp = req.header("x-signature-timestamp");
   const body = await (await cloneRawRequest(req)).text();
-  const isValidRequest = signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY));
+  const isValidRequest =
+    signature && timestamp && (await verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY));
   if (!isValidRequest) {
     return { isValid: false };
   }

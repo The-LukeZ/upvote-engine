@@ -1,11 +1,11 @@
-import { MyContext, QueueMessageBody } from "../../../../types";
-import { WebhookHandler } from "../../../utils/webhook";
-import { applications, votes } from "../../../db/schema";
+import { MyContext, QueueMessageBody } from "$types";
+import { WebhookHandler } from "$/utils/webhook";
+import { applications, votes } from "$/db/schema";
 import { and, eq } from "drizzle-orm";
 import dayjs from "dayjs";
-import { dmUserOnTestVote } from "../../../utils";
+import { dmUserOnTestVote } from "$/utils";
 import { WebhookPayload } from "topgg-api-types";
-import { incrementInvalidRequestCount, resetInvalidRequestCount } from "../../../utils/index";
+import { incrementInvalidRequestCount, resetInvalidRequestCount } from "$/utils/index";
 
 // Path: /webhook/topgg/v1/:applicationId
 export async function v1handler(c: MyContext): Promise<Response> {
@@ -31,7 +31,9 @@ export async function v1handler(c: MyContext): Promise<Response> {
     return c.json({ error: "Application not properly configured" }, 400);
   }
 
-  const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(secret).validateRequest(c);
+  const valRes = await new WebhookHandler<WebhookPayload<"webhook.test" | "vote.create">>(
+    secret,
+  ).validateRequest(c);
 
   if (!valRes.isValid || !valRes.payload) {
     console.error("Webhook validation failed", {
@@ -61,7 +63,9 @@ export async function v1handler(c: MyContext): Promise<Response> {
   }
 
   // Process actual vote
-  const expiresAt = appCfg.roleDurationSeconds ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString() : null;
+  const expiresAt = appCfg.roleDurationSeconds
+    ? dayjs().add(appCfg.roleDurationSeconds, "second").toISOString()
+    : null;
 
   await db.insert(votes).values({
     id: vote.id,

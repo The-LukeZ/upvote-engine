@@ -1,11 +1,11 @@
 import dayjs from "dayjs";
-import { NonNullableFields, QueueMessageBody } from "../types";
+import { NonNullableFields, QueueMessageBody } from "$types";
 import { APIVote, votes, Cryptor } from "./db/schema";
 import { makeDB } from "./db/util";
 import { DiscordAPIError, REST } from "@discordjs/rest";
 import { and, eq, gt, inArray, isNotNull } from "drizzle-orm";
 import { RESTJSONErrorCodes, Routes } from "discord-api-types/v10";
-import { ForwardingPayload, ForwardingQueuePayload } from "../types/webhooks";
+import { ForwardingPayload, ForwardingQueuePayload } from "$types/webhooks";
 import { delaySeconds } from "./utils";
 import { votes as votesTable } from "./db/schema";
 
@@ -120,14 +120,22 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
   }));
 
   // Collect unique user/guild/role combinations from merged votes
-  const combinations = new Map<string, { guildId: string; userId: string; roleId: string; messageid: string }>();
+  const combinations = new Map<
+    string,
+    { guildId: string; userId: string; roleId: string; messageid: string }
+  >();
   const voteIds = new Set<string>();
 
   for (const vote of mergedVotes) {
     console.log(`Processing removal for user ${vote.userId} in guild ${vote.guildId} at ${vote.timestamp}`);
     const key = `${vote.guildId}-${vote.userId}-${vote.roleId}`;
     if (!combinations.has(key)) {
-      combinations.set(key, { guildId: vote.guildId, userId: vote.userId, roleId: vote.roleId, messageid: vote.id.toString() });
+      combinations.set(key, {
+        guildId: vote.guildId,
+        userId: vote.userId,
+        roleId: vote.roleId,
+        messageid: vote.id.toString(),
+      });
     }
     voteIds.add(vote.id);
   }
@@ -153,7 +161,9 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 
     if (activeVotes.length === 0) {
       try {
-        console.log(`Removing role ${combo.roleId} from user ${combo.userId} in guild ${combo.guildId} (no active votes left)`);
+        console.log(
+          `Removing role ${combo.roleId} from user ${combo.userId} in guild ${combo.guildId} (no active votes left)`,
+        );
         await rest.delete(Routes.guildMemberRole(combo.guildId, combo.userId, combo.roleId));
         removals.success.add(combo.messageid);
       } catch (error) {
@@ -161,7 +171,9 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
           error instanceof DiscordAPIError &&
           (error.code === RESTJSONErrorCodes.UnknownGuild || error.code === RESTJSONErrorCodes.UnknownMember)
         ) {
-          console.warn(`Guild or member not found for user ${combo.userId} in guild ${combo.guildId}, acknowledging message.`);
+          console.warn(
+            `Guild or member not found for user ${combo.userId} in guild ${combo.guildId}, acknowledging message.`,
+          );
           removals.ack.add(combo.messageid);
         } else {
           console.error(`Failed to remove role for user ${combo.userId} in guild ${combo.guildId}:`, error);
@@ -179,7 +191,9 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
         }
       }
     } else {
-      console.log(`Skipping role removal for user ${combo.userId} in guild ${combo.guildId} (${activeVotes.length} active votes remain)`);
+      console.log(
+        `Skipping role removal for user ${combo.userId} in guild ${combo.guildId} (${activeVotes.length} active votes remain)`,
+      );
     }
   }
 
@@ -204,7 +218,10 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
 }
 
 // This queue handler processes forwarding webhook payloads other services
-export async function handleForwardWebhook(batch: MessageBatch<ForwardingQueuePayload<APIVote["source"]>>, env: Env): Promise<void> {
+export async function handleForwardWebhook(
+  batch: MessageBatch<ForwardingQueuePayload<APIVote["source"]>>,
+  env: Env,
+): Promise<void> {
   console.log(`Processing webhook forward batch with ${batch.messages.length} messages`);
   const cryptor = new Cryptor(env.ENCRYPTION_KEY);
 
@@ -247,7 +264,9 @@ export async function handleForwardWebhook(batch: MessageBatch<ForwardingQueuePa
       const delay = delaySeconds[message.attempts]; // Exponential backoff between 30s and 1h
       // ack and skip if delay is undefined (max attempts reached = out of bounds)
       if (delay === undefined) {
-        console.warn(`Max retry delay exceeded for webhook payload to ${body.to.targetUrl}, acknowledging message.`);
+        console.warn(
+          `Max retry delay exceeded for webhook payload to ${body.to.targetUrl}, acknowledging message.`,
+        );
         message.ack();
         continue;
       }

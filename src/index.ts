@@ -7,7 +7,7 @@ import { and, count, eq, gt, inArray, isNotNull, isNull, lte, notExists, or } fr
 import { alias } from "drizzle-orm/sqlite-core";
 import dayjs from "dayjs";
 
-import type { DrizzleDB, HonoEnv, QueueMessageBody } from "../types";
+import type { DrizzleDB, HonoEnv, QueueMessageBody } from "$types";
 import { makeDB } from "./db/util";
 import { applications, blacklist, forwardings, votes } from "./db/schema";
 import { addBotUrl } from "./constants";
@@ -34,17 +34,25 @@ app.get(
 app.post("/health", (c) => c.text("OK"));
 
 const inviteRouter = new Hono<HonoEnv>();
-inviteRouter.get("/user", (c) => c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.UserInstall)));
-inviteRouter.all("*", (c) => c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.GuildInstall)));
+inviteRouter.get("/user", (c) =>
+  c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.UserInstall)),
+);
+inviteRouter.all("*", (c) =>
+  c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.GuildInstall)),
+);
 app.route("/invite", inviteRouter);
 
-app.get("/info", (c) => c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APPLICATION_ID));
+app.get("/info", (c) =>
+  c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APPLICATION_ID),
+);
 app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
 app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
 app.get("/issue", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
 app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
-app.get("/help", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"));
+app.get("/help", (c) =>
+  c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"),
+);
 
 app.route("/webhook", webhookApp);
 app.route("/discord", bot.getApp());
@@ -54,7 +62,7 @@ app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
 async function handleExpiredVotes(env: Env, db: DrizzleDB) {
   const currentTs = dayjs().toISOString();
-  let expiredVotes: { id: bigint }[] = [];
+  let expiredVotes: { id: string }[] = [];
   try {
     const v = alias(votes, "v");
     expiredVotes = await db
@@ -106,7 +114,7 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
 async function deleteOldVotes(db: DrizzleDB) {
   // Vote deletion for votes older than 90 days
   const ninetyDaysAgoSnowflake = generateSnowflake(dayjs().subtract(90, "day").toDate());
-  await db.delete(votes).where(lte(votes.id, ninetyDaysAgoSnowflake)); // Directly delete, because we don't need to process anything
+  await db.delete(votes).where(lte(votes.id, String(ninetyDaysAgoSnowflake))); // Directly delete, because we don't need to process anything
 }
 
 async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
@@ -137,7 +145,9 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
     }
 
     if (config.invalidRequests && config.invalidRequests >= 10) {
-      console.log(`Guild ${config.guildId} has ${config.invalidRequests} invalid requests, marking for deletion`);
+      console.log(
+        `Guild ${config.guildId} has ${config.invalidRequests} invalid requests, marking for deletion`,
+      );
       invalidCfgs.set(config.applicationId, { guildId: config.guildId, applicationId: config.applicationId });
       continue;
     }
@@ -150,7 +160,10 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
       // If we get 403 or 404, the bot is no longer in the guild
       if (error?.status === 403 || error?.status === 404 || error?.code === 10004) {
         console.log(`Guild ${config.guildId} is invalid, marking for deletion`);
-        invalidCfgs.set(config.applicationId, { guildId: config.guildId, applicationId: config.applicationId });
+        invalidCfgs.set(config.applicationId, {
+          guildId: config.guildId,
+          applicationId: config.applicationId,
+        });
       } else {
         console.error(`Error checking guild ${config.guildId}:`, error);
       }

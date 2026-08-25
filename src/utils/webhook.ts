@@ -1,5 +1,10 @@
-import { ForwardingQueuePayload, WebhookPayload, WebhookPayloadMapping, WebhookSource } from "../../types/webhooks";
-import { DrizzleDB, MyContext } from "../../types";
+import {
+  ForwardingQueuePayload,
+  WebhookPayload,
+  WebhookPayloadMapping,
+  WebhookSource,
+} from "$types/webhooks";
+import { DrizzleDB, MyContext } from "$types";
 import { forwardings } from "../db/schema";
 import { eq } from "drizzle-orm";
 import dayjs from "dayjs";
@@ -45,14 +50,27 @@ class WebhookHandler<T extends WebhookPayload> {
   /**
    * Verifies v1 webhook signature using HMAC SHA-256
    */
-  async verifyV1Signature(signature: string, timestamp: string, rawBody: string, secret: string): Promise<boolean> {
+  async verifyV1Signature(
+    signature: string,
+    timestamp: string,
+    rawBody: string,
+    secret: string,
+  ): Promise<boolean> {
     const encoder = new TextEncoder();
 
     // Encode the secret and the message
-    const keyData = encoder.encode(secret);
-    const messageData = encoder.encode(`${timestamp}.${rawBody}`);
+    // Wrapped in `new Uint8Array(...)` because TextEncoder.encode() returns a Uint8Array<ArrayBufferLike>,
+    // while SubtleCrypto expects the stricter Uint8Array<ArrayBuffer>.
+    const keyData = new Uint8Array(encoder.encode(secret));
+    const messageData = new Uint8Array(encoder.encode(`${timestamp}.${rawBody}`));
 
-    const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
 
     const hmacSignature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
 
@@ -115,7 +133,9 @@ class WebhookHandler<T extends WebhookPayload> {
       return { isValid: false };
     }
   }
-  public async validateRequest(c: MyContext): Promise<{ isValid: boolean; payload?: T; version?: "v0" | "v1" }> {
+  public async validateRequest(
+    c: MyContext,
+  ): Promise<{ isValid: boolean; payload?: T; version?: "v0" | "v1" }> {
     const traceHeader = c.req.header("x-topgg-trace");
     console.log(`Received webhook request with trace header: ${traceHeader}`);
 
@@ -151,7 +171,12 @@ class WebhookHandler<T extends WebhookPayload> {
     source: TSource,
     payload: WebhookPayloadMapping[TSource],
   ): Promise<ForwardingQueuePayload<TSource> | undefined> {
-    const forwardCfg = await db.select().from(forwardings).where(eq(forwardings.applicationId, appId)).limit(1).get();
+    const forwardCfg = await db
+      .select()
+      .from(forwardings)
+      .where(eq(forwardings.applicationId, appId))
+      .limit(1)
+      .get();
     if (!forwardCfg) return undefined;
 
     return {

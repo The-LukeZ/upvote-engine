@@ -10,13 +10,13 @@ import type {
   APIUser,
   Snowflake,
 } from "discord-api-types/v10";
-import { ModalInteraction } from "../src/discord/ModalInteraction";
-import { ChatInputCommandInteraction } from "../src/discord/ChatInputInteraction";
+import { ModalInteraction } from "$/discord/ModalInteraction";
+import { ChatInputCommandInteraction } from "$/discord/ChatInputInteraction";
 import { DrizzleD1Database } from "drizzle-orm/d1";
-import { makeDB } from "../src/db/util";
+import { makeDB } from "$/db/util";
 import { WebhookPayload } from "./webhooks";
-import { NewVote, ApplicationCfg, APIVote } from "../src/db/schema";
-import { MessageComponentInteraction } from "../src/discord/MessageComponentInteraction";
+import { NewVote, ApplicationCfg, APIVote } from "$/db/schema";
+import { MessageComponentInteraction } from "$/discord/MessageComponentInteraction";
 import { BaseHonocordEnv, BaseInteractionContext } from "honocord";
 
 export * from "./db";

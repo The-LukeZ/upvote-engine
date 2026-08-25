@@ -1,9 +1,9 @@
 import { Colors, ContainerBuilder, SlashCommandHandler } from "honocord";
-import { verifications } from "../../../db/schema";
+import { verifications } from "$/db/schema";
 import { and, eq } from "drizzle-orm";
 import { MessageFlags } from "discord-api-types/payloads/v10";
 import { ActionRowBuilder, bold, ButtonBuilder } from "@discordjs/builders";
-import { getAuthorizeUrlForOwnershipVerify } from "../../../utils";
+import { getAuthorizeUrlForOwnershipVerify } from "$/utils";
 
 export const verifyOwnershipCommand = new SlashCommandHandler()
   .setName("verify-app-ownership")
@@ -33,7 +33,9 @@ export const verifyOwnershipCommand = new SlashCommandHandler()
         components: [
           new ContainerBuilder()
             .setAccentColor(Colors.Green)
-            .addTextDisplayComponents((t) => t.setContent(bold("Ownership Already Verified") + `\n${message}`)) as any,
+            .addTextDisplayComponents((t) =>
+              t.setContent(bold("Ownership Already Verified") + `\n${message}`),
+            ) as any,
         ],
       });
     }
@@ -81,7 +83,11 @@ export const verifyOwnershipCommand = new SlashCommandHandler()
                 .setStyle(5)
                 .setURL(getAuthorizeUrlForOwnershipVerify(ctx.context.req.url, ctx.applicationId))
                 .setEmoji({ name: "🔗" }),
-              new ButtonBuilder().setLabel("Verify Ownership").setStyle(1).setCustomId(`owner_verify?${bot.id}`).setEmoji({ name: "✅" }),
+              new ButtonBuilder()
+                .setLabel("Verify Ownership")
+                .setStyle(1)
+                .setCustomId(`owner_verify?${bot.id}`)
+                .setEmoji({ name: "✅" }),
             ),
           ) as any,
       ],

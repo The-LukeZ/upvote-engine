@@ -1,5 +1,5 @@
 import { SlashCommandHandler } from "honocord";
-import { MyContext } from "../../types";
+import { MyContext } from "$types";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
 import { supportedPlatforms } from "../constants";
 
@@ -70,7 +70,9 @@ export const appCommand = new SlashCommandHandler<MyContext>()
     sub
       .setName("reset-secret")
       .setDescription("Reset the secret for an app configuration")
-      .addUserOption((opt) => opt.setName("bot").setDescription("The bot user to reset the secret for").setRequired(true))
+      .addUserOption((opt) =>
+        opt.setName("bot").setDescription("The bot user to reset the secret for").setRequired(true),
+      )
       .addStringOption((opt) =>
         opt
           .setName("source")
@@ -111,16 +113,24 @@ export const appCommand = new SlashCommandHandler<MyContext>()
           .setName("set")
           .setDescription("Set the forwarding configuration")
           .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true))
-          .addStringOption((opt) => opt.setName("url").setDescription("The target webhook URL").setRequired(true))
-          .addStringOption((opt) => opt.setName("secret").setDescription("The webhook secret").setRequired(true)),
+          .addStringOption((opt) =>
+            opt.setName("url").setDescription("The target webhook URL").setRequired(true),
+          )
+          .addStringOption((opt) =>
+            opt.setName("secret").setDescription("The webhook secret").setRequired(true),
+          ),
       )
       .addSubcommand((sub) =>
         sub
           .setName("edit")
           .setDescription("Edit the forwarding configuration")
           .addUserOption((opt) => opt.setName("bot").setDescription("The bot user").setRequired(true))
-          .addStringOption((opt) => opt.setName("url").setDescription("The new target webhook URL").setRequired(false))
-          .addStringOption((opt) => opt.setName("secret").setDescription("The new webhook secret").setRequired(false)),
+          .addStringOption((opt) =>
+            opt.setName("url").setDescription("The new target webhook URL").setRequired(false),
+          )
+          .addStringOption((opt) =>
+            opt.setName("secret").setDescription("The new webhook secret").setRequired(false),
+          ),
       )
       .addSubcommand((sub) =>
         sub

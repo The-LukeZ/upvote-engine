@@ -2,8 +2,8 @@ import { Honocord } from "honocord";
 import { DurableObjectCacheAdapter } from "@honocord/cache-do";
 import * as commands from "./commands/index";
 import * as components from "./components/index";
-import { MyContext } from "../../../types";
-import { makeDB } from "../../db/util";
+import { MyContext } from "$types";
+import { makeDB } from "$/db/util";
 
 const handlers = [...Object.values(commands), ...Object.values(components)];
 

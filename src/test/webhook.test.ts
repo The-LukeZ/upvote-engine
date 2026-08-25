@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { WebhookHandler } from "../utils/webhook";
-import { MyContext } from "../../types";
+import { MyContext } from "$types";
 import crypto from "crypto";
 
 describe("WebhookHandler", () => {
@@ -59,9 +59,15 @@ describe("WebhookHandler", () => {
       });
 
       const encoder = new TextEncoder();
-      const keyData = encoder.encode(secret);
-      const messageData = encoder.encode(`${timestamp}.${rawBody}`);
-      const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const keyData = new Uint8Array(encoder.encode(secret));
+      const messageData = new Uint8Array(encoder.encode(`${timestamp}.${rawBody}`));
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw",
+        keyData,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
       const signatureBuffer = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
       const signature = Array.from(new Uint8Array(signatureBuffer))
         .map((b) => b.toString(16).padStart(2, "0"))
@@ -72,7 +78,12 @@ describe("WebhookHandler", () => {
     });
 
     it("should reject an invalid v1 signature", async () => {
-      const result = await handler.verifyV1Signature("1234134132412412412415346456869", "1234567890", '{"test":"data"}', "test-secret");
+      const result = await handler.verifyV1Signature(
+        "1234134132412412412415346456869",
+        "1234567890",
+        '{"test":"data"}',
+        "test-secret",
+      );
       expect(result).toBe(false);
     });
   });
@@ -141,9 +152,15 @@ describe("WebhookHandler", () => {
       });
 
       const encoder = new TextEncoder();
-      const keyData = encoder.encode(secret);
-      const messageData = encoder.encode(`${timestamp}.${rawBody}`);
-      const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const keyData = new Uint8Array(encoder.encode(secret));
+      const messageData = new Uint8Array(encoder.encode(`${timestamp}.${rawBody}`));
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw",
+        keyData,
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
       const signatureBuffer = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
       const signature = Array.from(new Uint8Array(signatureBuffer))
         .map((b) => b.toString(16).padStart(2, "0"))

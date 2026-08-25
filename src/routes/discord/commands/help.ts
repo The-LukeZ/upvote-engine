@@ -1,5 +1,5 @@
 import { Colors, SlashCommandHandler } from "honocord";
-import { MyContext } from "../../../../types";
+import { MyContext } from "$types";
 import { ContainerBuilder, ButtonBuilder, type ActionRowBuilder } from "@discordjs/builders";
 import { MessageFlags } from "discord-api-types/v10";
 
@@ -53,7 +53,9 @@ const helpMsg = (urlBase: string) => ({
       .addSectionComponents((s) =>
         s
           .addTextDisplayComponents((t) =>
-            t.setContent("💙 If you like this project, you can support the creator, by buying him a cup of tea! (He doesn't drink coffee)"),
+            t.setContent(
+              "💙 If you like this project, you can support the creator, by buying him a cup of tea! (He doesn't drink coffee)",
+            ),
           )
           .setButtonAccessory(
             new ButtonBuilder({

@@ -1,8 +1,11 @@
 import { bold } from "@discordjs/builders";
-import { SupportedPlatforms } from "../types";
+import { SupportedPlatforms } from "$types";
 import { ApplicationIntegrationType } from "discord-api-types/v10";
 
-export const addBotUrl = (botId: string, integrationType: ApplicationIntegrationType = ApplicationIntegrationType.GuildInstall) =>
+export const addBotUrl = (
+  botId: string,
+  integrationType: ApplicationIntegrationType = ApplicationIntegrationType.GuildInstall,
+) =>
   `https://discord.com/oauth2/authorize?integration_type=${integrationType}&client_id=${botId}&scope=applications.commands${
     integrationType === 0 ? "+bot" : ""
   }` as const;
@@ -37,7 +40,9 @@ export const getTestNoticeForPlatform = (platform: SupportedPlatforms, clientId:
   if (platformsWithTests.includes(platform)) {
     return (
       `You can use the **Send Test** feature on ${GetSupportedPlatform(platform)} to verify that the webhook is working correctly. ` +
-      bold(`[You need to install the bot as a user application](${addBotUrl(clientId, 1)}) to receive test vote confirmations!`)
+      bold(
+        `[You need to install the bot as a user application](${addBotUrl(clientId, 1)}) to receive test vote confirmations!`,
+      )
     );
   }
   return "";
