@@ -2,7 +2,7 @@
 title: Terms of Service
 description: Terms governing your use of the UpvoteEngine Discord Bot.
 section: Legal
-order: 0
+order: 30
 ---
 
 # Terms of Service

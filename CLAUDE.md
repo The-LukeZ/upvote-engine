@@ -56,6 +56,14 @@ There is no lint script; formatting is via Prettier (`.prettierrc`).
 
 **Secrets/env vars**: required secret names live in `wrangler.jsonc`'s `secrets.required` array (feeds directly into the generated `Env` type via `pnpm gen`) and are mirrored in `.env.example`. Adding a new `env.X` reference in code means adding `X` to both.
 
+## Docs site (`docs-site/`)
+
+Separate SvelteKit app (built on `svelte-docsmith`) that publishes `/docs/*` and `/legal/*` pages from `+page.md` files, each with `title`/`description`/`section`/`order` frontmatter.
+
+**Sidebar ordering** (`svelte-docsmith`'s `core/nav.js::navFromContent`) is not a single global order — every tree level (top-level sections, and pages within a section) is sorted independently by `order`, tiebreak alphabetical by title. A section (group) has no `order` of its own: it inherits the **minimum `order` of its member pages**. So to control where a whole section lands in the sidebar, give its lowest-order page a value distinct from other sections' lowest — a tie falls back to alphabetical title sort, not the section's intended position.
+
+Current convention: reserve a block of 10 per section so pages can be inserted within a section without renumbering neighbors — Getting Started `0-9`, Configuration `10-19`, Administration `20-29`, Legal `30-39`. When adding a new section, pick the next free block; when adding a page to an existing section, use `order` within that section's block (page order within a section only needs to be relatively correct within the block, not globally unique).
+
 ## Conventions worth knowing
 
 - IDs (Discord snowflakes, vote IDs) are stored and passed as `string`, not `bigint`/`number`, to avoid precision loss across JSON/queue boundaries — keep new code consistent with this.

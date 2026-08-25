@@ -1,15 +1,13 @@
 ---
 title: Administration
 description: Blacklisting guilds, users, and bots.
-section: Getting Started
-order: 2
+section: Administration
+order: 20
 ---
 
 <script>
   import { Callout } from 'svelte-docsmith';
 </script>
-
-# Administration
 
 <Callout variant="note" title="Restricted command">
 

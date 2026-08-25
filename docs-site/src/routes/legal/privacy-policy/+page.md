@@ -2,7 +2,7 @@
 title: Privacy Policy
 description: How UpvoteEngine collects, uses, and protects your information.
 section: Legal
-order: 1
+order: 31
 ---
 
 # Privacy Policy
