@@ -42,5 +42,6 @@
       "$types": ["./types/index.d.ts"],
       "$types/*": ["./types/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "docs-site", "public", "dist"]
 }

@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { ApplicationIntegrationType, Routes } from "discord-api-types/v10";
+import { Routes } from "discord-api-types/v10";
 import { REST } from "@discordjs/rest";
 import { Hono } from "hono";
 import { poweredBy } from "hono/powered-by";
@@ -10,7 +10,6 @@ import dayjs from "dayjs";
 import type { DrizzleDB, HonoEnv, QueueMessageBody } from "$types";
 import { makeDB } from "./db/util";
 import { applications, blacklist, forwardings, votes } from "./db/schema";
-import { addBotUrl } from "./constants";
 import { generateSnowflake } from "./snowflake";
 import { handleForwardWebhook, handleVoteApply, handleVoteRemove } from "./queueHandlers";
 import { bot } from "./routes/discord";
@@ -33,26 +32,7 @@ app.get(
 );
 app.post("/health", (c) => c.text("OK"));
 
-const inviteRouter = new Hono<HonoEnv>();
-inviteRouter.get("/user", (c) =>
-  c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.UserInstall)),
-);
-inviteRouter.all("*", (c) =>
-  c.redirect(addBotUrl(c.env.DISCORD_APPLICATION_ID, ApplicationIntegrationType.GuildInstall)),
-);
-app.route("/invite", inviteRouter);
-
-app.get("/info", (c) =>
-  c.redirect("https://discord.com/discovery/applications/" + c.env.DISCORD_APPLICATION_ID),
-);
-app.get("/github", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine"));
-app.get("/wiki", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
-app.get("/docs", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/wiki"));
-app.get("/issue", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
-app.get("/bug", (c) => c.redirect("https://github.com/The-LukeZ/upvote-engine/issues"));
-app.get("/help", (c) =>
-  c.redirect("https://github.com/The-LukeZ/upvote-engine/discussions/new?category=q-a"),
-);
+app.get("/wiki", (c) => c.redirect("/docs/getting-started/"));
 
 app.route("/webhook", webhookApp);
 app.route("/discord", bot.getApp());
