@@ -2,7 +2,10 @@
 
 UpvoteEngine is a performant Discord vote handler built on a FaaS architecture using Cloudflare Workers.
 This serverless approach ensures highly performant role management by automatically assigning and removing
-roles based on top.gg votes with minimal latency and maximum scalability due to the services used.
+roles based on Top.gg/Discord Bot List (DBL) votes with minimal latency and maximum scalability due to the
+services used.
+
+Docs, setup guides, and legal pages are published at [upvote-engine.thelukez.com/docs](https://upvote-engine.thelukez.com/docs/getting-started/).
 
 > [!IMPORTANT]
 > Top.gg has changed their webhook system, and the legacy webhook configuration is no longer supported for new setups.
@@ -14,12 +17,15 @@ roles based on top.gg votes with minimal latency and maximum scalability due to 
 
 - Cloudflare Worker built with Hono
   - Fetch handler by Hono
-  - Queue handler native to Cloudflare Workers: This is used to process role assignments and removals asynchronously.
+  - Slash-command/component interactions handled by [honocord](https://www.npmjs.com/package/@honocord/cache-do), a Hono-based Discord interaction framework (not raw discord-interactions routing)
+  - Queue handler native to Cloudflare Workers: processes role assignments/removals and webhook forwarding asynchronously
+  - Cron Scheduler native to Cloudflare Workers: expires votes, purges old vote rows, and cleans up guilds the bot is no longer in
 
-  - Cron Scheduler native to Cloudflare Workers: This is used to run periodic tasks like cleaning up old votes and invalid guilds.
-
-- Webhook endpoint for top.gg vote notifications
-- Cloudflare Queues for processing role assignments and removals
+- Webhook endpoints for Top.gg (`v0`, `v1`, and a legacy alias) and DBL vote notifications
+- Cloudflare Queues for processing role assignments, removals, and webhook forwarding
+- Cloudflare D1 (via Drizzle ORM) for application configs, votes, blacklist, and verified bot ownership
+- Durable Objects for in-memory blacklist caching and the honocord interaction cache
+- Docs site (`docs-site/`, SvelteKit + svelte-docsmith) built and served as the Worker's static assets at `/docs/*` and `/legal/*`
 - @discordjs packages for Discord API interactions
   - @discordjs/rest
   - @discordjs/core
@@ -60,6 +66,7 @@ Only the following users can configure an app:
 
 - When setting this up yourself, you need to modify the `wrangler.jsonc` file to include your own bindings, account_id, and other necessary configurations.
 - Make sure to set up your database, environment variables, and queues as needed.
+- `./public/` is generated (git-ignored) by building `docs-site/` — `pnpm deploy`/`pnpm build` run `pnpm docs:build` first, which the Worker then serves via its `ASSETS` binding. Run `pnpm docs:dev` to work on the docs site standalone.
 
 ## License
 
