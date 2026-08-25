@@ -12,7 +12,7 @@ UpvoteEngine — Discord vote-role bot on Cloudflare Workers. Users vote for a D
 - `pnpm deploy` — deploy to Cloudflare
 - `pnpm typecheck` — `tsc --noEmit`
 - `pnpm test` — run vitest (single file: `pnpm test src/test/webhook.test.ts`)
-- `pnpm cf-typegen` — regenerate `worker-configuration.d.ts` from `wrangler.jsonc` bindings
+- `pnpm gen` — regenerate `worker-configuration.d.ts` from `wrangler.jsonc` bindings and `secrets.required` (previously referred to as `cf-typegen` — that script name doesn't exist, use `gen`)
 - `pnpm register` — register Discord slash commands (`tsx --env-file=.env src/registerCommands.ts`)
 - `pnpm migrate` — apply D1 migrations remotely (`wrangler d1 migrations apply vote_handler --remote`)
 - `pnpm drizzle:generate` — generate a new migration from `src/db/schema.ts` changes
@@ -46,13 +46,15 @@ There is no lint script; formatting is via Prettier (`.prettierrc`).
 
 1. Webhook arrives at `routes/webhooks/{topgg,dbl}` → validates signature/secret against the app's `applications` row → inserts a `votes` row (snowflake ID from `src/snowflake.ts`) → enqueues to `VOTE_APPLY` queue (and `FORWARD_WEBHOOK` if the app has forwarding configured).
 2. `voteapply` queue consumer (`queueHandlers.ts::handleVoteApply`) assigns the Discord role via REST, sets `hasRole = true`. Drops messages older than 12h. Acks on `UnknownMember`, retries with backoff otherwise.
-3. Cron (`*/5 * * * *`) finds votes whose `expiresAt` has passed and no newer active vote exists for that user+guild, enqueues to `VOTE_REMOVE`.
+3. Cron (`*/5 * * * *`) finds votes whose `expiresAt` has passed and no other active vote exists for that user+guild+role, enqueues to `VOTE_REMOVE`.
 4. `voteremove` queue consumer removes the role only if no other active (non-expired, `hasRole=true`) vote exists for that user+guild+role combo, then flips `hasRole = false` for the batch.
 5. `forwardwebhook` queue consumer relays the original payload to a user-configured `targetUrl`, decrypting the stored secret first; gives up (acks) after exceeding `delaySeconds` backoff table (`src/utils.ts`) or if the payload is >2h old.
 
 **Queue message bodies** are typed in `types/index.d.ts` (`QueueMessageBody`) and `types/webhooks.d.ts` (`ForwardingPayload`, `ForwardingQueuePayload`) — check these when changing what a queue producer sends vs. what the consumer expects.
 
-**Bindings**: all Cloudflare bindings (D1, queues, DOs, KV, rate limiters) are declared in `wrangler.jsonc`. After changing bindings, run `pnpm cf-typegen` to regenerate `worker-configuration.d.ts` (the `Env` type) — don't hand-edit that generated file.
+**Bindings**: all Cloudflare bindings (D1, queues, DOs, KV, rate limiters) are declared in `wrangler.jsonc`. After changing bindings, run `pnpm gen` to regenerate `worker-configuration.d.ts` (the `Env` type) — don't hand-edit that generated file.
+
+**Secrets/env vars**: required secret names live in `wrangler.jsonc`'s `secrets.required` array (feeds directly into the generated `Env` type via `pnpm gen`) and are mirrored in `.env.example`. Adding a new `env.X` reference in code means adding `X` to both.
 
 ## Conventions worth knowing
 
