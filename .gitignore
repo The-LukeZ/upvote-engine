@@ -172,3 +172,6 @@ drizzle/.env
 drizzle/snapshot.json
 
 .DS_Store
+
+# not needed in public repo
+worker-configuration.d.ts

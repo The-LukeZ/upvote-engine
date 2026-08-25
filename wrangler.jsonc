@@ -95,6 +95,18 @@
       "remote": true,
     },
   ],
+  "secrets": {
+    "required": [
+      "DISCORD_TOKEN",
+      "DISCORD_APPLICATION_ID",
+      "DISCORD_PUBLIC_KEY",
+      "DISCORD_APP_SECRET",
+      "ENCRYPTION_KEY",
+      "TOP_GG_TOKEN",
+      "OWNER_ID",
+      "ADMIN_GUILD_ID",
+    ],
+  },
   "ratelimits": [
     {
       "name": "RATELIMITER_FORWARDING_TEST",

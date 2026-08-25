@@ -50,12 +50,23 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
     }
   };
 
+  // Messages whose vote row wasn't found (e.g. missing roleId/guildId config) have nothing to apply.
+  // Ack them so they don't get redelivered forever.
+  const foundIds = new Set(mergedVotes.map((vote) => vote.id));
+  for (const message of batch.messages) {
+    if (!foundIds.has(message.body.id)) {
+      console.warn(`No valid vote row found for message ID ${message.body.id}, acknowledging.`);
+      ackMessage(message.body.id);
+    }
+  }
+
   // filter out messages older than 12 hours to avoid applying expired votes
   const twelveHoursAgo = dayjs().subtract(12, "hour");
-  const messages = mergedVotes.filter((vote) => dayjs(vote.timestamp).isAfter(twelveHoursAgo));
-  const validMessages = messages.filter((vote) => vote.id != null && vote.id !== undefined);
-  if (validMessages.length !== messages.length) {
-    console.warn(`Filtered out ${messages.length - validMessages.length} messages with invalid id`);
+  const validMessages = mergedVotes.filter((vote) => dayjs(vote.timestamp).isAfter(twelveHoursAgo));
+  const staleMessages = mergedVotes.filter((vote) => !dayjs(vote.timestamp).isAfter(twelveHoursAgo));
+  for (const vote of staleMessages) {
+    console.warn(`Vote ${vote.id} is older than 12 hours, acknowledging without applying role.`);
+    ackMessage(vote.id);
   }
   if (validMessages.length === 0) {
     console.log("No valid messages to process after filtering. Exiting.");
@@ -77,7 +88,14 @@ export async function handleVoteApply(batch: MessageBatch<QueueMessageBody>, env
         continue;
       }
       console.error(`Failed to assign role for vote ID ${vote.id}:`, error);
-      retryMessage(vote.id, 60);
+      const message = batch.messages.find((msg) => msg.body.id === vote.id);
+      const delay = message ? delaySeconds[message.attempts] : undefined;
+      if (delay === undefined) {
+        console.warn(`Max retry attempts exceeded for vote ID ${vote.id}, acknowledging message.`);
+        ackMessage(vote.id);
+      } else {
+        retryMessage(vote.id, delay);
+      }
     }
   }
 
@@ -118,6 +136,16 @@ export async function handleVoteRemove(batch: MessageBatch<QueueMessageBody>, en
     ...(vote as NonNullableFields<typeof vote>),
     timestamp: voteMessageDetails.get(vote.id.toString())!.body.timestamp,
   }));
+
+  // Messages whose vote row wasn't found (e.g. missing roleId/guildId config) have nothing to remove.
+  // Ack them so they don't get redelivered forever.
+  const foundVoteIds = new Set(mergedVotes.map((vote) => vote.id));
+  for (const message of batch.messages) {
+    if (!foundVoteIds.has(message.body.id)) {
+      console.warn(`No valid vote row found for message ID ${message.body.id}, acknowledging.`);
+      message.ack();
+    }
+  }
 
   // Collect unique user/guild/role combinations from merged votes
   const combinations = new Map<

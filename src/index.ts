@@ -81,6 +81,7 @@ async function handleExpiredVotes(env: Env, db: DrizzleDB) {
                 and(
                   eq(votes.userId, v.userId),
                   eq(votes.guildId, v.guildId),
+                  eq(votes.roleId, v.roleId), // Only an active vote for the SAME role blocks removal
                   eq(votes.hasRole, true), // Ensure active votes are checked properly
                   isNotNull(votes.expiresAt),
                   gt(votes.expiresAt, currentTs),

@@ -6,7 +6,7 @@
   "scripts": {
     "bulk-secrets": "wrangler secret bulk .env",
     "deploy": "wrangler deploy",
-    "build": "wrangler build",
+    "build": "wrangler types && wrangler build",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "gen": "wrangler types",
