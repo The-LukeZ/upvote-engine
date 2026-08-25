@@ -9,7 +9,7 @@
     "build": "wrangler build",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "cf-typegen": "wrangler types",
+    "gen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "register": "tsx --env-file=.env src/registerCommands.ts",
     "migrate": "wrangler d1 migrations apply vote_handler --remote",
