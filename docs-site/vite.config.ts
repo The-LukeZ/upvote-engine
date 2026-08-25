@@ -8,7 +8,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [
-    docsmith(),
+    docsmith({ content: "src/routes" }),
     tailwindcss(),
     sveltekit({
       extensions: [".svelte", ".md"],

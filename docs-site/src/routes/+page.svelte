@@ -34,7 +34,9 @@
     {/snippet}
     {#snippet actions()}
       <Action href="/docs/getting-started/">Get started</Action>
-      <Action href="https://top.gg/bot/1435613778547834910" variant="secondary" external>Vote for the bot</Action>
+      <Action href="https://top.gg/bot/1435613778547834910" variant="secondary" external
+        >Vote for the bot</Action
+      >
       <Action href="/info" variant="secondary">Bot info and stats</Action>
       <Action href="/bug" variant="secondary">Report an issue</Action>
       <Action href="/help" variant="secondary">Get support</Action>
