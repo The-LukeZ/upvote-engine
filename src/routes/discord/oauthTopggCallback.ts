@@ -8,6 +8,7 @@ import {
   getTopggOAuthRedirectUri,
   createTopggOAuthClient,
   createTopggProjectClient,
+  serializeOAuthError,
 } from "$/utils/topggOAuth";
 
 // Path: GET /oauth/topgg/callback
@@ -32,7 +33,11 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
       code_verifier: verifier,
     })
     .catch((error) => {
-      console.error("Failed to exchange Top.gg OAuth code:", { error, applicationId, guildId });
+      console.error("Failed to exchange Top.gg OAuth code:", {
+        error: serializeOAuthError(error),
+        applicationId,
+        guildId,
+      });
       return null;
     });
 
@@ -46,7 +51,7 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
     // The grant was issued but Top.gg returned no project for it - don't leave it dangling.
     await oauthClient.revoke({ token: refresh_token, token_type_hint: "refresh_token" }).catch((error) => {
       console.error("Failed to revoke Top.gg OAuth grant after missing-project response:", {
-        error,
+        error: serializeOAuthError(error),
         applicationId,
       });
     });
@@ -62,7 +67,7 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
     })
     .catch((error) => {
       console.error("Failed to create Top.gg project webhook:", {
-        error,
+        error: serializeOAuthError(error),
         applicationId,
         projectId: project.id,
       });
@@ -73,7 +78,7 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
     // The OAuth grant already exists but no webhook was created - don't leave it dangling.
     await oauthClient.revoke({ token: refresh_token, token_type_hint: "refresh_token" }).catch((error) => {
       console.error("Failed to revoke Top.gg OAuth grant after webhook creation failure:", {
-        error,
+        error: serializeOAuthError(error),
         applicationId,
       });
     });
@@ -106,14 +111,14 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
     });
     await projectClient.deleteProjectWebhook(project.id, webhookRes.id).catch((error) => {
       console.error("Failed to delete orphaned Top.gg webhook after missing applications row:", {
-        error,
+        error: serializeOAuthError(error),
         applicationId,
         projectId: project.id,
       });
     });
     await oauthClient.revoke({ token: refresh_token, token_type_hint: "refresh_token" }).catch((error) => {
       console.error("Failed to revoke Top.gg OAuth grant after missing applications row:", {
-        error,
+        error: serializeOAuthError(error),
         applicationId,
       });
     });

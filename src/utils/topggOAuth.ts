@@ -1,6 +1,28 @@
-import { TopGGOAuthClient } from "topgg-api-types/v1/oauth";
+import { TopGGOAuthClient, TopGGAPIError } from "topgg-api-types/v1/oauth";
 import { TopGGClient } from "topgg-api-types/v1/client";
 import { Cryptor } from "$/db/schema";
+
+/**
+ * Workers' structured logging serializes thrown Error/TopGGAPIError objects to `{}` (their
+ * fields aren't own-enumerable the way the log pipeline expects), which silently swallows the
+ * actual failure reason. Extract the useful fields explicitly before logging instead.
+ */
+export function serializeOAuthError(error: unknown): Record<string, unknown> {
+  if (error instanceof TopGGAPIError) {
+    return {
+      name: error.name,
+      message: error.message,
+      status: error.status,
+      type: error.type,
+      title: error.title,
+      detail: error.detail,
+    };
+  }
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message, stack: error.stack };
+  }
+  return { error };
+}
 
 export interface TopggOAuthStatePayload {
   applicationId: string;
@@ -80,7 +102,7 @@ export async function decodeTopggOAuthState(
     }
     return payload as TopggOAuthStatePayload;
   } catch (error) {
-    console.error("Failed to decode Top.gg OAuth state:", { error });
+    console.error("Failed to decode Top.gg OAuth state:", { error: serializeOAuthError(error) });
     return null;
   }
 }
@@ -129,7 +151,7 @@ export async function cleanupTopggAuthorization(
       .refreshToken({ refresh_token: currentRefreshToken })
       .catch((error) => {
         console.error("Failed to refresh Top.gg token during cleanup:", {
-          error,
+          error: serializeOAuthError(error),
           projectId: cfg.topggProjectId,
         });
         return null;
@@ -139,7 +161,7 @@ export async function cleanupTopggAuthorization(
     const projectClient = createTopggProjectClient(refreshRes.access_token);
     await projectClient.deleteProjectWebhook(cfg.topggProjectId, cfg.topggWebhookId).catch((error) => {
       console.error("Failed to delete Top.gg project webhook during cleanup:", {
-        error,
+        error: serializeOAuthError(error),
         projectId: cfg.topggProjectId,
         webhookId: cfg.topggWebhookId,
       });
@@ -149,11 +171,14 @@ export async function cleanupTopggAuthorization(
       .revoke({ token: refreshRes.refresh_token, token_type_hint: "refresh_token" })
       .catch((error) => {
         console.error("Failed to revoke Top.gg OAuth grant during cleanup:", {
-          error,
+          error: serializeOAuthError(error),
           projectId: cfg.topggProjectId,
         });
       });
   } catch (error) {
-    console.error("Unexpected error during Top.gg cleanup:", { error, projectId: cfg.topggProjectId });
+    console.error("Unexpected error during Top.gg cleanup:", {
+      error: serializeOAuthError(error),
+      projectId: cfg.topggProjectId,
+    });
   }
 }
