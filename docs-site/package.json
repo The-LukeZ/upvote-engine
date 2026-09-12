@@ -12,14 +12,14 @@
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.3",
-    "@sveltejs/vite-plugin-svelte": "^5.1.1",
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tailwindcss/vite": "^4.3.3",
-    "svelte": "^5.56.10",
+    "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
     "svelte-docsmith": "^0.13.1",
     "tailwindcss": "^4.3.3",
     "typescript": "6.0.3",
-    "vite": "^6.4.3",
+    "vite": "^8.2.2",
     "vite-plugin-devtools-json": "^1.1.0"
   }
 }

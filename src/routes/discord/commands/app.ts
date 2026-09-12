@@ -1,4 +1,4 @@
-import { bold, ButtonBuilder, codeBlock, heading } from "@discordjs/builders";
+import { bold, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
 import { DrizzleDB, MyContext } from "$types";
@@ -22,6 +22,13 @@ import {
 import { appCommand as appCommandData } from "$/utils/appCommandData";
 import * as z from "zod/mini";
 import { buildAppInfo, checkAppAuthorization, generateRandomToken } from "$/utils/index";
+import {
+  generatePkcePair,
+  encodeTopggOAuthState,
+  getTopggOAuthRedirectUri,
+  createTopggOAuthClient,
+  createTopggProjectClient,
+} from "$/utils/topggOAuth";
 
 const MAX_APPS_PER_GUILD = 25;
 
@@ -242,7 +249,7 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
     });
   }
 
-  const secret = source !== "topgg" ? generateRandomToken() : null; // For top.gg we need to ask the user for the secret upfront because of the way their authorization works
+  const secret = source !== "topgg" ? generateRandomToken() : null;
 
   // Create the configuration
   await db
@@ -259,48 +266,32 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
     .get();
 
   if (source === "topgg") {
-    // We need to ask the user for the secret upfront because of the way Top.gg's authorization works
-    await ctx.editReply({
-      flags: MessageFlags.IsComponentsV2,
-      components: [
-        new ContainerBuilder()
-          .addTextDisplayComponents((t) =>
-            t.setContent(
-              [
-                `### Top.gg App Setup`,
-                "Top.gg changed the way their API works. Legacy (v0) webhooks are still supported, but stop working at the end of 2026 and can no longer be newly configured. Follow the steps below:",
-                `1. Go to the [Top.gg Integrations Page](https://top.gg/bot/${bot.id}/dashboard/integrations) and click **Create** to add a webhook.`,
-              ].join("\n"),
-            ),
-          )
-          .addMediaGalleryComponents((g) =>
-            g.addItems((i) => i.setURL("https://i.ibb.co/ynJHwSjK/topgg-wh-setup-1.png")),
-          )
-          .addTextDisplayComponents((t) =>
-            t.setContent(
-              "2. Copy the webhook url below and paste it in the URL field on Top.gg. Then enable the **Vote Created** event and save the webhook.",
-            ),
-          )
-          .addMediaGalleryComponents((g) =>
-            g.addItems((i) => i.setURL("https://i.ibb.co/1fp8P7Pm/topgg-wh-setup-2.png")),
-          )
-          .addTextDisplayComponents((t) =>
-            t.setContent(
-              "The webhook is now created and you will see a secret like in the image below. Copy that secret and click the button below.",
-            ),
-          )
-          .addMediaGalleryComponents((g) =>
-            g.addItems((i) => i.setURL("https://i.ibb.co/spHFXsP7/topgg-wh-setup-3.png")),
-          )
-          .addActionRowComponents((r) =>
-            r.setComponents(
-              new ButtonBuilder({
-                custom_id: `app/create?${bot.id}/${source}/${role.id}/${durationHours || "0"}`,
-              }),
-            ),
-          ),
-      ],
+    const { verifier, challenge } = await generatePkcePair();
+    const state = await encodeTopggOAuthState(ctx.context.env.ENCRYPTION_KEY, {
+      applicationId: bot.id,
+      guildId,
+      verifier,
     });
+
+    const oauthClient = createTopggOAuthClient(ctx.context.env);
+    const authorizeUrl = oauthClient.buildAuthorizeUrl({
+      redirect_uri: getTopggOAuthRedirectUri(ctx.context.req.url),
+      scope: "user.identify project.webhooks.write",
+      state,
+      code_challenge: challenge,
+      platform: "discord",
+      platform_id: bot.id,
+    });
+
+    await ctx.editReply({
+      content: [
+        "### Top.gg App Setup",
+        "This bot is now configured to receive votes. To finish setup, authorize UpvoteEngine on Top.gg:",
+        `[Click here to authorize on Top.gg](${authorizeUrl})`,
+        "Once you approve, the webhook is created automatically — no secret to copy.",
+      ].join("\n"),
+    });
+    return;
   }
 
   await ctx.editReply({
@@ -408,29 +399,67 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
       true,
     );
   } else if (appCfg.source === "topgg") {
-    await ctx.showModal(
-      new ModalBuilder()
-        .setCustomId(`app/secret?${appCfg.applicationId}`)
-        .setTitle("Reset Secret")
-        .addTextDisplayComponents((t) =>
-          t.setContent(
-            [
-              "### Reset Top.gg Secret",
-              "You __cannot__ reset the secret for a Top.gg webhook this way, you need to reset the webhook in the Top.gg dashboard.",
-              `1. Go to the [Top.gg Integrations Page](https://top.gg/bot/${bot.id}/dashboard/integrations) and find the existing webhook for this bot.`,
-              "2. Click the **Reset** button to generate a new secret.",
-              "3. Copy the new secret and paste it in the input field below.",
-            ].join("\n"),
-          ),
-        )
-        .addLabelComponents((l) =>
-          l
-            .setLabel("New Secret")
-            .setTextInputComponent((t) =>
-              t.setCustomId("secret").setStyle(1).setPlaceholder("whs_...").setRequired(true),
-            ),
-        ),
-    );
+    await ctx.deferReply(true);
+
+    if (
+      !appCfg.topggRefreshToken ||
+      !appCfg.topggRefreshTokenIv ||
+      !appCfg.topggProjectId ||
+      !appCfg.topggWebhookId
+    ) {
+      await ctx.editReply({
+        content: "This app hasn't completed Top.gg authorization yet. Please run `/app create` again to finish setup.",
+      });
+      return;
+    }
+
+    const cryptor = new Cryptor(ctx.context.env.ENCRYPTION_KEY);
+    const oauthClient = createTopggOAuthClient(ctx.context.env);
+    const currentRefreshToken = await cryptor.decryptToken(appCfg.topggRefreshToken, appCfg.topggRefreshTokenIv);
+
+    const refreshRes = await oauthClient
+      .refreshToken({ refresh_token: currentRefreshToken })
+      .catch((error) => {
+        console.error("Failed to refresh Top.gg OAuth token for reset-secret:", { error, applicationId: bot.id });
+        return null;
+      });
+
+    if (!refreshRes) {
+      await ctx.editReply({
+        content: "Failed to refresh Top.gg authorization. Please run `/app create` again to re-authorize.",
+      });
+      return;
+    }
+
+    // Persist the rotated refresh token immediately - Top.gg invalidates the old one on use,
+    // so this must land before any subsequent call that could fail.
+    const rotatedRefreshTokenData = await cryptor.encryptToken(refreshRes.refresh_token);
+    await db
+      .update(applications)
+      .set({ topggRefreshToken: rotatedRefreshTokenData.token, topggRefreshTokenIv: rotatedRefreshTokenData.iv })
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, "topgg")));
+
+    const projectClient = createTopggProjectClient(refreshRes.access_token);
+    const rotateRes = await projectClient
+      .rotateProjectWebhookSecret(appCfg.topggProjectId, appCfg.topggWebhookId)
+      .catch((error) => {
+        console.error("Failed to rotate Top.gg webhook secret:", { error, applicationId: bot.id });
+        return null;
+      });
+
+    if (!rotateRes) {
+      await ctx.editReply({ content: "Failed to reset the Top.gg webhook secret. Please try again." });
+      return;
+    }
+
+    await db
+      .update(applications)
+      .set({ secret: rotateRes.secret })
+      .where(and(eq(applications.applicationId, bot.id), eq(applications.source, "topgg")));
+
+    await ctx.editReply({
+      content: "The Top.gg webhook secret has been reset successfully — no dashboard visit needed.",
+    });
     return;
   }
 

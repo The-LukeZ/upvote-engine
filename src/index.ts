@@ -16,6 +16,7 @@ import { bot } from "./routes/discord";
 import webhookApp from "./routes/webhooks";
 import { cache } from "hono/cache";
 import { ovHandler } from "./routes/discord/ownershipVerifyCallback";
+import { topggOAuthCallbackHandler } from "./routes/discord/oauthTopggCallback";
 
 const app = new Hono<HonoEnv>();
 
@@ -37,6 +38,7 @@ app.get("/wiki", (c) => c.redirect("/docs/getting-started/"));
 app.route("/webhook", webhookApp);
 app.route("/discord", bot.getApp());
 app.get("/ownership-verify", ovHandler);
+app.get("/oauth/topgg/callback", topggOAuthCallbackHandler);
 
 app.all("*", (c) => c.text("Not Found, you troglodyte", 404));
 
@@ -98,6 +100,29 @@ async function deleteOldVotes(db: DrizzleDB) {
   await db.delete(votes).where(lte(votes.id, String(ninetyDaysAgoSnowflake))); // Directly delete, because we don't need to process anything
 }
 
+/**
+ * Fetches the full list of guild IDs the bot is currently a member of, via the paginated
+ * `/users/@me/guilds` endpoint. Far cheaper than one guildMember request per configured
+ * app, since it's a handful of requests total regardless of how many apps are configured.
+ */
+async function fetchCurrentGuildIds(rest: REST): Promise<Set<string>> {
+  const guildIds = new Set<string>();
+  let after: string | undefined;
+
+  while (true) {
+    const page = (await rest.get(Routes.userGuilds(), {
+      query: new URLSearchParams({ limit: "200", ...(after ? { after } : {}) }),
+    })) as { id: string }[];
+
+    for (const guild of page) guildIds.add(guild.id);
+
+    if (page.length < 200) break;
+    after = page[page.length - 1].id;
+  }
+
+  return guildIds;
+}
+
 async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
   const rest = new REST({ version: "10" }).setToken(env.DISCORD_TOKEN);
   const configs = await db
@@ -113,6 +138,14 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
       ),
     )
     .all();
+
+  let currentGuildIds: Set<string>;
+  try {
+    currentGuildIds = await fetchCurrentGuildIds(rest);
+  } catch (error) {
+    console.error("Failed to fetch current guild list, aborting guild cleanup:", error);
+    return;
+  }
 
   /**
    * Map of applicationId to guildId (or null for non-guild-specific)
@@ -133,25 +166,13 @@ async function cleanupInvalidGuilds(db: DrizzleDB, env: Env) {
       continue;
     }
 
-    try {
-      // Try to fetch guild member (the bot itself)
-      await rest.get(Routes.guildMember(config.guildId, env.DISCORD_APPLICATION_ID));
-      console.log(`Guild ${config.guildId} is still valid`);
-    } catch (error: any) {
-      // If we get 403 or 404, the bot is no longer in the guild
-      if (error?.status === 403 || error?.status === 404 || error?.code === 10004) {
-        console.log(`Guild ${config.guildId} is invalid, marking for deletion`);
-        invalidCfgs.set(config.applicationId, {
-          guildId: config.guildId,
-          applicationId: config.applicationId,
-        });
-      } else {
-        console.error(`Error checking guild ${config.guildId}:`, error);
-      }
+    if (!currentGuildIds.has(config.guildId)) {
+      console.log(`Guild ${config.guildId} is invalid, marking for deletion`);
+      invalidCfgs.set(config.applicationId, {
+        guildId: config.guildId,
+        applicationId: config.applicationId,
+      });
     }
-
-    // Rate limit protection - wait between requests
-    await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
   // Delete configurations and votes for invalid guilds

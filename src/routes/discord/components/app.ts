@@ -1,16 +1,10 @@
-import {
-  ComponentHandler,
-  ComponentType,
-  LabelBuilder,
-  ModalBuilder,
-  ModalHandler,
-  parseCustomId,
-} from "honocord";
+import { ModalHandler, parseCustomId } from "honocord";
 import { MyContext } from "$types";
-import { ApplicationCfg, applications, deleteApplicationCascade } from "$/db/schema";
-import { bold } from "@discordjs/builders";
+import { applications, deleteApplicationCascade } from "$/db/schema";
 import { and, eq } from "drizzle-orm";
-import { buildAppInfo, checkAppAuthorization } from "$/utils/index";
+import { bold } from "@discordjs/builders";
+import { checkAppAuthorization } from "$/utils/index";
+import { cleanupTopggAuthorization } from "$/utils/topggOAuth";
 
 // Note: Modal handlers are no longer used with the new system.
 // Application configuration is now done via the /app command.
@@ -39,6 +33,28 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(
         return ctx.editReply({ content: authCheck.message });
       }
 
+      let topggCfg:
+        | {
+            topggProjectId: string | null;
+            topggWebhookId: string | null;
+            topggRefreshToken: string | null;
+            topggRefreshTokenIv: string | null;
+          }
+        | undefined;
+
+      if (source === "topgg") {
+        topggCfg = await db
+          .select({
+            topggProjectId: applications.topggProjectId,
+            topggWebhookId: applications.topggWebhookId,
+            topggRefreshToken: applications.topggRefreshToken,
+            topggRefreshTokenIv: applications.topggRefreshTokenIv,
+          })
+          .from(applications)
+          .where(and(eq(applications.applicationId, botUser.id), eq(applications.source, "topgg")))
+          .get();
+      }
+
       try {
         await deleteApplicationCascade(db, botUser.id, source, ctx.guildId!);
       } catch (error) {
@@ -46,127 +62,33 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(
         return ctx.editReply({ content: "Failed to remove app configuration due to a database error." });
       }
 
+      // DB row is gone at this point - only now touch Top.gg, so a failed cascade delete
+      // above never leaves a dangling row pointing at already-torn-down Top.gg resources.
+      if (
+        topggCfg?.topggRefreshToken &&
+        topggCfg.topggRefreshTokenIv &&
+        topggCfg.topggProjectId &&
+        topggCfg.topggWebhookId
+      ) {
+        await cleanupTopggAuthorization(ctx.context.env, {
+          topggProjectId: topggCfg.topggProjectId,
+          topggWebhookId: topggCfg.topggWebhookId,
+          topggRefreshToken: topggCfg.topggRefreshToken,
+          topggRefreshTokenIv: topggCfg.topggRefreshTokenIv,
+        });
+      }
+
       await ctx.editReply(
-        [
-          `Successfully removed app configuration for <@${botUser.id}>.`,
-          "",
-          bold(
-            "If not already done, you need to remove the webhook on the listing page as well, since there is no way for us to do it from our side.",
-          ),
-        ].join("\n"),
+        source === "topgg"
+          ? `Successfully removed app configuration for <@${botUser.id}>.`
+          : [
+              `Successfully removed app configuration for <@${botUser.id}>.`,
+              "",
+              bold(
+                "If not already done, you need to remove the webhook on the listing page as well, since there is no way for us to do it from our side.",
+              ),
+            ].join("\n"),
       );
-    } else if (component === "create") {
-      const secret = ctx.fields.getString("secret");
-      const { params } = parseCustomId(ctx.customId) as { params: string[] };
-      const [botId, source, roleId, durationHoursStr] = params[0].split("/");
-
-      const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-      const authCheck = await checkAppAuthorization(db, botId, ctx.guildId!, ctx.user.id, isGlobalOwner);
-      if (!authCheck.authorized) {
-        return ctx.editReply({ content: authCheck.message });
-      }
-
-      const existingCfg = await db
-        .select()
-        .from(applications)
-        .where(eq(applications.applicationId, botId))
-        .limit(1)
-        .get();
-      if (existingCfg) {
-        return ctx.editReply({
-          content:
-            "An app configuration for this bot already exists. Please remove the existing configuration before creating a new one.",
-        });
-      }
-
-      const durationHours = parseInt(durationHoursStr, 10);
-      if (isNaN(durationHours) || durationHours <= 0) {
-        return ctx.editReply({ content: "Invalid duration specified." });
-      }
-
-      try {
-        await db.insert(applications).values({
-          applicationId: botId,
-          guildId: ctx.guildId!,
-          source: source as any,
-          secret: secret,
-          voteRoleId: roleId || null,
-          roleDurationSeconds: Math.max(3600, Math.min(durationHours * 3600, 14 * 24 * 3600)), // Clamp duration between 1 hour and 14 days
-        });
-      } catch (error) {
-        console.error("Database error while creating app configuration:", { error });
-        return ctx.editReply({ content: "Failed to create app configuration due to a database error." });
-      }
-
-      await ctx.editReply({
-        content: `Successfully created app configuration for <@${botId}> with a duration of ${durationHours} hours.`,
-      });
-    } else if (component === "secret") {
-      const secret = ctx.fields.getString("secret");
-      const { firstParam: botId } = parseCustomId(ctx.customId) as { firstParam: string };
-
-      const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-      const authCheck = await checkAppAuthorization(db, botId, ctx.guildId!, ctx.user.id, isGlobalOwner);
-      if (!authCheck.authorized) {
-        return ctx.editReply({ content: authCheck.message });
-      }
-
-      let appCfg: ApplicationCfg;
-      try {
-        appCfg = await db
-          .update(applications)
-          .set({ secret: secret })
-          .where(
-            and(
-              eq(applications.applicationId, botId),
-              eq(applications.guildId, ctx.guildId!),
-              eq(applications.source, "topgg"),
-            ),
-          )
-          .returning()
-          .get();
-      } catch (error) {
-        console.error("Database error while updating app secret:", { error });
-        return ctx.editReply({ content: "Failed to update app secret due to a database error." });
-      }
-
-      if (!appCfg) {
-        return ctx.editReply({ content: "No configuration found for this bot and source." });
-      }
-
-      await ctx.editReply(buildAppInfo(botId, appCfg, "edit"));
     }
   },
 );
-
-export const appBtnHandler = new ComponentHandler<MyContext, ComponentType.Button>(
-  "app",
-  ComponentType.Button,
-).addHandler(async function handleAppBtn(ctx) {
-  const { component, params } = parseCustomId(ctx.customId) as { params: string[]; component: string };
-  if (component === "create") {
-    const db = ctx.context.get("db");
-    const botId = params[0].split("/")[0];
-
-    const isGlobalOwner = ctx.context.env.OWNER_ID === ctx.user.id;
-    const authCheck = await checkAppAuthorization(db, botId, ctx.guildId!, ctx.user.id, isGlobalOwner);
-    if (!authCheck.authorized) {
-      return ctx.reply({ content: authCheck.message }, true);
-    }
-
-    return ctx.showModal(
-      new ModalBuilder()
-        .setCustomId(`app/create?${params.join("/")}`)
-        .setTitle("Setup Application")
-        .addTextDisplayComponents((t) => t.setContent(`Provide the secret from top.gg for <@${params[0]}>.`))
-        .addLabelComponents(
-          new LabelBuilder()
-            .setLabel("Webhook Secret")
-            .setDescription("The secret provided by top.gg when creating a new webhook")
-            .setTextInputComponent((ti) =>
-              ti.setCustomId("secret").setPlaceholder("whs_....").setRequired(true),
-            ),
-        ),
-    );
-  }
-});

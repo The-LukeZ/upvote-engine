@@ -19,10 +19,7 @@ Use `/app edit` to change the role or duration for any configured bot.
 
 ## Reset a Webhook Secret
 
-Use `/app reset-secret` if you lost the secret or suspect it leaked.
-
-- For **DBL**, a new secret is generated immediately.
-- For **Top.gg**, you first have to reset the webhook secret on Top.gg's dashboard yourself, then paste the new secret into the modal the bot shows you.
+Use `/app reset-secret` if you lost the secret or suspect it leaked. For both **DBL** and **Top.gg**, a new secret is generated and applied immediately — no dashboard visit needed.
 
 ## Remove a Bot Configuration
 
@@ -34,7 +31,7 @@ Use `/app remove` to stop rewarding votes for a bot. This will:
 
 <Callout variant="warning">
 
-Removing a configuration only deletes it on UpvoteEngine's side. You still need to delete/disable the webhook on Top.gg's or DBL's dashboard yourself — there's no way for the bot to do that from its side.
+Removing a **DBL** configuration only deletes it on UpvoteEngine's side — you still need to delete/disable the webhook on DBL's dashboard yourself, there's no way for the bot to do that from its side. **Top.gg** configurations are cleaned up automatically: the webhook and OAuth authorization are removed from Top.gg as part of `/app remove`.
 
 </Callout>
 

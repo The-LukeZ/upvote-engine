@@ -1,1 +1,0 @@
-ALTER TABLE `forwardings` ADD `iv` text NOT NULL;

@@ -103,6 +103,8 @@
       "DISCORD_APP_SECRET",
       "ENCRYPTION_KEY",
       "TOP_GG_TOKEN",
+      "TOP_GG_CLIENT_ID",
+      "TOP_GG_CLIENT_SECRET",
       "OWNER_ID",
       "ADMIN_GUILD_ID",
     ],
