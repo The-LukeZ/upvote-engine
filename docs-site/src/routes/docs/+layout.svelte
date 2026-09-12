@@ -6,6 +6,6 @@
   let { children } = $props();
 </script>
 
-<DocsShell config={docsmithConfig} content={docs}>
+<DocsShell config={docsmithConfig} content={docs} readingTime={false}>
   {@render children()}
 </DocsShell>
