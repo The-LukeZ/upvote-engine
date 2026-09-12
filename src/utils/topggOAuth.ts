@@ -128,7 +128,10 @@ export async function cleanupTopggAuthorization(
     const refreshRes = await oauthClient
       .refreshToken({ refresh_token: currentRefreshToken })
       .catch((error) => {
-        console.error("Failed to refresh Top.gg token during cleanup:", { error, projectId: cfg.topggProjectId });
+        console.error("Failed to refresh Top.gg token during cleanup:", {
+          error,
+          projectId: cfg.topggProjectId,
+        });
         return null;
       });
     if (!refreshRes) return;
@@ -145,7 +148,10 @@ export async function cleanupTopggAuthorization(
     await oauthClient
       .revoke({ token: refreshRes.refresh_token, token_type_hint: "refresh_token" })
       .catch((error) => {
-        console.error("Failed to revoke Top.gg OAuth grant during cleanup:", { error, projectId: cfg.topggProjectId });
+        console.error("Failed to revoke Top.gg OAuth grant during cleanup:", {
+          error,
+          projectId: cfg.topggProjectId,
+        });
       });
   } catch (error) {
     console.error("Unexpected error during Top.gg cleanup:", { error, projectId: cfg.topggProjectId });

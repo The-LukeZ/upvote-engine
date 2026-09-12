@@ -37,7 +37,11 @@ describe("generatePkcePair", () => {
 });
 
 describe("encodeTopggOAuthState / decodeTopggOAuthState", () => {
-  const payload = { applicationId: "1082707872565182614", guildId: "506893652266844162", verifier: "test-verifier-value" };
+  const payload = {
+    applicationId: "1082707872565182614",
+    guildId: "506893652266844162",
+    verifier: "test-verifier-value",
+  };
 
   it("round-trips a payload", async () => {
     const state = await encodeTopggOAuthState(ENCRYPTION_KEY, payload);

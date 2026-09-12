@@ -408,19 +408,26 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
       !appCfg.topggWebhookId
     ) {
       await ctx.editReply({
-        content: "This app hasn't completed Top.gg authorization yet. Please run `/app create` again to finish setup.",
+        content:
+          "This app hasn't completed Top.gg authorization yet. Please run `/app create` again to finish setup.",
       });
       return;
     }
 
     const cryptor = new Cryptor(ctx.context.env.ENCRYPTION_KEY);
     const oauthClient = createTopggOAuthClient(ctx.context.env);
-    const currentRefreshToken = await cryptor.decryptToken(appCfg.topggRefreshToken, appCfg.topggRefreshTokenIv);
+    const currentRefreshToken = await cryptor.decryptToken(
+      appCfg.topggRefreshToken,
+      appCfg.topggRefreshTokenIv,
+    );
 
     const refreshRes = await oauthClient
       .refreshToken({ refresh_token: currentRefreshToken })
       .catch((error) => {
-        console.error("Failed to refresh Top.gg OAuth token for reset-secret:", { error, applicationId: bot.id });
+        console.error("Failed to refresh Top.gg OAuth token for reset-secret:", {
+          error,
+          applicationId: bot.id,
+        });
         return null;
       });
 
@@ -436,7 +443,10 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
     const rotatedRefreshTokenData = await cryptor.encryptToken(refreshRes.refresh_token);
     await db
       .update(applications)
-      .set({ topggRefreshToken: rotatedRefreshTokenData.token, topggRefreshTokenIv: rotatedRefreshTokenData.iv })
+      .set({
+        topggRefreshToken: rotatedRefreshTokenData.token,
+        topggRefreshTokenIv: rotatedRefreshTokenData.iv,
+      })
       .where(and(eq(applications.applicationId, bot.id), eq(applications.source, "topgg")));
 
     const projectClient = createTopggProjectClient(refreshRes.access_token);

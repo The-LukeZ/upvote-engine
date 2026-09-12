@@ -61,7 +61,11 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
       url: `${origin}/webhook/topgg/v1/${applicationId}`,
     })
     .catch((error) => {
-      console.error("Failed to create Top.gg project webhook:", { error, applicationId, projectId: project.id });
+      console.error("Failed to create Top.gg project webhook:", {
+        error,
+        applicationId,
+        projectId: project.id,
+      });
       return null;
     });
 
@@ -96,7 +100,10 @@ export async function topggOAuthCallbackHandler(c: Context<HonoEnv>): Promise<Re
   if (!updated) {
     // No matching applications row (deleted/reconfigured mid-flow) - the webhook + grant
     // we just created would otherwise be unrecoverable, so tear them down.
-    console.error("No applications row found to store Top.gg webhook credentials:", { applicationId, guildId });
+    console.error("No applications row found to store Top.gg webhook credentials:", {
+      applicationId,
+      guildId,
+    });
     await projectClient.deleteProjectWebhook(project.id, webhookRes.id).catch((error) => {
       console.error("Failed to delete orphaned Top.gg webhook after missing applications row:", {
         error,
