@@ -14,7 +14,7 @@ UpvoteEngine — Discord vote-role bot on Cloudflare Workers. Users vote for a D
 - `pnpm test` — run vitest (single file: `pnpm test src/test/webhook.test.ts`)
 - `pnpm gen` — regenerate `worker-configuration.d.ts` from `wrangler.jsonc` bindings and `secrets.required` (previously referred to as `cf-typegen` — that script name doesn't exist, use `gen`)
 - `pnpm register` — register Discord slash commands (`tsx --env-file=.env src/registerCommands.ts`)
-- `pnpm migrate` — apply D1 migrations remotely (`wrangler d1 migrations apply vote_handler --remote`)
+- `pnpm migrate` — apply D1 migrations remotely (`wrangler d1 migrations apply vote_handler --remote --migrations-dir drizzle/migrations`)
 - `pnpm drizzle:generate` — generate a new migration from `src/db/schema.ts` changes
 - `pnpm bulk-secrets` — push `.env` contents as Worker secrets (`wrangler secret bulk .env`)
 

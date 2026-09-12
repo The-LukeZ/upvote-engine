@@ -14,7 +14,7 @@
     "gen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "register": "tsx --env-file=.env src/registerCommands.ts",
-    "migrate": "wrangler d1 migrations apply vote_handler --remote",
+    "migrate": "wrangler d1 migrations apply vote_handler --remote --migrations-dir drizzle/migrations",
     "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
     "drizzle:push": "drizzle-kit push --config drizzle.config.ts",
     "test": "vitest",
