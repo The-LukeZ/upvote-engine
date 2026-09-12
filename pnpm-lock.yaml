@@ -45,8 +45,8 @@ importers:
         specifier: ^3.0.1
         version: 3.0.1(hono@4.13.7)
       topgg-api-types:
-        specifier: ^2.3.1
-        version: 2.3.1
+        specifier: ^2.3.2
+        version: 2.3.2
       zod:
         specifier: ^4.6.0
         version: 4.6.0
@@ -2266,8 +2266,8 @@ packages:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
 
-  topgg-api-types@2.3.1:
-    resolution: {integrity: sha512-3bnV2f4+QJNeLW2ykNQa/UB05Yx3c30DlrKVIaHUDhsdHqBAdnIfZsJ2TuLOpO7bs50uDTmO+AuEVKKvt2agrA==}
+  topgg-api-types@2.3.2:
+    resolution: {integrity: sha512-+TMlSPCLhl5fXXOG1Je2x/bGVeeaB9q0YGBx/RKG04XT9BRY5/gF18nqFVEkkWL+0YOKnbkCg4HpSRRLwkiYbQ==}
 
   totalist@3.0.1:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
@@ -2541,6 +2541,9 @@ packages:
 
   zod@4.6.0:
     resolution: {integrity: sha512-iIvwyDnebKYpww2ta0DjaNOL8RnVLmPMhgWyOzlW9y0EIIxv5gl+H6Y0ONpt83HqjGqkk78uWp6xWtpxzZdPbw==}
+
+  zod@4.6.2:
+    resolution: {integrity: sha512-lh5RCAGFa1Cm2hjtNwLQhSs/AsqdWnTQaBER9fEwN/88pSh7KOtJavtBx/0VlkN/uFd61SwYmljLMDAsHlvzBQ==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -4287,10 +4290,10 @@ snapshots:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
 
-  topgg-api-types@2.3.1:
+  topgg-api-types@2.3.2:
     dependencies:
       discord-api-types: 0.38.55
-      zod: 4.6.0
+      zod: 4.6.2
 
   totalist@3.0.1: {}
 
@@ -4528,5 +4531,7 @@ snapshots:
   zimmerframe@1.1.5: {}
 
   zod@4.6.0: {}
+
+  zod@4.6.2: {}
 
   zwitch@2.0.4: {}
