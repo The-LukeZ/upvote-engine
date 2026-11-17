@@ -8,10 +8,10 @@
     "docs:dev": "pnpm --filter docs-site dev",
     "docs:build": "pnpm --filter docs-site build",
     "deploy": "pnpm docs:build && wrangler deploy",
-    "build": "pnpm docs:build && wrangler types && wrangler build",
+    "build": "pnpm docs:build && wrangler types --include-main-module=false && wrangler build",
     "dev": "wrangler dev",
     "start": "wrangler dev",
-    "gen": "wrangler types",
+    "gen": "wrangler types --include-main-module=false",
     "typecheck": "tsc --noEmit",
     "register": "tsx --env-file=.env src/registerCommands.ts",
     "migrate": "wrangler d1 migrations apply vote_handler --remote --migrations-dir drizzle/migrations",
@@ -21,32 +21,32 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
-    "drizzle-kit": "^0.31.10",
-    "prettier": "^3.9.6",
+    "@types/node": "^26.6.6",
+    "drizzle-kit": "^0.31.11",
+    "prettier": "^3.10.1",
     "prettier-plugin-svelte": "^4.1.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "tsx": "^4.23.13",
-    "typescript": "6.0.3",
-    "vitest": "^5.0.0",
-    "wrangler": "^4.129.1"
+    "tsx": "^4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.162.0"
   },
   "dependencies": {
-    "@discordjs/builders": "^1.14.1",
+    "@discordjs/builders": "^1.15.0",
     "@discordjs/collection": "^2.1.1",
-    "@discordjs/core": "^2.6.0",
+    "@discordjs/core": "^2.7.0",
     "@discordjs/rest": "^2.6.3",
     "@honocord/cache-do": "^0.3.1",
-    "@sapphire/snowflake": "^3.5.5",
+    "@sapphire/snowflake": "^4.0.0",
     "dayjs": "^1.11.23",
-    "discord-api-types": "^0.38.55",
+    "discord-api-types": "^0.38.59",
     "discord-interactions": "^4.4.0",
-    "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.7",
-    "honocord": "^3.0.1",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.18",
+    "honocord": "^3.2.0",
     "topgg-api-types": "^2.3.2",
-    "zod": "^4.6.0"
+    "zod": "^4.6.7"
   },
   "license": "Elastic-2.0",
-  "packageManager": "pnpm@11.23.0"
+  "packageManager": "pnpm@12.21.0"
 }

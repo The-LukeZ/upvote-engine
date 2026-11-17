@@ -1,15 +1,9 @@
 <script lang="ts">
   import { DocsShell, Hero, FeatureGrid, Feature, CTA, Action } from "svelte-docsmith";
   import { docs } from "svelte-docsmith/content";
-  import { docsmithConfig } from "$lib/docsmith.config";
 </script>
 
-<DocsShell
-  config={docsmithConfig}
-  content={docs}
-  search={() => import("svelte-docsmith/search").then((m) => m.docs)}
-  layout="page"
->
+<DocsShell content={docs} search={() => import("svelte-docsmith/search").then((m) => m.docs)} layout="page">
   <Hero title="Upvote Engine">
     {#snippet description()}
       A Discord vote-role bot for Top.gg and Discord Bot List. Assigns a role when someone votes, removes it

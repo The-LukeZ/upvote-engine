@@ -10,3 +10,7 @@ packages:
 minimumReleaseAgeExclude:
   - honocord
   - topgg-api-types
+
+overrides:
+  # honocord pins discord-api-types exactly; force a single copy so APIEmbed etc. stay assignable
+  discord-api-types: ^0.38.59
