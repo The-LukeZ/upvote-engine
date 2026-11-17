@@ -11,7 +11,7 @@ order: 1
 
 ## Who Can Configure Apps
 
-Configuring an app (create/edit/remove/reset-secret/forwarding) for **any** platform — Top.gg or DBL — requires one of the following, on top of having Manage Server permission:
+Configuring an app (create/edit/remove/reset-secret/forwarding) for **any** platform (Top.gg, DBL or Bumped.gg) requires one of the following, on top of having Manage Server permission:
 
 - You are the verified owner of the application (use `/verify-app-ownership` to verify, see below)
 - You are the global UpvoteEngine service owner

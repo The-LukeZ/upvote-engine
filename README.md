@@ -2,7 +2,7 @@
 
 UpvoteEngine is a performant Discord vote handler built on a FaaS architecture using Cloudflare Workers.
 This serverless approach ensures highly performant role management by automatically assigning and removing
-roles based on Top.gg/Discord Bot List (DBL) votes with minimal latency and maximum scalability due to the
+roles based on Top.gg/Discord Bot List (DBL)/Bumped.gg votes with minimal latency and maximum scalability due to the
 services used.
 
 Docs, setup guides, and legal pages are published at [upvote-engine.thelukez.com/docs](https://upvote-engine.thelukez.com/docs/getting-started/).
@@ -21,7 +21,7 @@ Docs, setup guides, and legal pages are published at [upvote-engine.thelukez.com
   - Queue handler native to Cloudflare Workers: processes role assignments/removals and webhook forwarding asynchronously
   - Cron Scheduler native to Cloudflare Workers: expires votes, purges old vote rows, and cleans up guilds the bot is no longer in
 
-- Webhook endpoints for Top.gg (`v0`, `v1`, and a legacy alias) and DBL vote notifications
+- Webhook endpoints for Top.gg (`v0`, `v1`, and a legacy alias) DBL and Bumped.gg vote notifications
 - Cloudflare Queues for processing role assignments, removals, and webhook forwarding
 - Cloudflare D1 (via Drizzle ORM) for application configs, votes, blacklist, and verified bot ownership
 - Durable Objects for in-memory blacklist caching and the honocord interaction cache
@@ -44,7 +44,7 @@ If you want to contribute, feel free to open issues or pull requests!
    - Select the bot to configure, the vote source (e.g., Top.gg), the reward role, and optional duration.
 2. **Follow On-Screen Instructions**
    - The bot will provide a webhook URL and secret.
-   - Follow the provided instructions to add the webhook on the voting site (Top.gg/DBL).
+   - Follow the provided instructions to add the webhook on the voting site (Top.gg/DBL/Bumped.gg).
    - Once configured, votes will be processed automatically!
 
 ### Authorization

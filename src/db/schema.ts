@@ -7,7 +7,7 @@ export const applications = sqliteTable(
   "applications",
   {
     applicationId: text("application_id").notNull(),
-    source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
+    source: text("source", { enum: ["topgg", "dbl", "bumped"] }).notNull(),
     secret: text("secret"),
     topggProjectId: text("topgg_project_id"),
     topggWebhookId: text("topgg_webhook_id"),
@@ -34,7 +34,7 @@ export const votes = sqliteTable(
   {
     id: text("id").primaryKey(), // Snowflake ID by top.gg
     applicationId: text("application_id").notNull(),
-    source: text("source", { enum: ["topgg", "dbl"] }).notNull(),
+    source: text("source", { enum: ["topgg", "dbl", "bumped"] }).notNull(),
     guildId: text("guild_id"),
     userId: text("user_id").notNull(),
     roleId: text("role_id"),

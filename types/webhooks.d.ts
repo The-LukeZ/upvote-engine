@@ -54,11 +54,62 @@ export interface DBLPayload {
   id: Snowflake;
 }
 
-export type WebhookPayload = TopGGPayload | DBLPayload;
+/**
+ * Bumped.gg webhook payload
+ * @see {@link https://bumped.gg/docs/api#payload}
+ */
+export interface BumpedPayload {
+  /**
+   * `vote.create` for a real vote, `webhook.test` when the "Send test vote" button is used.
+   */
+  type: "vote.create" | "webhook.test";
+  data: {
+    /**
+     * Unique per vote. Retried deliveries carry the same ID.
+     */
+    id: string;
+    /**
+     * Always `1` for now.
+     */
+    weight: number;
+    /**
+     * RFC 3339 UTC timestamp of when the vote was cast.
+     */
+    created_at: string;
+    /**
+     * RFC 3339 UTC timestamp of when the user may vote again (12 hours after `created_at`).
+     */
+    expires_at: string;
+    user: {
+      id: string;
+      /**
+       * Discord user ID of the voter
+       */
+      platform_id: Snowflake;
+      name: string;
+      /**
+       * Empty string if the user has no avatar.
+       */
+      avatar_url: string;
+    };
+    project: {
+      id: string;
+      type: string;
+      platform: string;
+      /**
+       * Discord application ID of the bot
+       */
+      platform_id: Snowflake;
+    };
+  };
+}
+
+export type WebhookPayload = TopGGPayload | DBLPayload | BumpedPayload;
 
 type WebhookPayloadMapping = {
   topgg: TopGGPayload;
   dbl: DBLPayload;
+  bumped: BumpedPayload;
 };
 
 export type WebhookSource<WithTest extends boolean = false> = WithTest extends true

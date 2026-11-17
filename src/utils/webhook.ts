@@ -133,6 +133,43 @@ class WebhookHandler<T extends WebhookPayload> {
       return { isValid: false };
     }
   }
+  /**
+   * Bumped.gg validation: `x-bumped-signature: t=<unix>,v1=<hex hmac-sha256 of "<t>.<raw body>">`.
+   * Timestamps more than `toleranceSeconds` away from now are rejected to prevent replays.
+   *
+   * @see https://bumped.gg/docs/api#signature
+   */
+  public async validateBumpedRequest(
+    c: MyContext,
+    toleranceSeconds = 300,
+  ): Promise<{ isValid: boolean; payload?: T }> {
+    if (!this.authorization) return { isValid: false };
+
+    const sigObj = Object.fromEntries(
+      (c.req.header("x-bumped-signature") || "").split(",").map((p) => {
+        const idx = p.indexOf("=");
+        return [p.slice(0, idx).trim(), p.slice(idx + 1).trim()];
+      }),
+    );
+    const timestamp = sigObj["t"];
+    const signature = sigObj["v1"];
+    const ts = Number(timestamp);
+    if (!timestamp || !signature || !Number.isFinite(ts) || ts <= 0) return { isValid: false };
+    if (Math.abs(Math.floor(Date.now() / 1000) - ts) > toleranceSeconds) return { isValid: false };
+
+    const rawBody = await c.req.text();
+    if (!(await this.verifyV1Signature(signature, timestamp, rawBody, this.authorization))) {
+      return { isValid: false };
+    }
+
+    try {
+      return { isValid: true, payload: JSON.parse(rawBody) as T };
+    } catch (error) {
+      console.error("Failed to parse Bumped.gg webhook payload:", error);
+      return { isValid: false };
+    }
+  }
+
   public async validateRequest(
     c: MyContext,
   ): Promise<{ isValid: boolean; payload?: T; version?: "v0" | "v1" }> {

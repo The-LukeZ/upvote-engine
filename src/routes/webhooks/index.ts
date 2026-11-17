@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HonoEnv } from "$types";
 import topggApp from "./topgg/handler";
 import dblApp from "./dbl/handler";
+import bumpedApp from "./bumped/handler";
 import { makeDB } from "$/db/util";
 
 const webhookApp = new Hono<HonoEnv, {}, "/webhook">().use("*", async (c, next) => {
@@ -12,5 +13,6 @@ const webhookApp = new Hono<HonoEnv, {}, "/webhook">().use("*", async (c, next) 
 
 webhookApp.route("/topgg", topggApp);
 webhookApp.route("/dbl", dblApp);
+webhookApp.route("/bumped", bumpedApp);
 
 export default webhookApp;

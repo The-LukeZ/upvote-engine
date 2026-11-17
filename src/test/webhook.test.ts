@@ -191,4 +191,91 @@ describe("WebhookHandler", () => {
       expect(result.isValid).toBe(false);
     });
   });
+  describe("validateBumpedRequest", () => {
+    const secret = "bumped-test-secret"; // test secret, not real
+    const rawBody = JSON.stringify({
+      type: "vote.create",
+      data: {
+        id: "vote_123",
+        weight: 1,
+        created_at: "2026-11-18T10:00:00Z",
+        expires_at: "2026-11-18T22:00:00Z",
+        user: {
+          id: "506893652266844162",
+          platform_id: "506893652266844162",
+          name: "thelukez",
+          avatar_url: "",
+        },
+        project: {
+          id: "1082707872565182614",
+          type: "bot",
+          platform: "discord",
+          platform_id: "1082707872565182614",
+        },
+      },
+    });
+
+    async function sign(timestamp: string, body: string, key = secret) {
+      const enc = new TextEncoder();
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw",
+        new Uint8Array(enc.encode(key)),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
+      const sig = await crypto.subtle.sign(
+        "HMAC",
+        cryptoKey,
+        new Uint8Array(enc.encode(`${timestamp}.${body}`)),
+      );
+      return Buffer.from(sig).toString("hex");
+    }
+
+    function mockRequest(signatureHeader: string | undefined, body = rawBody) {
+      vi.mocked(mockContext.req.header).mockImplementation((key?: string) =>
+        key === "x-bumped-signature" ? signatureHeader : (undefined as any),
+      );
+      vi.mocked(mockContext.req.text).mockResolvedValue(body);
+    }
+
+    beforeEach(() => {
+      handler = new WebhookHandler(secret);
+    });
+
+    it("accepts a valid, fresh signature", async () => {
+      const t = String(Math.floor(Date.now() / 1000));
+      mockRequest(`t=${t},v1=${await sign(t, rawBody)}`);
+      const result = await handler.validateBumpedRequest(mockContext);
+      expect(result.isValid).toBe(true);
+      expect(result.payload?.data.user.platform_id).toBe("506893652266844162");
+    });
+
+    it("rejects a signature made with another secret", async () => {
+      const t = String(Math.floor(Date.now() / 1000));
+      mockRequest(`t=${t},v1=${await sign(t, rawBody, "other-secret")}`);
+      expect((await handler.validateBumpedRequest(mockContext)).isValid).toBe(false);
+    });
+
+    it("rejects a tampered body", async () => {
+      const t = String(Math.floor(Date.now() / 1000));
+      mockRequest(`t=${t},v1=${await sign(t, rawBody)}`, rawBody.replace("506893652266844162", "1"));
+      expect((await handler.validateBumpedRequest(mockContext)).isValid).toBe(false);
+    });
+
+    it("rejects timestamps older than 5 minutes", async () => {
+      const t = String(Math.floor(Date.now() / 1000) - 301);
+      mockRequest(`t=${t},v1=${await sign(t, rawBody)}`);
+      expect((await handler.validateBumpedRequest(mockContext)).isValid).toBe(false);
+    });
+
+    it("rejects missing or malformed headers", async () => {
+      mockRequest(undefined);
+      expect((await handler.validateBumpedRequest(mockContext)).isValid).toBe(false);
+      mockRequest("v1=abc");
+      expect((await handler.validateBumpedRequest(mockContext)).isValid).toBe(false);
+      mockRequest("t=0,v1=abc");
+      expect((await handler.validateBumpedRequest(mockContext)).isValid).toBe(false);
+    });
+  });
 });

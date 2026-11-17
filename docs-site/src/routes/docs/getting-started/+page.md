@@ -5,12 +5,13 @@ section: Getting Started
 order: 0
 ---
 
-UpvoteEngine handles Top.gg and DBL votes and applies roles, either temporary or permanently, in your associated Discord server.
+UpvoteEngine handles Top.gg, DBL and Bumped.gg votes and applies roles, either temporary or permanently, in your associated Discord server.
 
 ## Currently supported platforms
 
 - Top.gg
 - DBL (Discord Bot List)
+- Bumped.gg
 
 There are more platforms planned, but not added yet (because every platform requires a completely new handler).
 

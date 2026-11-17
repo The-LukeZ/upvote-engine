@@ -1,7 +1,7 @@
 import { bold, codeBlock, heading } from "@discordjs/builders";
 import { and, count, eq } from "drizzle-orm";
 import { APIEmbed, APIUser, ApplicationCommandOptionType, MessageFlags } from "discord-api-types/v10";
-import { DrizzleDB, MyContext } from "$types";
+import { DrizzleDB, MyContext, SupportedPlatforms } from "$types";
 import { applications, ApplicationCfg, forwardings, ForwardingCfg, Cryptor } from "$/db/schema";
 import { sanitizeSecret } from "$/utils";
 import dayjs from "dayjs";
@@ -9,7 +9,10 @@ import {
   GetSupportedPlatform,
   getTestNoticeForPlatform,
   hostnamePattern,
+  platformsWithExternalSecret,
   platformsWithTests,
+  PlatformWebhookUrl,
+  supportedPlatforms,
 } from "$/constants";
 import { ForwardingPayload } from "$types/webhooks";
 import {
@@ -73,7 +76,7 @@ export const appCommand = appCommandData.addHandler(async function handleApp(
 
   if (subcommand === "remove") {
     const { user: bot } = ctx.options.getMember("bot", true);
-    const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+    const source = ctx.options.getString<SupportedPlatforms>("source", true);
 
     const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
     const guildId = ctx.guildId!;
@@ -105,16 +108,14 @@ export const appCommand = appCommandData.addHandler(async function handleApp(
             ss
               .setCustomId("source")
               .setOptions(
-                new StringSelectMenuOptionBuilder({
-                  label: GetSupportedPlatform("topgg"),
-                  value: "topgg",
-                  default: source === "topgg",
-                }),
-                new StringSelectMenuOptionBuilder({
-                  label: GetSupportedPlatform("dbl"),
-                  value: "dbl",
-                  default: source === "dbl",
-                }),
+                ...(Object.keys(supportedPlatforms) as SupportedPlatforms[]).map(
+                  (platform) =>
+                    new StringSelectMenuOptionBuilder({
+                      label: GetSupportedPlatform(platform),
+                      value: platform,
+                      default: source === platform,
+                    }),
+                ),
               )
               .setRequired(true),
           ),
@@ -210,7 +211,7 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
     });
   }
 
-  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+  const source = ctx.options.getString<SupportedPlatforms>("source", true);
   const role = ctx.options.getRole("role", true);
 
   const durationHours = ctx.options.getInteger("duration");
@@ -249,7 +250,9 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
     });
   }
 
-  const secret = source !== "topgg" ? generateRandomToken() : null;
+  const providedSecret = ctx.options.getString("secret")?.trim() || null;
+  const hasExternalSecret = platformsWithExternalSecret.includes(source);
+  const secret = source === "topgg" ? null : hasExternalSecret ? providedSecret : generateRandomToken();
 
   // Create the configuration
   await db
@@ -294,6 +297,23 @@ async function handleCreateApp(ctx: ChatInputCommandInteraction<MyContext>, db: 
     return;
   }
 
+  if (hasExternalSecret) {
+    const platformName = GetSupportedPlatform(source);
+    await ctx.editReply({
+      content: [
+        `### ${platformName} App Setup`,
+        `Set this webhook URL in your bot's settings on ${platformName}:`,
+        codeBlock(PlatformWebhookUrl(source, bot.id)),
+        secret
+          ? `The secret you provided has been saved. Use the **Send test vote** button on ${platformName} to check that everything works.`
+          : bold(
+              `Votes are rejected until you provide the webhook secret ${platformName} shows you. Run \`/app reset-secret\` with source ${platformName} and the \`secret\` option to set it.`,
+            ),
+      ].join("\n"),
+    });
+    return;
+  }
+
   await ctx.editReply({
     flags: MessageFlags.IsComponentsV2,
     components: [
@@ -322,7 +342,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction<MyContext>, db: Dr
 
   const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
   const guildId = ctx.guildId!;
-  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+  const source = ctx.options.getString<SupportedPlatforms>("source", true);
 
   const authCheck = await checkAppAuthorization(db, bot.id, guildId, ctx.user.id, isOwner);
   if (!authCheck.authorized) {
@@ -374,7 +394,7 @@ async function handleEditApp(ctx: ChatInputCommandInteraction<MyContext>, db: Dr
 
 async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db: DrizzleDB) {
   const { user: bot } = ctx.options.getMember("bot", true);
-  const source = ctx.options.getString<"topgg" | "dbl">("source", true);
+  const source = ctx.options.getString<SupportedPlatforms>("source", true);
 
   const isOwner = ctx.context.env.OWNER_ID === ctx.user.id;
   const guildId = ctx.guildId!;
@@ -390,7 +410,13 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
   const appCfg = await db
     .select()
     .from(applications)
-    .where(and(eq(applications.applicationId, bot.id), eq(applications.source, source)))
+    .where(
+      and(
+        eq(applications.applicationId, bot.id),
+        eq(applications.source, source),
+        eq(applications.guildId, guildId),
+      ),
+    )
     .get();
 
   if (!appCfg) {
@@ -475,8 +501,31 @@ async function handleResetSecret(ctx: ChatInputCommandInteraction<MyContext>, db
 
   await ctx.deferReply(true);
 
+  const appCfgWhere = and(
+    eq(applications.applicationId, bot.id),
+    eq(applications.source, source),
+    eq(applications.guildId, guildId),
+  );
+
+  if (platformsWithExternalSecret.includes(appCfg.source)) {
+    const platformName = GetSupportedPlatform(appCfg.source);
+    const providedSecret = ctx.options.getString("secret")?.trim();
+    if (!providedSecret) {
+      await ctx.editReply({
+        content: `${platformName} generates the webhook secret itself. Generate a new one in your bot's settings on ${platformName}, then run this command again with the \`secret\` option.`,
+      });
+      return;
+    }
+
+    await db.update(applications).set({ secret: providedSecret }).where(appCfgWhere);
+    await ctx.editReply({
+      content: `The ${platformName} webhook secret has been updated. Use the **Send test vote** button on ${platformName} to check that everything works.`,
+    });
+    return;
+  }
+
   const newSecret = generateRandomToken();
-  await db.update(applications).set({ secret: newSecret }).where(eq(applications.applicationId, bot.id));
+  await db.update(applications).set({ secret: newSecret }).where(appCfgWhere);
 
   await ctx.editReply({
     content: [

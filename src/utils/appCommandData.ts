@@ -36,6 +36,13 @@ export const appCommand = new SlashCommandHandler<MyContext>()
             .setRequired(false)
             .setMinValue(1)
             .setMaxValue(336), // 14 days
+      )
+      .addStringOption((opt) =>
+        opt
+          .setName("secret")
+          .setDescription("Webhook secret from the listing site (Bumped.gg only)")
+          .setRequired(false)
+          .setMaxLength(256),
       ),
   )
   .addSubcommand((sub) =>
@@ -84,6 +91,13 @@ export const appCommand = new SlashCommandHandler<MyContext>()
             })),
           )
           .setRequired(true),
+      )
+      .addStringOption((opt) =>
+        opt
+          .setName("secret")
+          .setDescription("New webhook secret from the listing site (Bumped.gg only, required there)")
+          .setRequired(false)
+          .setMaxLength(256),
       ),
   )
   .addSubcommand((sub) =>

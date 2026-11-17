@@ -23,7 +23,7 @@ import type { BotWebhookPayload as TopggWebhookV0Payload } from "topgg-api-types
  */
 type TopGGPayload = TopggWebhookV1Payload | TopggWebhookV0Payload;
 
-type SupportedSources = "topgg" | "dbl";
+type SupportedSources = "topgg" | "dbl" | "bumped";
 
 /**
  * @see {@link https://docs.discordbotlist.com/vote-webhooks#request-body}
@@ -47,11 +47,31 @@ interface DBLPayload {
   id: Snowflake;
 }
 
-type WebhookPayload = TopGGPayload | DBLPayload;
+/**
+ * @see {@link https://bumped.gg/docs/api#payload}
+ */
+interface BumpedPayload {
+  type: "vote.create" | "webhook.test";
+  data: {
+    /** Unique per vote */
+    id: string;
+    /** Always 1 for now */
+    weight: number;
+    /** RFC 3339 UTC */
+    created_at: string;
+    /** RFC 3339 UTC, when the user can vote again (12 hours after created_at) */
+    expires_at: string;
+    user: { id: string; platform_id: Snowflake; name: string; avatar_url: string };
+    project: { id: string; type: string; platform: string; platform_id: Snowflake };
+  };
+}
+
+type WebhookPayload = TopGGPayload | DBLPayload | BumpedPayload;
 
 type WebhookPayloadMapping = {
   topgg: TopGGPayload;
   dbl: DBLPayload;
+  bumped: BumpedPayload;
 };
 
 type WebhookSource<WithTest extends boolean = false> = WithTest extends true

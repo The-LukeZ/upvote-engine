@@ -1,5 +1,5 @@
 import { ModalHandler, parseCustomId } from "honocord";
-import { MyContext } from "$types";
+import { MyContext, SupportedPlatforms } from "$types";
 import { applications, deleteApplicationCascade } from "$/db/schema";
 import { and, eq } from "drizzle-orm";
 import { bold } from "@discordjs/builders";
@@ -22,7 +22,7 @@ export const appModalHandler = new ModalHandler<MyContext>("app").addHandler(
       }
 
       const botUser = ctx.fields.getSelectedUsers("bot", true).first()!;
-      const [source] = ctx.fields.getSelectedValues("source", true) as ["topgg" | "dbl"];
+      const [source] = ctx.fields.getSelectedValues("source", true) as [SupportedPlatforms];
       if (!botUser.bot) {
         return ctx.editReply({ content: "Selected user is not a bot." });
       }
