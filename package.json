@@ -44,7 +44,7 @@
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.18",
     "honocord": "^3.2.0",
-    "topgg-api-types": "^2.3.2",
+    "topgg-api-types": "^2.4.0",
     "zod": "^4.6.7"
   },
   "license": "Elastic-2.0",
