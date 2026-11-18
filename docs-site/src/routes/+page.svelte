@@ -6,8 +6,8 @@
 <DocsShell content={docs} search={() => import("svelte-docsmith/search").then((m) => m.docs)} layout="page">
   <Hero title="Upvote Engine">
     {#snippet description()}
-      A Discord vote-role bot for Top.gg and Discord Bot List. Assigns a role when someone votes, removes it
-      when the vote expires.
+      A Discord vote-role bot for Top.gg, Discord Bot List and Bumped.gg. Assigns a role when someone votes,
+      removes it when the vote expires.
     {/snippet}
     {#snippet actions()}
       <Action href="/docs/getting-started/">Read the docs</Action>
@@ -17,7 +17,7 @@
   </Hero>
 
   <FeatureGrid title="How it works" columns={3}>
-    <Feature title="Webhook in">Top.gg and DBL vote webhooks land on a per-guild config.</Feature>
+    <Feature title="Webhook in">Vote webhooks from your bot list land on a per-guild config.</Feature>
     <Feature title="Role applied">The configured role is assigned to the voter automatically.</Feature>
     <Feature title="Role expires">The role is removed once the vote's duration runs out.</Feature>
   </FeatureGrid>

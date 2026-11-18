@@ -19,7 +19,7 @@ export default defineConfig({
         footer: {
           poweredBy: true,
         },
-        editUrl: "https://github.com/The-LukeZ/upvote-engine/edit/main/docs-site/src/routes",
+        editUrl: "https://github.com/The-LukeZ/upvote-engine/edit/main/docs-site",
       },
       // Keep the pre-0.22 code block colours instead of following the theme tokens.
       codeTheme: { light: "github-light", dark: "github-dark" },
