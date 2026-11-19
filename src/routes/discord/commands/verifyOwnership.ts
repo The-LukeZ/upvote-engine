@@ -28,14 +28,14 @@ export const verifyOwnershipCommand = new SlashCommandHandler()
           ? "Your ownership of this application has already been verified!"
           : "This application's ownership has already been verified by another user.";
 
-      return ctx.editReply({
-        flags: MessageFlags.IsComponentsV2,
+      return ctx.reply({
+        flags: MessageFlags.Ephemeral | MessageFlags.IsComponentsV2,
         components: [
           new ContainerBuilder()
             .setAccentColor(Colors.Green)
             .addTextDisplayComponents((t) =>
               t.setContent(bold("Ownership Already Verified") + `\n${message}`),
-            ) as any,
+            ),
         ],
       });
     }
@@ -89,7 +89,7 @@ export const verifyOwnershipCommand = new SlashCommandHandler()
                 .setCustomId(`owner_verify?${bot.id}`)
                 .setEmoji({ name: "✅" }),
             ),
-          ) as any,
+          ),
       ],
     });
   });
