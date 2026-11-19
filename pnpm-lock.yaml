@@ -190,9 +190,6 @@ importers:
       '@discordjs/rest':
         specifier: ^2.6.3
         version: 2.6.3
-      '@honocord/cache-do':
-        specifier: ^0.3.1
-        version: 0.3.1
       '@sapphire/snowflake':
         specifier: ^4.0.0
         version: 4.0.0
@@ -212,8 +209,8 @@ importers:
         specifier: ^4.13.18
         version: 4.13.18
       honocord:
-        specifier: ^3.2.0
-        version: 3.2.0(hono@4.13.18)
+        specifier: ^4.1.0
+        version: 4.1.0(hono@4.13.18)
       topgg-api-types:
         specifier: ^2.4.0
         version: 2.4.0
@@ -850,12 +847,6 @@ packages:
   '@hbsnow/rehype-sectionize@1.0.7':
     resolution: {integrity: sha512-twbVxCFf4YwgTm6FIdGtHfJ14vvIHedk2fqZTpE3X6+vszEeZlMTy7tOyI9KaP/6S2DN2Jnk7zZGtZANTD+vEg==}
     engines: {node: '>=16.0.0'}
-
-  '@honocord/cache-base@0.2.0':
-    resolution: {integrity: sha512-PIK1CHepwW+E33eJGGL1rUXYseBmDFj2AIVJBKkKYwNZc/8bSXevK9UkCs5FxxMUx1MiukHrCzfDVQJOO0wLPQ==}
-
-  '@honocord/cache-do@0.3.1':
-    resolution: {integrity: sha512-7mdJrGbKdUZ6O1x1d3OFmr7u6wn5kUZumOCGM/kYqdmqgRA71jdYb4pkAnew8nLHDdjx3ZxqvQ8BKO1MVK4mMA==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1869,11 +1860,15 @@ packages:
     resolution: {integrity: sha512-H9q/E1XizaWstJxUW881dmLxEj+t/TrGGnyxINkm4+sK0qUwsMtFdo2BWI9Vs3cIS19MU6b6iCijoUoEf4f3DA==}
     engines: {node: '>=16.9.0'}
 
-  honocord@3.2.0:
-    resolution: {integrity: sha512-VWLho4ohNig2iCnTXYJXMMxfblQTzG+dY8iE5OrftrEpZTaR3PEwVrH9BHg1hejExBPJt7x987CfWU2T9UuuAA==}
-    engines: {node: '>=22.9.0'}
+  honocord@4.1.0:
+    resolution: {integrity: sha512-fItE9yXW2aj6YSwc+WdPQ/F86vyLUFCMVvq57YAn0ut2VdlunnhDZt0/Oi/Koj5P4d/+/ZjMdCQDcT6p32j1cw==}
+    engines: {node: '>=24'}
     peerDependencies:
       hono: ^4.13.1
+      mongoose: ^9.9.1
+    peerDependenciesMeta:
+      mongoose:
+        optional: true
 
   html-void-elements@2.0.1:
     resolution: {integrity: sha512-0quDb7s97CfemeJAnW9wC0hw78MtW7NU3hqtCD75g2vFlDLt36llsYD7uB7SUzojLMP24N5IatXf7ylGXiGG9A==}
@@ -3008,12 +3003,6 @@ snapshots:
       hast-util-heading-rank: 2.1.1
       rehype: 12.0.1
 
-  '@honocord/cache-base@0.2.0': {}
-
-  '@honocord/cache-do@0.3.1':
-    dependencies:
-      '@honocord/cache-base': 0.2.0
-
   '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.5':
@@ -3825,13 +3814,12 @@ snapshots:
 
   hono@4.13.18: {}
 
-  honocord@3.2.0(hono@4.13.18):
+  honocord@4.1.0(hono@4.13.18):
     dependencies:
       '@discordjs/builders': 1.15.0
       '@discordjs/collection': 2.1.1
       '@discordjs/core': 2.7.0
       '@discordjs/rest': 2.6.3
-      '@honocord/cache-base': 0.2.0
       discord-api-types: 0.38.59
       hono: 4.13.18
     transitivePeerDependencies:

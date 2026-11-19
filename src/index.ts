@@ -258,7 +258,7 @@ export default {
   },
 } satisfies ExportedHandler<Env, any>;
 
-export { HonocordCacheDO } from "@honocord/cache-do";
+export { HonocordCacheDO } from "honocord/cache/do";
 
 export class BlacklistCacheDO extends DurableObject {
   private readonly blacklistedGuilds: Set<string> = new Set<string>();
